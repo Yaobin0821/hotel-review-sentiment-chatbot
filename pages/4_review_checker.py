@@ -181,19 +181,13 @@ def load_review_checker_css():
             max-width: 720px;
         }
 
-        .result-strip {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 0.75rem;
-            margin-bottom: 1rem;
-        }
-
         .strip-card {
             background: rgba(255, 255, 255, 0.9);
             border: 1px solid var(--border);
             border-radius: 22px;
             padding: 1rem;
             box-shadow: 0 8px 20px rgba(74, 55, 40, 0.045);
+            margin-bottom: 1rem;
         }
 
         .strip-label {
@@ -217,20 +211,14 @@ def load_review_checker_css():
             line-height: 1.35;
         }
 
-        .two-col {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.85rem;
-            margin-bottom: 0.9rem;
-        }
-
         .traveller-box {
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.92);
             border: 1px solid var(--border);
             border-radius: 24px;
             padding: 1.15rem;
             box-shadow: 0 8px 20px rgba(74, 55, 40, 0.045);
-            min-height: 170px;
+            min-height: 145px;
+            margin-bottom: 0.9rem;
         }
 
         .box-title {
@@ -248,6 +236,13 @@ def load_review_checker_css():
             margin-bottom: 0.75rem;
         }
 
+        .chip-area {
+            margin-top: 0.75rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+        }
+
         .chip-good, .chip-bad, .chip-topic {
             display: inline-flex;
             align-items: center;
@@ -255,8 +250,7 @@ def load_review_checker_css():
             padding: 0.42rem 0.72rem;
             font-size: 0.85rem;
             font-weight: 760;
-            margin-right: 0.35rem;
-            margin-bottom: 0.35rem;
+            margin: 0;
         }
 
         .chip-good {
@@ -282,9 +276,10 @@ def load_review_checker_css():
             background: #F8F4EE;
             border: 1px solid #E5D8CA;
             border-radius: 16px;
-            padding: 0.8rem;
+            padding: 0.75rem 0.85rem;
             font-size: 0.9rem;
             line-height: 1.45;
+            width: 100%;
         }
 
         .reason-box {
@@ -309,42 +304,28 @@ def load_review_checker_css():
             font-size: 0.95rem;
         }
 
-        .details-card {
-            background: rgba(255, 255, 255, 0.82);
-            border: 1px solid var(--border);
-            border-radius: 22px;
-            padding: 1rem;
-            margin-top: 0.6rem;
-        }
-
-        .mobile-only-space {
-            display: none;
+        .details-note {
+            background: #FFFDF8;
+            border: 1px solid #EAD7C6;
+            color: #6D4B30;
+            border-radius: 16px;
+            padding: 0.8rem 0.9rem;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 0.8rem;
         }
 
         @media (max-width: 950px) {
-            .review-layout {
-                grid-template-columns: 1fr;
-            }
-
             .booking-card.sticky {
                 position: static;
-            }
-
-            .result-strip {
-                grid-template-columns: 1fr;
-            }
-
-            .two-col {
-                grid-template-columns: 1fr;
             }
 
             .advice-title {
                 font-size: 1.55rem;
             }
 
-            .mobile-only-space {
-                display: block;
-                height: 0.2rem;
+            .empty-result {
+                min-height: 280px;
             }
         }
     </style>
@@ -385,8 +366,10 @@ def get_review_feeling(sentiment):
 
     if sentiment == "positive":
         return "Positive"
+
     if sentiment == "negative":
         return "Negative"
+
     return "Mixed"
 
 
@@ -395,21 +378,38 @@ def get_concern_text(risk):
 
     if risk == "high":
         return "High"
+
     if risk == "medium":
         return "Some"
+
     return "Low"
 
 
-def render_chip_list(items, chip_class, empty_message):
+def build_chip_html(items, chip_class, empty_message):
     if not items:
-        st.markdown(f'<div class="empty-line">{escape(empty_message)}</div>', unsafe_allow_html=True)
-        return
+        return f'<div class="empty-line">{escape(empty_message)}</div>'
 
-    chips = "".join(
+    return "".join(
         f'<span class="{chip_class}">{escape(str(item).title())}</span>'
         for item in items
     )
-    st.markdown(chips, unsafe_allow_html=True)
+
+
+def render_traveller_box(title, desc, items, chip_class, empty_message):
+    chips_html = build_chip_html(items, chip_class, empty_message)
+
+    st.markdown(
+        f"""
+        <div class="traveller-box">
+            <div class="box-title">{escape(title)}</div>
+            <div class="box-desc">{escape(desc)}</div>
+            <div class="chip-area">
+                {chips_html}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 
 def build_simple_reason(result):
@@ -420,22 +420,34 @@ def build_simple_reason(result):
     aspects = result.get("detected_aspects", [])
 
     if sentiment == "Positive":
-        sentence = f"This review sounds positive and the result is quite clear."
+        sentence = "This review sounds positive and the result is quite clear."
     elif sentiment == "Negative":
-        sentence = f"This review sounds negative and may contain booking concerns."
+        sentence = "This review sounds negative and may contain booking concerns."
     else:
-        sentence = f"This review sounds mixed, so it is better to compare more guest feedback."
+        sentence = "This review sounds mixed, so it is better to compare more guest feedback."
 
     parts = [sentence]
 
     if pros:
-        parts.append("Good signs mentioned: " + ", ".join(str(x).title() for x in pros[:4]) + ".")
+        parts.append(
+            "Good signs mentioned: "
+            + ", ".join(str(item).title() for item in pros[:4])
+            + "."
+        )
 
     if cons:
-        parts.append("Possible concerns mentioned: " + ", ".join(str(x).title() for x in cons[:4]) + ".")
+        parts.append(
+            "Possible concerns mentioned: "
+            + ", ".join(str(item).title() for item in cons[:4])
+            + "."
+        )
 
     if aspects:
-        parts.append("Main hotel topics: " + ", ".join(aspects[:4]) + ".")
+        parts.append(
+            "Main hotel topics: "
+            + ", ".join(str(item) for item in aspects[:4])
+            + "."
+        )
 
     parts.append(f"Clarity score: {confidence}%.")
 
@@ -455,6 +467,19 @@ def render_empty_state():
     """, unsafe_allow_html=True)
 
 
+def render_result_summary_card(label, value, help_text):
+    st.markdown(
+        f"""
+        <div class="strip-card">
+            <div class="strip-label">{escape(label)}</div>
+            <div class="strip-value">{escape(value)}</div>
+            <div class="strip-help">{escape(help_text)}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
 def render_result(result, review_input):
     sentiment = result.get("sentiment", "Neutral")
     confidence = result.get("confidence", 0)
@@ -472,77 +497,48 @@ def render_result(result, review_input):
         unsafe_allow_html=True
     )
 
-    col1, col2, col3 = st.columns(3)
+    summary_col1, summary_col2, summary_col3 = st.columns(3)
 
-    with col1:
-        st.markdown(
-            f"""
-            <div class="strip-card">
-                <div class="strip-label">Review feeling</div>
-                <div class="strip-value">{escape(get_review_feeling(sentiment))}</div>
-                <div class="strip-help">Overall tone of this review.</div>
-            </div>
-            """,
-            unsafe_allow_html=True
+    with summary_col1:
+        render_result_summary_card(
+            "Review feeling",
+            get_review_feeling(sentiment),
+            "Overall tone of this review."
         )
 
-    with col2:
-        st.markdown(
-            f"""
-            <div class="strip-card">
-                <div class="strip-label">Result clarity</div>
-                <div class="strip-value">{escape(confidence)}%</div>
-                <div class="strip-help">How clear the review signal is.</div>
-            </div>
-            """,
-            unsafe_allow_html=True
+    with summary_col2:
+        render_result_summary_card(
+            "Result clarity",
+            f"{confidence}%",
+            "How clear the review signal is."
         )
 
-    with col3:
-        st.markdown(
-            f"""
-            <div class="strip-card">
-                <div class="strip-label">Booking concern</div>
-                <div class="strip-value">{escape(get_concern_text(risk))}</div>
-                <div class="strip-help">How much caution is suggested.</div>
-            </div>
-            """,
-            unsafe_allow_html=True
+    with summary_col3:
+        render_result_summary_card(
+            "Booking concern",
+            get_concern_text(risk),
+            "How much caution is suggested."
         )
 
-    st.markdown('<div class="mobile-only-space"></div>', unsafe_allow_html=True)
+    good_col, concern_col = st.columns(2)
 
-    left, right = st.columns(2)
-
-    with left:
-        st.markdown("""
-        <div class="traveller-box">
-            <div class="box-title">What looks good</div>
-            <div class="box-desc">Positive points found in the review.</div>
-        """, unsafe_allow_html=True)
-
-        render_chip_list(
-            result.get("pros", []),
-            "chip-good",
-            "No clear positive point was found."
+    with good_col:
+        render_traveller_box(
+            title="What looks good",
+            desc="Positive points found in the review.",
+            items=result.get("pros", []),
+            chip_class="chip-good",
+            empty_message="No clear positive point was found."
         )
 
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    with right:
-        st.markdown("""
-        <div class="traveller-box">
-            <div class="box-title">What to watch out for</div>
-            <div class="box-desc">Possible concerns found in the review.</div>
-        """, unsafe_allow_html=True)
-
-        render_chip_list(
-            result.get("cons", []),
-            "chip-bad",
-            "No clear concern was found."
+    with concern_col:
+        render_traveller_box(
+            title="What to watch out for",
+            desc="Possible concerns found in the review.",
+            items=result.get("cons", []),
+            chip_class="chip-bad",
+            empty_message="No clear concern was found."
         )
-
-        st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown(
         f"""
@@ -556,27 +552,56 @@ def render_result(result, review_input):
 
     with st.expander("More review details"):
         st.markdown("#### Hotel topics mentioned")
-        render_chip_list(
+
+        topics_html = build_chip_html(
             result.get("detected_aspects", []),
             "chip-topic",
             "No specific hotel topic was found."
         )
 
+        st.markdown(
+            f"""
+            <div class="chip-area">
+                {topics_html}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
         emoji_info = result.get("emoji_info", {})
+
         st.markdown("#### Emoji signal")
         st.write(f"Emoji signal: **{emoji_info.get('emoji_sentiment', 'No emoji signal')}**")
 
         aspect_breakdown = result.get("aspect_breakdown", [])
+
         if aspect_breakdown:
+            st.markdown("#### Topic breakdown")
             aspect_df = pd.DataFrame(aspect_breakdown)
+
             show_cols = [
                 col for col in ["Aspect", "Aspect Sentiment", "Matched Keywords"]
                 if col in aspect_df.columns
             ]
-            st.dataframe(aspect_df[show_cols], use_container_width=True, hide_index=True)
+
+            st.dataframe(
+                aspect_df[show_cols],
+                use_container_width=True,
+                hide_index=True
+            )
+        else:
+            st.info("No detailed topic breakdown available.")
 
     with st.expander("Project proof of model used"):
-        st.caption("This section is for lecturer/project demonstration.")
+        st.markdown(
+            """
+            <div class="details-note">
+                This section is mainly for project demonstration. Normal travellers do not need to read this part.
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
         processing_df = get_processing_details(review_input)
         st.dataframe(processing_df, use_container_width=True, hide_index=True)
 

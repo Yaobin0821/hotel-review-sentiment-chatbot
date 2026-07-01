@@ -586,19 +586,6 @@ header {
     font-size: 16px;
 }
 
-.nav-hint {
-    padding: 18px 20px;
-    border-radius: 20px;
-    background: #ffffff;
-    border: 1px solid #dbeafe;
-    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
-    margin-bottom: 22px;
-}
-
-.nav-hint b {
-    color: #1d4ed8;
-}
-
 .card {
     padding: 24px;
     border-radius: 24px;
@@ -834,7 +821,7 @@ st.markdown("""
 
 st.markdown(f"""
 <div class="page-header">
-    <h2>{page}</h2>
+    <h2>{PAGE_INFO[page]["title"]}</h2>
     <p>{PAGE_INFO[page]["desc"]}</p>
 </div>
 """, unsafe_allow_html=True)
@@ -843,12 +830,6 @@ st.markdown(f"""
 # Page 1: Home / Find Hotels
 # =====================================================
 if page == "🏠 Home / Find Hotels":
-    st.markdown("""
-    <div class="nav-hint">
-        <b>How to use:</b> Select an area → Review hotel cards → Open hotel detail before booking.
-    </div>
-    """, unsafe_allow_html=True)
-
     st.subheader("Find Hotels by Area")
     st.write("Select an area to discover hotels with sentiment summary, main strength, main risk, and best traveller type.")
 
@@ -888,12 +869,6 @@ if page == "🏠 Home / Find Hotels":
 # Page 2: Hotel Detail
 # =====================================================
 elif page == "🏨 Hotel Detail":
-    st.markdown("""
-    <div class="nav-hint">
-        <b>Use this page to:</b> check full hotel sentiment, risk alerts, suitability, and review examples.
-    </div>
-    """, unsafe_allow_html=True)
-
     default_hotel = st.session_state.get("selected_hotel", get_hotel_names()[0])
 
     hotel_name = st.selectbox(
@@ -965,12 +940,6 @@ elif page == "🏨 Hotel Detail":
 # Page 3: Compare Hotels
 # =====================================================
 elif page == "⚖️ Compare Hotels":
-    st.markdown("""
-    <div class="nav-hint">
-        <b>Use this page to:</b> compare two hotels from the same area and get a booking recommendation.
-    </div>
-    """, unsafe_allow_html=True)
-
     selected_area = st.selectbox("Select Area", get_areas(), key="compare_area")
     hotel_options = get_hotel_names(selected_area)
 
@@ -1053,12 +1022,6 @@ elif page == "⚖️ Compare Hotels":
 # Page 4: Review Checker
 # =====================================================
 elif page == "🔍 Review Checker":
-    st.markdown("""
-    <div class="nav-hint">
-        <b>Use this page to:</b> paste one hotel review and understand its sentiment, risks, pros, cons, and explanation.
-    </div>
-    """, unsafe_allow_html=True)
-
     st.caption("User input is not saved in this page.")
 
     review_input = st.text_area(
@@ -1143,12 +1106,6 @@ elif page == "🔍 Review Checker":
 # Page 5: Improvement Insights
 # =====================================================
 elif page == "📊 Improvement Insights":
-    st.markdown("""
-    <div class="nav-hint">
-        <b>Use this page to:</b> identify common complaint areas and priority improvement actions for a selected hotel.
-    </div>
-    """, unsafe_allow_html=True)
-
     hotel_name = st.selectbox("Select Hotel", get_hotel_names(), key="insight_hotel")
     hotel = get_hotel_by_name(hotel_name)
 
@@ -1192,6 +1149,6 @@ elif page == "📊 Improvement Insights":
 # =====================================================
 st.divider()
 st.markdown(
-    '<p class="footer-note">Frontend prototype for traveller decision-support platform. Backend sentiment model and final dataset can be integrated later.</p>',
+    '<p class="footer-note">Hotel Review Decision Support Platform for traveller-focused hotel review analysis.</p>',
     unsafe_allow_html=True
 )

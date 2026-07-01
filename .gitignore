@@ -1,0 +1,30 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Large trained model files
+models/distilbert_model/
+models/bilstm_model.keras
+*.safetensors
+*.pt
+*.pth
+*.h5
+*.keras
+
+# Streamlit / cache
+.streamlit/secrets.toml
+.cache/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/

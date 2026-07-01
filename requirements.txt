@@ -1,6 +1,9 @@
 streamlit
-scikit-learn
-joblib
-numpy
 pandas
+numpy
 matplotlib
+scikit-learn
+torch
+transformers
+huggingface_hub
+plotly

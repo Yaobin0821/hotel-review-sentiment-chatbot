@@ -1,0 +1,28 @@
+model_name,model_display_name,actual_label,predicted_label,count
+logistic_regression,Logistic Regression,negative,negative,19
+logistic_regression,Logistic Regression,negative,neutral,7
+logistic_regression,Logistic Regression,negative,positive,0
+logistic_regression,Logistic Regression,neutral,negative,12
+logistic_regression,Logistic Regression,neutral,neutral,13
+logistic_regression,Logistic Regression,neutral,positive,1
+logistic_regression,Logistic Regression,positive,negative,0
+logistic_regression,Logistic Regression,positive,neutral,2
+logistic_regression,Logistic Regression,positive,positive,24
+bilstm,BiLSTM,negative,negative,12
+bilstm,BiLSTM,negative,neutral,4
+bilstm,BiLSTM,negative,positive,10
+bilstm,BiLSTM,neutral,negative,9
+bilstm,BiLSTM,neutral,neutral,6
+bilstm,BiLSTM,neutral,positive,11
+bilstm,BiLSTM,positive,negative,1
+bilstm,BiLSTM,positive,neutral,0
+bilstm,BiLSTM,positive,positive,25
+distilbert,DistilBERT,negative,negative,22
+distilbert,DistilBERT,negative,neutral,4
+distilbert,DistilBERT,negative,positive,0
+distilbert,DistilBERT,neutral,negative,7
+distilbert,DistilBERT,neutral,neutral,14
+distilbert,DistilBERT,neutral,positive,5
+distilbert,DistilBERT,positive,negative,1
+distilbert,DistilBERT,positive,neutral,3
+distilbert,DistilBERT,positive,positive,22

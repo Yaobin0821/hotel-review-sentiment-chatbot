@@ -1,0 +1,29 @@
+{
+    "model_name": "logistic_regression",
+    "algorithm": "TF-IDF + Logistic Regression",
+    "train_file": "data\\train_dataset.csv",
+    "test_file": "data\\test_dataset.csv",
+    "text_column": "Cleaned_Text",
+    "label_column": "Sentiment",
+    "label_order": [
+        "negative",
+        "neutral",
+        "positive"
+    ],
+    "tfidf_params": {
+        "ngram_range": [
+            1,
+            2
+        ],
+        "min_df": 2,
+        "max_df": 0.95,
+        "sublinear_tf": true,
+        "max_features": 10000
+    },
+    "logistic_regression_params": {
+        "max_iter": 2000,
+        "random_state": 42,
+        "solver": "lbfgs",
+        "multi_class": "multinomial"
+    }
+}

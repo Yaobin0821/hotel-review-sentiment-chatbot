@@ -1,2 +1,2 @@
-Model,Accuracy,Macro Precision,Macro Recall,Macro F1-score,Weighted Precision,Weighted Recall,Weighted F1-score
-Complement Naive Bayes,0.875,0.8838,0.875,0.8688,0.8838,0.875,0.8688
+best_model_name,best_model_display_name,selection_criterion,accuracy,macro_precision,macro_recall,macro_f1,reason
+distilbert,DistilBERT,Highest Macro F1-score; Accuracy used as tie-breaker,0.7435897435897436,0.7382716049382716,0.7435897435897436,0.7372158819368776,"The final model was selected mainly using Macro F1-score because the project needs balanced performance across positive, neutral and negative sentiment classes. Accuracy was used as a secondary criterion."

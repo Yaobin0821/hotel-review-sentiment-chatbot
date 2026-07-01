@@ -1,0 +1,41 @@
+{
+    "model_name": "bilstm",
+    "algorithm": "Embedding + Bidirectional LSTM",
+    "train_file": "C:\\Users\\user\\Desktop\\hotel-review-sentiment-chatbot\\data\\train_dataset.csv",
+    "test_file": "C:\\Users\\user\\Desktop\\hotel-review-sentiment-chatbot\\data\\test_dataset.csv",
+    "text_column": "Cleaned_Text",
+    "label_column": "Sentiment",
+    "label_order": [
+        "negative",
+        "neutral",
+        "positive"
+    ],
+    "sentiment_to_id": {
+        "negative": 0,
+        "neutral": 1,
+        "positive": 2
+    },
+    "max_words": 10000,
+    "max_sequence_length": 80,
+    "embedding_dim": 100,
+    "lstm_units": 64,
+    "dense_units": 64,
+    "dropout_rate": 0.3,
+    "spatial_dropout_rate": 0.2,
+    "batch_size": 16,
+    "epochs": 35,
+    "validation_size": 0.2,
+    "learning_rate": 0.001,
+    "random_state": 42,
+    "early_stopping": {
+        "monitor": "val_loss",
+        "patience": 6,
+        "restore_best_weights": true
+    },
+    "reduce_lr_on_plateau": {
+        "monitor": "val_loss",
+        "factor": 0.5,
+        "patience": 3,
+        "min_lr": 1e-05
+    }
+}

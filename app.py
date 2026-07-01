@@ -93,7 +93,8 @@ def load_home_css():
             border-radius: 28px;
             padding: 1.35rem;
             box-shadow: var(--shadow-card);
-            min-height: 275px;
+            height: 330px;
+            box-sizing: border-box;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -131,12 +132,14 @@ def load_home_css():
             font-size: 0.96rem;
             line-height: 1.65;
             margin-bottom: 1.15rem;
+            min-height: 112px;
         }
 
         .home-card-link {
-            display: inline-flex;
+            display: flex;
             justify-content: center;
             align-items: center;
+            width: 100%;
             background: linear-gradient(135deg, var(--brand), var(--brand-dark));
             color: white !important;
             border-radius: 16px;
@@ -145,6 +148,7 @@ def load_home_css():
             font-weight: 850;
             text-decoration: none !important;
             box-shadow: 0 10px 22px rgba(155, 67, 37, 0.20);
+            box-sizing: border-box;
         }
 
         .home-card-link:hover {
@@ -169,8 +173,13 @@ def load_home_css():
             }
 
             .home-card {
-                min-height: auto;
+                height: auto;
+                min-height: 280px;
                 margin-bottom: 1rem;
+            }
+
+            .home-card-text {
+                min-height: auto;
             }
         }
     </style>

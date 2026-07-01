@@ -1,6 +1,5 @@
 import html
 import streamlit as st
-import pandas as pd
 from styles import load_css, render_topbar, render_page_header, render_footer
 from utils import analyze_review_frontend
 
@@ -296,6 +295,50 @@ def load_review_checker_css():
             font-size: 0.95rem;
         }
 
+        .friendly-detail-box {
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 1.15rem;
+            box-shadow: 0 8px 20px rgba(74, 55, 40, 0.045);
+            margin-bottom: 0.9rem;
+        }
+
+        .friendly-detail-title {
+            font-size: 1.08rem;
+            font-weight: 900;
+            color: var(--text-main);
+            margin-bottom: 0.35rem;
+        }
+
+        .friendly-detail-desc {
+            color: #64748B;
+            font-size: 0.92rem;
+            line-height: 1.5;
+            margin-bottom: 0.9rem;
+        }
+
+        .detail-row {
+            margin-bottom: 0.95rem;
+        }
+
+        .detail-label {
+            color: #7C6F64;
+            font-size: 0.82rem;
+            font-weight: 850;
+            margin-bottom: 0.4rem;
+        }
+
+        .simple-explanation {
+            background: #FFFDF8;
+            border: 1px solid #EAD7C6;
+            color: #334155;
+            border-radius: 18px;
+            padding: 0.9rem 1rem;
+            line-height: 1.6;
+            font-size: 0.92rem;
+        }
+
         @media (max-width: 950px) {
             .booking-card.sticky {
                 position: static;
@@ -435,6 +478,123 @@ def build_simple_reason(result):
     return " ".join(parts)
 
 
+def build_friendly_detail_sentence(result):
+    sentiment = result.get("sentiment", "Neutral")
+    pros = result.get("pros", [])
+    cons = result.get("cons", [])
+    aspects = result.get("detected_aspects", [])
+
+    parts = []
+
+    if sentiment == "Positive":
+        parts.append("This review gives a generally good impression.")
+    elif sentiment == "Negative":
+        parts.append("This review gives a generally negative impression.")
+    else:
+        parts.append("This review feels mixed, so it is better to compare more guest feedback.")
+
+    if pros:
+        parts.append(
+            "It mentions positive points such as "
+            + ", ".join(str(item).title() for item in pros[:3])
+            + "."
+        )
+
+    if cons:
+        parts.append(
+            "It also mentions possible concerns such as "
+            + ", ".join(str(item).title() for item in cons[:3])
+            + "."
+        )
+
+    if aspects:
+        parts.append(
+            "The main hotel areas mentioned are "
+            + ", ".join(str(item) for item in aspects[:4])
+            + "."
+        )
+
+    return " ".join(parts)
+
+
+def render_friendly_review_details(result):
+    pros = result.get("pros", [])
+    cons = result.get("cons", [])
+    aspects = result.get("detected_aspects", [])
+    emoji_info = result.get("emoji_info", {})
+    emoji_signal = emoji_info.get("emoji_sentiment", "No emoji signal")
+
+    positive_html = build_chip_html(
+        pros,
+        "chip-good",
+        "No clear positive point was found."
+    )
+
+    concern_html = build_chip_html(
+        cons,
+        "chip-bad",
+        "No clear concern was found."
+    )
+
+    topic_html = build_chip_html(
+        aspects,
+        "chip-topic",
+        "No specific hotel area was clearly mentioned."
+    )
+
+    emoji_html = ""
+
+    if emoji_signal != "No emoji signal":
+        emoji_html = f"""
+        <div class="detail-row">
+            <div class="detail-label">Emoji clue</div>
+            <div class="chip-area">
+                <span class="chip-topic">{escape(emoji_signal)}</span>
+            </div>
+        </div>
+        """
+
+    st.markdown(
+        f"""
+        <div class="friendly-detail-box">
+            <div class="friendly-detail-title">What this review talks about</div>
+            <div class="friendly-detail-desc">
+                A simple breakdown of useful booking signals found in this review.
+            </div>
+
+            <div class="detail-row">
+                <div class="detail-label">Good signs</div>
+                <div class="chip-area">
+                    {positive_html}
+                </div>
+            </div>
+
+            <div class="detail-row">
+                <div class="detail-label">Possible concerns</div>
+                <div class="chip-area">
+                    {concern_html}
+                </div>
+            </div>
+
+            <div class="detail-row">
+                <div class="detail-label">Hotel areas mentioned</div>
+                <div class="chip-area">
+                    {topic_html}
+                </div>
+            </div>
+
+            {emoji_html}
+
+            <div class="simple-explanation">
+                <b>Simple explanation:</b><br>
+                {escape(build_friendly_detail_sentence(result))}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
 def render_empty_state():
     st.markdown("""
     <div class="empty-result">
@@ -461,7 +621,7 @@ def render_result_summary_card(label, value, help_text):
     )
 
 
-def render_result(result, review_input):
+def render_result(result):
     sentiment = result.get("sentiment", "Neutral")
     confidence = result.get("confidence", 0)
     risk = result.get("risk", "Medium")
@@ -531,47 +691,7 @@ def render_result(result, review_input):
         unsafe_allow_html=True
     )
 
-    with st.expander("More review details"):
-        st.markdown("#### Hotel topics mentioned")
-
-        topics_html = build_chip_html(
-            result.get("detected_aspects", []),
-            "chip-topic",
-            "No specific hotel topic was found."
-        )
-
-        st.markdown(
-            f"""
-            <div class="chip-area">
-                {topics_html}
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-        emoji_info = result.get("emoji_info", {})
-
-        st.markdown("#### Emoji signal")
-        st.write(f"Emoji signal: **{emoji_info.get('emoji_sentiment', 'No emoji signal')}**")
-
-        aspect_breakdown = result.get("aspect_breakdown", [])
-
-        if aspect_breakdown:
-            st.markdown("#### Topic breakdown")
-            aspect_df = pd.DataFrame(aspect_breakdown)
-
-            show_cols = [
-                col for col in ["Aspect", "Aspect Sentiment", "Matched Keywords"]
-                if col in aspect_df.columns
-            ]
-
-            st.dataframe(
-                aspect_df[show_cols],
-                use_container_width=True,
-                hide_index=True
-            )
-        else:
-            st.info("No detailed topic breakdown available.")
+    render_friendly_review_details(result)
 
 
 load_css()
@@ -624,7 +744,7 @@ with right_col:
             render_empty_state()
         else:
             result = analyze_review_frontend(review_input)
-            render_result(result, review_input)
+            render_result(result)
     else:
         render_empty_state()
 

@@ -1,0 +1,4 @@
+Model,Accuracy,Macro Precision,Macro Recall,Macro F1-score,Weighted Precision,Weighted Recall,Weighted F1-score
+Complement Naive Bayes,0.875,0.8838,0.875,0.8688,0.8838,0.875,0.8688
+Logistic Regression,0.8333,0.8403,0.8333,0.8294,0.8403,0.8333,0.8294
+Linear SVM,0.8194,0.8405,0.8194,0.8114,0.8405,0.8194,0.8114

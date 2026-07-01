@@ -1,5 +1,6 @@
 import html
 import streamlit as st
+from urllib.parse import quote
 from styles import load_css, render_topbar, render_page_header, render_footer
 from utils import get_areas, get_hotels_by_area
 
@@ -38,40 +39,72 @@ def load_find_hotels_css():
             max-width: 820px;
         }
 
-        .area-card {
+        .area-picker {
             background: rgba(255, 255, 255, 0.92);
             border: 1px solid var(--border);
-            border-radius: 24px;
-            padding: 1.15rem 1.25rem;
+            border-radius: 28px;
+            padding: 1.2rem 1.3rem;
             box-shadow: 0 8px 22px rgba(74, 55, 40, 0.05);
-            margin-bottom: 0.75rem;
+            margin-bottom: 1.35rem;
         }
 
-        .area-label {
-            font-size: 0.82rem;
-            font-weight: 850;
+        .area-picker-label {
+            font-size: 0.78rem;
+            font-weight: 900;
             color: #7C6F64;
+            letter-spacing: 0.08em;
             text-transform: uppercase;
-            letter-spacing: 0.06em;
+            margin-bottom: 0.35rem;
+        }
+
+        .area-picker-title {
+            font-size: 1.15rem;
+            font-weight: 900;
+            color: var(--text-main);
+            margin-bottom: 0.9rem;
+        }
+
+        .area-option-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.7rem;
+        }
+
+        .area-option {
+            display: block;
+            text-decoration: none !important;
+            background: #FFFDF8;
+            border: 1px solid #EAD7C6;
+            border-radius: 20px;
+            padding: 0.85rem 0.9rem;
+            color: var(--text-main) !important;
+            box-shadow: 0 6px 16px rgba(74, 55, 40, 0.04);
+            transition: all 0.16s ease;
+        }
+
+        .area-option:hover {
+            transform: translateY(-2px);
+            border-color: var(--brand);
+            background: #FFF4E8;
+        }
+
+        .area-option.active {
+            background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+            color: white !important;
+            border-color: transparent;
+            box-shadow: 0 12px 26px rgba(155, 67, 37, 0.22);
+        }
+
+        .area-option-name {
+            font-size: 0.98rem;
+            font-weight: 900;
             margin-bottom: 0.25rem;
         }
 
-        .area-title {
-            font-size: 1.1rem;
-            font-weight: 850;
-            color: var(--text-main);
-        }
-
-        div[data-testid="stSelectbox"] label {
-            color: var(--text-main);
-            font-weight: 800;
-        }
-
-        div[data-baseweb="select"] > div {
-            border-radius: 16px !important;
-            border: 1px solid #D8CDBE !important;
-            background: rgba(255, 255, 255, 0.95) !important;
-            min-height: 3rem;
+        .area-option-note {
+            font-size: 0.8rem;
+            font-weight: 650;
+            opacity: 0.78;
         }
 
         .section-heading-row {
@@ -307,8 +340,18 @@ def load_find_hotels_css():
         }
 
         @media (max-width: 900px) {
+            .area-option-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
             .hotel-card {
                 min-height: auto;
+            }
+        }
+
+        @media (max-width: 520px) {
+            .area-option-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -317,6 +360,53 @@ def load_find_hotels_css():
 
 def escape(value):
     return html.escape(str(value))
+
+
+def get_selected_area_from_url():
+    areas = get_areas()
+    selected_area = st.query_params.get("area", areas[0])
+
+    if isinstance(selected_area, list):
+        selected_area = selected_area[0]
+
+    if selected_area not in areas:
+        selected_area = areas[0]
+
+    return selected_area
+
+
+def render_area_picker(selected_area):
+    area_notes = {
+        "Bukit Jalil": "Events & stadium area",
+        "KLCC": "City centre stay",
+        "Petaling Jaya": "Shopping & business",
+        "Sunway": "Family & theme park"
+    }
+
+    option_html = ""
+
+    for area in get_areas():
+        active_class = "active" if area == selected_area else ""
+        area_url = quote(area)
+
+        option_html += (
+            f'<a class="area-option {active_class}" href="?area={area_url}" target="_self">'
+            f'<div class="area-option-name">{escape(area)}</div>'
+            f'<div class="area-option-note">{escape(area_notes.get(area, "Hotel area"))}</div>'
+            f'</a>'
+        )
+
+    picker_html = (
+        '<div class="area-picker">'
+        '<div class="area-picker-label">Area filter</div>'
+        '<div class="area-picker-title">Where are you planning to stay?</div>'
+        '<div class="area-option-grid">'
+        f'{option_html}'
+        '</div>'
+        '</div>'
+    )
+
+    st.markdown(picker_html, unsafe_allow_html=True)
 
 
 def risk_class_name(risk_level):
@@ -449,57 +539,35 @@ render_page_header(
 )
 
 st.markdown(
-    """
-    <div class="find-intro-card">
-        <div class="find-intro-title">Choose an area first</div>
-        <div class="find-intro-text">
-            Select where you plan to stay. StayWise KL will show hotels in that area with a simple review-based summary,
-            including what guests like, what to check, and who the hotel may suit best.
-        </div>
-    </div>
-    """,
+    '<div class="find-intro-card">'
+    '<div class="find-intro-title">Choose an area first</div>'
+    '<div class="find-intro-text">'
+    'Select where you plan to stay. StayWise KL will show hotels in that area with a simple review-based summary, '
+    'including what guests like, what to check, and who the hotel may suit best.'
+    '</div>'
+    '</div>',
     unsafe_allow_html=True
 )
 
-st.markdown(
-    """
-    <div class="area-card">
-        <div class="area-label">Area filter</div>
-        <div class="area-title">Where are you planning to stay?</div>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-selected_area = st.radio(
-    "Select Area",
-    get_areas(),
-    horizontal=True,
-    label_visibility="collapsed"
-)
+selected_area = get_selected_area_from_url()
+render_area_picker(selected_area)
 
 hotels = get_hotels_by_area(selected_area)
 
 st.markdown(
-    f"""
-    <div class="section-heading-row">
-        <div>
-            <div class="section-heading">Recommended hotels</div>
-            <div class="section-sub">Review-based hotel options in the selected area.</div>
-        </div>
-        <div class="area-pill">{escape(selected_area)}</div>
-    </div>
-    """,
+    f'<div class="section-heading-row">'
+    f'<div>'
+    f'<div class="section-heading">Recommended hotels</div>'
+    f'<div class="section-sub">Review-based hotel options in the selected area.</div>'
+    f'</div>'
+    f'<div class="area-pill">{escape(selected_area)}</div>'
+    f'</div>',
     unsafe_allow_html=True
 )
 
 if not hotels:
     st.markdown(
-        """
-        <div class="empty-hotels">
-            No hotels are available for this area yet.
-        </div>
-        """,
+        '<div class="empty-hotels">No hotels are available for this area yet.</div>',
         unsafe_allow_html=True
     )
 else:

@@ -14,11 +14,12 @@ st.set_page_config(
 
 # =====================================================
 # Demo Data - Replace with Backend Later
+# Area dropdown only: Bukit Jalil, KLCC, Petaling Jaya, Sunway
 # =====================================================
 HOTELS = [
     {
         "hotel": "Sunway Luxury Suites",
-        "area": "Sunway / Petaling Jaya",
+        "area": "Sunway",
         "total_reviews": 180,
         "positive_pct": 68,
         "neutral_pct": 20,
@@ -49,40 +50,40 @@ HOTELS = [
         }
     },
     {
-        "hotel": "Sleeping Lion Suites",
-        "area": "Bukit Bintang",
-        "total_reviews": 220,
-        "positive_pct": 72,
-        "neutral_pct": 18,
-        "negative_pct": 10,
-        "main_strength": "Location",
+        "hotel": "Sunway Pyramid Stay",
+        "area": "Sunway",
+        "total_reviews": 165,
+        "positive_pct": 64,
+        "neutral_pct": 23,
+        "negative_pct": 13,
+        "main_strength": "Shopping Access",
         "main_risk": "Waiting Time",
-        "best_traveller_type": "Shopping and city travellers",
-        "risk_level": "Low",
-        "suitability_score": 88,
+        "best_traveller_type": "Shopping and short-stay travellers",
+        "risk_level": "Medium",
+        "suitability_score": 79,
         "price_level": "Mid-range",
-        "description": "A city hotel that is suitable for travellers who want to stay near malls, restaurants, and attractions.",
-        "suitability": ["Shopping travellers", "Couples", "City explorers", "Short stay"],
+        "description": "A convenient hotel option for users who want to stay near Sunway Pyramid, restaurants, and entertainment areas.",
+        "suitability": ["Shopping travellers", "Short stay", "Family travellers"],
         "risk_alerts": [
-            "Some reviews mentioned waiting time at reception.",
-            "Peak hour check-in may be crowded."
+            "Some reviews mentioned waiting time during check-in.",
+            "A few guests mentioned crowded common areas."
         ],
         "reviews": [
-            ("Positive", "Very good location and modern room."),
-            ("Positive", "Easy to walk to shopping areas and restaurants."),
-            ("Neutral", "The room was nice but check-in took some time."),
-            ("Negative", "The lift was slow and the lobby was crowded.")
+            ("Positive", "Very convenient location near the mall."),
+            ("Positive", "Good option for shopping and food."),
+            ("Neutral", "The room was average but the location was good."),
+            ("Negative", "Check-in took too long during peak hours.")
         ],
         "complaints": {
-            "Waiting Time": 15,
-            "Facilities": 9,
-            "Service": 8,
-            "Noise": 4
+            "Waiting Time": 14,
+            "Service": 9,
+            "Facilities": 7,
+            "Room": 5
         }
     },
     {
-        "hotel": "KL City Comfort Hotel",
-        "area": "Kuala Lumpur City Centre",
+        "hotel": "KLCC City Comfort Hotel",
+        "area": "KLCC",
         "total_reviews": 160,
         "positive_pct": 60,
         "neutral_pct": 25,
@@ -93,7 +94,7 @@ HOTELS = [
         "risk_level": "Medium",
         "suitability_score": 76,
         "price_level": "Mid-range",
-        "description": "A practical option for travellers who need quick access to the city centre and public transport.",
+        "description": "A practical option for travellers who need quick access to KLCC, city attractions, and public transport.",
         "suitability": ["Business travellers", "Solo travellers", "City travellers"],
         "risk_alerts": [
             "Some guests mentioned noise from nearby roads.",
@@ -113,72 +114,40 @@ HOTELS = [
         }
     },
     {
-        "hotel": "Putrajaya Lake View Hotel",
-        "area": "Putrajaya",
-        "total_reviews": 140,
-        "positive_pct": 66,
-        "neutral_pct": 22,
-        "negative_pct": 12,
-        "main_strength": "Environment",
-        "main_risk": "Food",
-        "best_traveller_type": "Relaxation travellers",
-        "risk_level": "Medium",
-        "suitability_score": 80,
-        "price_level": "Mid-range",
-        "description": "Suitable for users who prefer a quieter environment, lake view, and relaxing stay.",
-        "suitability": ["Relaxation travellers", "Couples", "Family travellers"],
+        "hotel": "KLCC Luxury Suites",
+        "area": "KLCC",
+        "total_reviews": 210,
+        "positive_pct": 73,
+        "neutral_pct": 17,
+        "negative_pct": 10,
+        "main_strength": "City View",
+        "main_risk": "Price",
+        "best_traveller_type": "Couples and city travellers",
+        "risk_level": "Low",
+        "suitability_score": 87,
+        "price_level": "Premium",
+        "description": "A premium city stay suitable for users who prefer skyline views, comfort, and easy access to KLCC attractions.",
+        "suitability": ["Couples", "City travellers", "Business travellers", "Premium travellers"],
         "risk_alerts": [
-            "Some guests felt the breakfast variety was limited.",
-            "Food quality feedback was mixed."
+            "Some guests felt the room rate was expensive.",
+            "A few reviews mentioned extra charges."
         ],
         "reviews": [
-            ("Positive", "The lake view is beautiful and the environment is peaceful."),
-            ("Neutral", "The room was fine but breakfast was average."),
-            ("Negative", "The food was not worth the price."),
-            ("Positive", "Good place for a quiet weekend stay.")
+            ("Positive", "The city view was beautiful and the room was comfortable."),
+            ("Positive", "Excellent location near KLCC and restaurants."),
+            ("Neutral", "The stay was good but the price was high."),
+            ("Negative", "The room was expensive compared to similar hotels.")
         ],
         "complaints": {
-            "Food": 16,
-            "Price": 8,
-            "Service": 6,
-            "Facilities": 5
-        }
-    },
-    {
-        "hotel": "Bukit Bintang Budget Stay",
-        "area": "Bukit Bintang",
-        "total_reviews": 130,
-        "positive_pct": 52,
-        "neutral_pct": 28,
-        "negative_pct": 20,
-        "main_strength": "Price",
-        "main_risk": "Room Comfort",
-        "best_traveller_type": "Budget travellers",
-        "risk_level": "High",
-        "suitability_score": 68,
-        "price_level": "Budget",
-        "description": "A budget-friendly option for travellers who prioritize price and location over room comfort.",
-        "suitability": ["Budget travellers", "Solo travellers", "Backpackers"],
-        "risk_alerts": [
-            "Room comfort risk is higher than other hotels.",
-            "Some guests mentioned small rooms and noise."
-        ],
-        "reviews": [
-            ("Positive", "The price is cheap and the location is convenient."),
-            ("Neutral", "Good for one night but the room is small."),
-            ("Negative", "The bed was uncomfortable and the room was noisy."),
-            ("Neutral", "Acceptable for budget travellers.")
-        ],
-        "complaints": {
-            "Room Comfort": 22,
-            "Noise": 14,
-            "Cleanliness": 10,
-            "Service": 6
+            "Price": 16,
+            "Service": 7,
+            "Facilities": 5,
+            "Room": 4
         }
     },
     {
         "hotel": "PJ Business Hotel",
-        "area": "Sunway / Petaling Jaya",
+        "area": "Petaling Jaya",
         "total_reviews": 150,
         "positive_pct": 58,
         "neutral_pct": 27,
@@ -207,6 +176,102 @@ HOTELS = [
             "Facilities": 8,
             "Room": 5
         }
+    },
+    {
+        "hotel": "PJ City Comfort Hotel",
+        "area": "Petaling Jaya",
+        "total_reviews": 145,
+        "positive_pct": 62,
+        "neutral_pct": 24,
+        "negative_pct": 14,
+        "main_strength": "Value for Money",
+        "main_risk": "Room Comfort",
+        "best_traveller_type": "Budget and business travellers",
+        "risk_level": "Medium",
+        "suitability_score": 77,
+        "price_level": "Budget",
+        "description": "A value-focused hotel option for travellers who want affordable accommodation in Petaling Jaya.",
+        "suitability": ["Budget travellers", "Business travellers", "Solo travellers"],
+        "risk_alerts": [
+            "Some guests mentioned that rooms were small.",
+            "A few reviews mentioned older room facilities."
+        ],
+        "reviews": [
+            ("Positive", "Good value for money and convenient location."),
+            ("Positive", "The staff were helpful and the price was affordable."),
+            ("Neutral", "The room was small but acceptable."),
+            ("Negative", "The bed was not very comfortable.")
+        ],
+        "complaints": {
+            "Room Comfort": 15,
+            "Facilities": 10,
+            "Cleanliness": 7,
+            "Service": 6
+        }
+    },
+    {
+        "hotel": "Bukit Jalil City Hotel",
+        "area": "Bukit Jalil",
+        "total_reviews": 155,
+        "positive_pct": 65,
+        "neutral_pct": 22,
+        "negative_pct": 13,
+        "main_strength": "Event Access",
+        "main_risk": "Traffic",
+        "best_traveller_type": "Event and family travellers",
+        "risk_level": "Medium",
+        "suitability_score": 80,
+        "price_level": "Mid-range",
+        "description": "Suitable for users attending events or travelling with family around Bukit Jalil.",
+        "suitability": ["Event travellers", "Family travellers", "Short stay", "Sports event visitors"],
+        "risk_alerts": [
+            "Some guests mentioned traffic during event days.",
+            "A few reviews mentioned limited food options nearby."
+        ],
+        "reviews": [
+            ("Positive", "Very convenient for attending events in Bukit Jalil."),
+            ("Positive", "The room was clean and suitable for family."),
+            ("Neutral", "The hotel was good but traffic was heavy."),
+            ("Negative", "It was difficult to get transport after the event.")
+        ],
+        "complaints": {
+            "Traffic": 17,
+            "Food": 8,
+            "Service": 6,
+            "Facilities": 5
+        }
+    },
+    {
+        "hotel": "Bukit Jalil Budget Stay",
+        "area": "Bukit Jalil",
+        "total_reviews": 130,
+        "positive_pct": 52,
+        "neutral_pct": 28,
+        "negative_pct": 20,
+        "main_strength": "Price",
+        "main_risk": "Room Comfort",
+        "best_traveller_type": "Budget travellers",
+        "risk_level": "High",
+        "suitability_score": 68,
+        "price_level": "Budget",
+        "description": "A budget-friendly option for travellers who prioritize price and location over room comfort.",
+        "suitability": ["Budget travellers", "Solo travellers", "Backpackers"],
+        "risk_alerts": [
+            "Room comfort risk is higher than other hotels.",
+            "Some guests mentioned small rooms and noise."
+        ],
+        "reviews": [
+            ("Positive", "The price is cheap and the location is convenient."),
+            ("Neutral", "Good for one night but the room is small."),
+            ("Negative", "The bed was uncomfortable and the room was noisy."),
+            ("Neutral", "Acceptable for budget travellers.")
+        ],
+        "complaints": {
+            "Room Comfort": 22,
+            "Noise": 14,
+            "Cleanliness": 10,
+            "Service": 6
+        }
     }
 ]
 
@@ -214,7 +279,7 @@ HOTELS = [
 # Helper Functions
 # =====================================================
 def get_areas():
-    return sorted(list(set([hotel["area"] for hotel in HOTELS])))
+    return ["Bukit Jalil", "KLCC", "Petaling Jaya", "Sunway"]
 
 def get_hotels_by_area(area):
     return [hotel for hotel in HOTELS if hotel["area"] == area]
@@ -291,7 +356,8 @@ def get_complaint_df(hotel):
             "Room": "Improve room maintenance and provide clearer room size information.",
             "Room Comfort": "Improve bedding quality, room ventilation and comfort facilities.",
             "Waiting Time": "Improve check-in workflow and add queue management during peak hours.",
-            "Parking": "Provide clearer parking information and alternative parking suggestions."
+            "Parking": "Provide clearer parking information and alternative parking suggestions.",
+            "Traffic": "Provide clearer transport guidance and event-day travel advice."
         }
 
         rows.append({
@@ -783,10 +849,10 @@ if page == "🏠 Home / Find Hotels":
 
     st.markdown("### Recommended Hotels in This Area")
 
-    cols = st.columns(3)
+    cols = st.columns(2)
 
     for index, hotel in enumerate(hotels):
-        with cols[index % 3]:
+        with cols[index % 2]:
             risk_class = risk_css_class(hotel["risk_level"])
 
             st.markdown(f"""
@@ -804,7 +870,7 @@ if page == "🏠 Home / Find Hotels":
             </div>
             """, unsafe_allow_html=True)
 
-            if st.button(f"View Details", key=f"view_{hotel['hotel']}"):
+            if st.button("View Details", key=f"view_{hotel['hotel']}"):
                 st.session_state.selected_hotel = hotel["hotel"]
                 st.session_state.page = "🏨 Hotel Detail"
                 st.rerun()

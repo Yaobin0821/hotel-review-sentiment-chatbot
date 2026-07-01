@@ -24,11 +24,11 @@ def load_model():
 try:
     model = load_model()
 except Exception:
-    st.error("Model file not found. Please make sure hotel_sentiment_model.pkl is uploaded.")
+    st.error("Model file not found. Please make sure hotel_sentiment_model.pkl is uploaded to GitHub.")
     st.stop()
 
 # =====================================================
-# Load Optional Dataset and Classification Report
+# Load Dataset, Report, and Optional Evaluation Files
 # =====================================================
 @st.cache_data
 def load_dataset():
@@ -45,8 +45,20 @@ def load_report():
     except:
         return "Classification report is not uploaded yet."
 
+@st.cache_data
+def load_optional_csv(file_name):
+    try:
+        return pd.read_csv(file_name)
+    except:
+        return None
+
 dataset = load_dataset()
 classification_report_text = load_report()
+
+model_eval_df = load_optional_csv("model_evaluation_results.csv")
+all_model_reports_df = load_optional_csv("all_model_classification_reports.csv")
+confusion_matrix_df = load_optional_csv("model_confusion_matrices.csv")
+best_model_summary_df = load_optional_csv("best_model_summary.csv")
 
 # =====================================================
 # Text Pre-processing
@@ -127,6 +139,17 @@ negative_words = [
     "smell", "noise", "bug", "bugs", "mold", "mould"
 ]
 
+negative_phrases = [
+    "not clean", "not comfortable", "not friendly", "not good",
+    "not worth", "not recommended", "not helpful", "not convenient",
+    "not satisfied"
+]
+
+positive_phrases = [
+    "very clean", "very comfortable", "very friendly", "very helpful",
+    "highly recommended", "worth the money", "good value"
+]
+
 bad_words = ["fuck", "shit", "bitch", "asshole"]
 meaningless_words = ["haha", "hahaha", "hehe", "lol", "lmao", "test", "ok", "okay"]
 
@@ -201,13 +224,20 @@ def get_model_classes():
 # Hybrid Keyword Correction
 # =====================================================
 def keyword_sentiment_override(text, model_prediction, model_confidence, score_df):
+    lowered = normalize_typos(text)
     cleaned = clean_text(text)
     words = cleaned.split()
 
     positive_count = sum(1 for word in words if word in positive_words)
     negative_count = sum(1 for word in words if word in negative_words)
 
-    # If there are many clear negative words, correct to negative.
+    phrase_negative_count = sum(1 for phrase in negative_phrases if phrase in lowered)
+    phrase_positive_count = sum(1 for phrase in positive_phrases if phrase in lowered)
+
+    positive_count += phrase_positive_count
+    negative_count += phrase_negative_count
+
+    # Strong negative correction
     if negative_count >= 2 and negative_count > positive_count:
         prediction = "negative"
         confidence = max(model_confidence if model_confidence is not None else 0, 0.85)
@@ -220,7 +250,7 @@ def keyword_sentiment_override(text, model_prediction, model_confidence, score_d
         note = "Keyword-assisted correction applied because multiple negative words were detected."
         return prediction, confidence, score_df, note
 
-    # If there are many clear positive words, correct to positive.
+    # Strong positive correction
     if positive_count >= 2 and positive_count > negative_count:
         prediction = "positive"
         confidence = max(model_confidence if model_confidence is not None else 0, 0.85)
@@ -233,7 +263,33 @@ def keyword_sentiment_override(text, model_prediction, model_confidence, score_d
         note = "Keyword-assisted correction applied because multiple positive words were detected."
         return prediction, confidence, score_df, note
 
-    # If both positive and negative words exist, it is likely a mixed review.
+    # Single strong negative word with low model confidence
+    if negative_count >= 1 and positive_count == 0 and (model_confidence is None or model_confidence < 0.60):
+        prediction = "negative"
+        confidence = 0.70
+
+        score_df = pd.DataFrame({
+            "Sentiment": ["negative", "neutral", "positive"],
+            "Score": [0.70, 0.20, 0.10]
+        })
+
+        note = "Keyword-assisted correction applied because a clear negative word was detected with low model confidence."
+        return prediction, confidence, score_df, note
+
+    # Single strong positive word with low model confidence
+    if positive_count >= 1 and negative_count == 0 and (model_confidence is None or model_confidence < 0.60):
+        prediction = "positive"
+        confidence = 0.70
+
+        score_df = pd.DataFrame({
+            "Sentiment": ["negative", "neutral", "positive"],
+            "Score": [0.10, 0.20, 0.70]
+        })
+
+        note = "Keyword-assisted correction applied because a clear positive word was detected with low model confidence."
+        return prediction, confidence, score_df, note
+
+    # Mixed review correction
     if positive_count >= 1 and negative_count >= 1:
         prediction = "neutral"
         confidence = max(model_confidence if model_confidence is not None else 0, 0.65)
@@ -532,6 +588,7 @@ with st.sidebar:
     st.write("✅ Compare multiple reviews")
     st.write("✅ Download analysis result")
     st.write("✅ Hybrid keyword correction")
+    st.write("✅ Model evaluation dashboard")
 
 # =====================================================
 # Header
@@ -544,7 +601,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =====================================================
-# Tabs
+# Main Tabs
 # =====================================================
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "🔍 Analyze Review",
@@ -624,7 +681,6 @@ with tab1:
             user_summary = generate_user_summary(overall, aspect_results)
             travel_advice = generate_travel_advice(overall, aspect_results)
 
-            # Summary Metrics
             m1, m2, m3, m4 = st.columns(4)
 
             with m1:
@@ -642,7 +698,6 @@ with tab1:
             with m4:
                 st.metric("Detected Aspects", len(aspect_results))
 
-            # Overall Card
             css_class = sentiment_css(overall)
 
             st.markdown(f"""
@@ -652,15 +707,12 @@ with tab1:
             </div>
             """, unsafe_allow_html=True)
 
-            # Prediction Note
             with st.expander("View Prediction Note"):
                 st.write(prediction_note)
 
-            # User Summary
             st.markdown("### 🧾 What This Review Means")
             st.info(user_summary)
 
-            # Travel Advice
             st.markdown("### 🧭 Travel Decision Advice")
 
             if overall == "positive":
@@ -670,7 +722,6 @@ with tab1:
             else:
                 st.error(travel_advice)
 
-            # Pros and Cons
             st.markdown("### ✅ Pros and ⚠️ Cons Detected")
 
             pros_col, cons_col = st.columns(2)
@@ -687,7 +738,6 @@ with tab1:
                 else:
                     st.info("No clear cons detected.")
 
-            # Sentiment Score Distribution
             st.markdown("### 📈 Sentiment Score Distribution")
 
             if score_df is not None:
@@ -700,7 +750,6 @@ with tab1:
                     score_table["Score (%)"] = score_table["Score"] * 100
                     st.dataframe(score_table, use_container_width=True)
 
-            # Aspect Analysis
             st.markdown("### 🧩 Hotel Aspect Analysis")
 
             if aspect_results:
@@ -722,11 +771,9 @@ with tab1:
             else:
                 st.info("No specific hotel aspect was detected from this review.")
 
-            # Pre-processed Text
             with st.expander("View Pre-processed Text"):
                 st.code(cleaned)
 
-            # Save Result
             result_row = analyze_review(review)
             st.session_state.history.append(result_row)
 
@@ -788,66 +835,269 @@ with tab2:
 with tab3:
     st.subheader("📊 Model and Dataset Information")
 
-    if dataset is not None:
-        total_reviews = len(dataset)
-        sentiment_counts = dataset["Sentiment"].value_counts() if "Sentiment" in dataset.columns else None
+    dataset_tab, preprocessing_tab, comparison_tab, individual_tab, best_tab = st.tabs([
+        "📁 Dataset Overview",
+        "🧹 Pre-processing",
+        "📈 Model Comparison",
+        "📋 Individual Model Results",
+        "🏆 Best Model"
+    ])
 
-        c1, c2, c3, c4 = st.columns(4)
+    # ==============================
+    # Dataset Overview
+    # ==============================
+    with dataset_tab:
+        st.markdown("### 📁 Dataset Overview")
 
-        with c1:
-            st.metric("Total Reviews", total_reviews)
+        if dataset is not None:
+            total_reviews = len(dataset)
+            sentiment_counts = dataset["Sentiment"].value_counts() if "Sentiment" in dataset.columns else None
 
-        if sentiment_counts is not None:
+            c1, c2, c3, c4 = st.columns(4)
+
+            with c1:
+                st.metric("Total Reviews", total_reviews)
+
+            if sentiment_counts is not None:
+                with c2:
+                    st.metric("Positive Reviews", int(sentiment_counts.get("positive", 0)))
+                with c3:
+                    st.metric("Neutral Reviews", int(sentiment_counts.get("neutral", 0)))
+                with c4:
+                    st.metric("Negative Reviews", int(sentiment_counts.get("negative", 0)))
+
+                st.markdown("### Sentiment Distribution Graph")
+                st.bar_chart(sentiment_counts)
+
+                sentiment_distribution_df = sentiment_counts.reset_index()
+                sentiment_distribution_df.columns = ["Sentiment", "Count"]
+                st.markdown("### Sentiment Distribution Table")
+                st.dataframe(sentiment_distribution_df, use_container_width=True)
+
+            if "Source" in dataset.columns:
+                st.markdown("### Review Source Distribution")
+                source_counts = dataset["Source"].value_counts()
+                st.bar_chart(source_counts)
+
+                source_df = source_counts.reset_index()
+                source_df.columns = ["Source", "Count"]
+                st.dataframe(source_df, use_container_width=True)
+
+            if "Location" in dataset.columns:
+                st.markdown("### Review Location Distribution")
+                location_counts = dataset["Location"].value_counts()
+                st.bar_chart(location_counts)
+
+                location_df = location_counts.reset_index()
+                location_df.columns = ["Location", "Count"]
+                st.dataframe(location_df, use_container_width=True)
+
+            st.markdown("### Dataset Preview")
+            st.dataframe(dataset.head(10), use_container_width=True)
+
+        else:
+            st.warning("Dataset file is not uploaded. Please upload cleaned_hotel_reviews_dataset.csv to GitHub.")
+
+    # ==============================
+    # Pre-processing
+    # ==============================
+    with preprocessing_tab:
+        st.markdown("### 🧹 Text Pre-processing Pipeline")
+
+        preprocessing_steps = pd.DataFrame({
+            "Step": [
+                "Lowercasing",
+                "Typo Normalization",
+                "URL Removal",
+                "Special Character Removal",
+                "Whitespace Normalization",
+                "TF-IDF Vectorization"
+            ],
+            "Purpose": [
+                "Convert all text into lowercase for consistency.",
+                "Normalize common spelling variations such as cleaness to cleanliness.",
+                "Remove links that do not contribute to sentiment classification.",
+                "Remove punctuation, numbers, and symbols.",
+                "Remove extra spaces after text cleaning.",
+                "Represent cleaned reviews as numerical features for model training."
+            ]
+        })
+
+        st.dataframe(preprocessing_steps, use_container_width=True)
+
+        st.markdown("### Knowledge Representation")
+
+        knowledge_df = pd.DataFrame({
+            "Component": [
+                "Cleaned Dataset",
+                "Sentiment Labels",
+                "TF-IDF Features",
+                "Aspect Keyword Dictionary",
+                "Saved Model File",
+                "Hybrid Keyword Correction",
+                "Evaluation Files"
+            ],
+            "Representation": [
+                "CSV format",
+                "Positive, Neutral, Negative",
+                "Numerical vector representation",
+                "Dictionary-based aspect mapping",
+                "hotel_sentiment_model.pkl",
+                "Rule-based sentiment correction",
+                "CSV and TXT evaluation reports"
+            ],
+            "Purpose": [
+                "Store collected and cleaned hotel reviews.",
+                "Represent target sentiment categories.",
+                "Convert text into machine-readable format.",
+                "Support aspect-based sentiment analysis.",
+                "Deploy the trained model in Streamlit.",
+                "Improve obvious sentiment predictions for user input.",
+                "Display model performance in the system."
+            ]
+        })
+
+        st.dataframe(knowledge_df, use_container_width=True)
+
+    # ==============================
+    # Model Comparison
+    # ==============================
+    with comparison_tab:
+        st.markdown("### 📈 Overall Model Comparison")
+
+        if model_eval_df is not None:
+            st.markdown("#### Model Performance Table")
+            st.dataframe(model_eval_df, use_container_width=True)
+
+            st.markdown("#### Accuracy Comparison Graph")
+            accuracy_chart = model_eval_df.set_index("Model")[["Accuracy"]]
+            st.bar_chart(accuracy_chart)
+
+            st.markdown("#### Macro F1-score Comparison Graph")
+            f1_chart = model_eval_df.set_index("Model")[["Macro F1-score"]]
+            st.bar_chart(f1_chart)
+
+            required_cols = ["Macro Precision", "Macro Recall", "Macro F1-score"]
+
+            if all(col in model_eval_df.columns for col in required_cols):
+                st.markdown("#### Precision, Recall and F1-score Comparison")
+                metric_chart = model_eval_df.set_index("Model")[required_cols]
+                st.bar_chart(metric_chart)
+
+            st.info(
+                "The best model is selected based on Macro F1-score because the dataset contains three sentiment classes and the system should perform well across positive, neutral, and negative reviews."
+            )
+
+        else:
+            st.warning("Model evaluation file is missing. Please upload model_evaluation_results.csv to GitHub.")
+
+    # ==============================
+    # Individual Model Results
+    # ==============================
+    with individual_tab:
+        st.markdown("### 📋 Individual Model Results")
+
+        if all_model_reports_df is not None:
+            model_names = all_model_reports_df["Model"].unique().tolist()
+
+            selected_model = st.selectbox(
+                "Select a model to view detailed result:",
+                model_names
+            )
+
+            selected_report = all_model_reports_df[
+                all_model_reports_df["Model"] == selected_model
+            ]
+
+            st.markdown(f"#### Classification Report: {selected_model}")
+            st.dataframe(selected_report, use_container_width=True)
+
+            class_report_for_chart = selected_report[
+                selected_report["Class"].isin(["positive", "neutral", "negative"])
+            ]
+
+            if not class_report_for_chart.empty:
+                st.markdown(f"#### F1-score by Class: {selected_model}")
+                f1_by_class = class_report_for_chart.set_index("Class")[["F1-score"]]
+                st.bar_chart(f1_by_class)
+
+                st.markdown(f"#### Precision, Recall and F1-score by Class: {selected_model}")
+
+                metric_by_class = class_report_for_chart.set_index("Class")[
+                    ["Precision", "Recall", "F1-score"]
+                ]
+
+                st.bar_chart(metric_by_class)
+
+            if confusion_matrix_df is not None:
+                st.markdown(f"#### Confusion Matrix: {selected_model}")
+
+                selected_cm = confusion_matrix_df[
+                    confusion_matrix_df["Model"] == selected_model
+                ]
+
+                cm_pivot = selected_cm.pivot(
+                    index="Actual",
+                    columns="Predicted",
+                    values="Count"
+                ).fillna(0).astype(int)
+
+                st.dataframe(cm_pivot, use_container_width=True)
+
+                st.markdown("The confusion matrix shows how many reviews were correctly or incorrectly classified for each sentiment class.")
+
+        else:
+            st.warning("Individual model report file is missing. Please upload all_model_classification_reports.csv to GitHub.")
+
+    # ==============================
+    # Best Model
+    # ==============================
+    with best_tab:
+        st.markdown("### 🏆 Best Model Final Summary")
+
+        if best_model_summary_df is not None:
+            st.markdown("#### Best Model Summary Table")
+            st.dataframe(best_model_summary_df, use_container_width=True)
+
+            best_model_name = best_model_summary_df.iloc[0]["Model"]
+            best_accuracy = best_model_summary_df.iloc[0]["Accuracy"]
+            best_macro_f1 = best_model_summary_df.iloc[0]["Macro F1-score"]
+
+            c1, c2, c3 = st.columns(3)
+
+            with c1:
+                st.metric("Best Model", best_model_name)
+
             with c2:
-                st.metric("Positive", int(sentiment_counts.get("positive", 0)))
+                st.metric("Accuracy", f"{best_accuracy * 100:.2f}%")
+
             with c3:
-                st.metric("Neutral", int(sentiment_counts.get("neutral", 0)))
-            with c4:
-                st.metric("Negative", int(sentiment_counts.get("negative", 0)))
+                st.metric("Macro F1-score", f"{best_macro_f1 * 100:.2f}%")
 
-            st.markdown("### Sentiment Distribution")
-            st.bar_chart(sentiment_counts)
+            st.markdown("#### Best Model Classification Report")
+            st.code(classification_report_text)
 
-        st.markdown("### Dataset Preview")
-        st.dataframe(dataset.head(10), use_container_width=True)
+            st.success(
+                "This model is selected as the final deployed model because it achieved the highest Macro F1-score among the tested models."
+            )
 
-    else:
-        st.info("Upload cleaned_hotel_reviews_dataset.csv to GitHub to display dataset information here.")
+            if confusion_matrix_df is not None:
+                st.markdown("#### Best Model Confusion Matrix")
 
-    st.markdown("### Text Pre-processing Pipeline")
+                best_cm = confusion_matrix_df[
+                    confusion_matrix_df["Model"] == best_model_name
+                ]
 
-    preprocessing_steps = pd.DataFrame({
-        "Step": [
-            "Lowercasing",
-            "Typo Normalization",
-            "URL Removal",
-            "Special Character Removal",
-            "Whitespace Normalization",
-            "TF-IDF Vectorization"
-        ],
-        "Purpose": [
-            "Convert all text into lowercase for consistency.",
-            "Normalize common spelling variations such as cleaness to cleanliness.",
-            "Remove links that do not contribute to sentiment.",
-            "Remove punctuation, numbers, and symbols.",
-            "Remove extra spaces after cleaning.",
-            "Represent cleaned reviews as numerical features for model training."
-        ]
-    })
+                best_cm_pivot = best_cm.pivot(
+                    index="Actual",
+                    columns="Predicted",
+                    values="Count"
+                ).fillna(0).astype(int)
 
-    st.dataframe(preprocessing_steps, use_container_width=True)
+                st.dataframe(best_cm_pivot, use_container_width=True)
 
-    st.markdown("### Knowledge Representation")
-    st.write("The system represents knowledge using:")
-    st.write("- Cleaned hotel review dataset")
-    st.write("- TF-IDF numerical feature representation")
-    st.write("- Sentiment labels: positive, neutral, negative")
-    st.write("- Aspect keyword dictionary")
-    st.write("- Saved machine learning model file")
-    st.write("- Hybrid keyword correction for obvious sentiment cases")
-
-    st.markdown("### Model Performance")
-    st.code(classification_report_text)
+        else:
+            st.warning("Best model summary file is missing. Please upload best_model_summary.csv to GitHub.")
 
 # =====================================================
 # Tab 4: History
@@ -903,6 +1153,18 @@ with tab5:
     - Hotel customers
     - Users comparing hotel reviews before booking
     - Tourism review analysis users
+
+    ### Model and Dataset Section
+
+    The **Model & Dataset** section shows:
+    - Dataset overview
+    - Sentiment distribution
+    - Text pre-processing pipeline
+    - Knowledge representation
+    - Model comparison results
+    - Individual model performance
+    - Confusion matrix
+    - Best model summary
 
     ### Advanced Feature
 

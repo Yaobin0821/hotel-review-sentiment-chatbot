@@ -1,0 +1,15 @@
+﻿Item,Value
+Original Rows,417
+Rows After Empty Removal,417
+Rows After Valid Sentiment Filter,417
+Rows After Short Text Filter,400
+Rows After Duplicate Removal,398
+Rows After Balancing,387
+Rows Removed During Balancing,11
+Translated Reviews,23
+Detected Languages,"en, id, en_assumed, sl"
+Train Rows,309
+Test Rows,78
+Positive Reviews,129
+Neutral Reviews,129
+Negative Reviews,129

@@ -14,6 +14,7 @@ st.set_page_config(
 
 # =====================================================
 # Demo Data - Replace with Backend Later
+# Area dropdown only: Bukit Jalil, KLCC, Petaling Jaya, Sunway
 # =====================================================
 HOTELS = [
     {
@@ -29,7 +30,7 @@ HOTELS = [
         "risk_level": "Medium",
         "suitability_score": 82,
         "price_level": "Mid-range",
-        "description": "A convenient stay near shopping areas, restaurants, and family-friendly attractions.",
+        "description": "Suitable for travellers who want easy access to shopping malls, restaurants, and family-friendly facilities.",
         "suitability": ["Family travellers", "Shopping travellers", "Short stay", "First-time visitors"],
         "risk_alerts": [
             "Some guests mentioned cleanliness inconsistency.",
@@ -61,7 +62,7 @@ HOTELS = [
         "risk_level": "Medium",
         "suitability_score": 79,
         "price_level": "Mid-range",
-        "description": "A practical hotel option for users who want to stay near Sunway Pyramid and entertainment areas.",
+        "description": "A convenient hotel option for users who want to stay near Sunway Pyramid, restaurants, and entertainment areas.",
         "suitability": ["Shopping travellers", "Short stay", "Family travellers"],
         "risk_alerts": [
             "Some reviews mentioned waiting time during check-in.",
@@ -125,7 +126,7 @@ HOTELS = [
         "risk_level": "Low",
         "suitability_score": 87,
         "price_level": "Premium",
-        "description": "A premium city stay for users who prefer skyline views, comfort, and access to KLCC attractions.",
+        "description": "A premium city stay suitable for users who prefer skyline views, comfort, and easy access to KLCC attractions.",
         "suitability": ["Couples", "City travellers", "Business travellers", "Premium travellers"],
         "risk_alerts": [
             "Some guests felt the room rate was expensive.",
@@ -157,7 +158,7 @@ HOTELS = [
         "risk_level": "Medium",
         "suitability_score": 74,
         "price_level": "Mid-range",
-        "description": "A practical hotel for business travellers who need access to offices and transport routes.",
+        "description": "Suitable for business travellers who need a practical hotel near offices and transport routes.",
         "suitability": ["Business travellers", "Solo travellers", "Short stay"],
         "risk_alerts": [
             "Parking availability may be limited.",
@@ -221,7 +222,7 @@ HOTELS = [
         "risk_level": "Medium",
         "suitability_score": 80,
         "price_level": "Mid-range",
-        "description": "A suitable option for users attending events or travelling with family around Bukit Jalil.",
+        "description": "Suitable for users attending events or travelling with family around Bukit Jalil.",
         "suitability": ["Event travellers", "Family travellers", "Short stay", "Sports event visitors"],
         "risk_alerts": [
             "Some guests mentioned traffic during event days.",
@@ -324,35 +325,19 @@ def risk_css_class(risk):
         return "risk-high"
     return "risk-medium"
 
-def risk_rank(risk):
-    return {"Low": 1, "Medium": 2, "High": 3}.get(risk, 2)
-
-def price_rank(price):
-    return {"Budget": 1, "Mid-range": 2, "Premium": 3}.get(price, 2)
-
 def get_sentiment_df(hotel):
     return pd.DataFrame({
         "Sentiment": ["Positive", "Neutral", "Negative"],
-        "Percentage": [hotel["positive_pct"], hotel["neutral_pct"], hotel["negative_pct"]]
+        "Percentage": [
+            hotel["positive_pct"],
+            hotel["neutral_pct"],
+            hotel["negative_pct"]
+        ]
     })
-
-def risk_explanation(risk_area):
-    explanations = {
-        "Cleanliness": "Cleanliness risk may affect comfort and hygiene-sensitive travellers.",
-        "Waiting Time": "Waiting time risk may affect users arriving during peak check-in hours.",
-        "Noise": "Noise risk may affect light sleepers, business travellers, or families.",
-        "Price": "Price risk may affect travellers who are sensitive to budget or value for money.",
-        "Parking": "Parking risk may affect users travelling by car.",
-        "Room Comfort": "Room comfort risk may affect users staying for longer periods.",
-        "Traffic": "Traffic risk may affect users attending events or travelling during peak hours.",
-        "Food": "Food risk may affect users who rely on hotel breakfast or in-house dining.",
-        "Service": "Service risk may affect users who need fast support from hotel staff.",
-        "Facilities": "Facilities risk may affect users expecting gym, pool, lift, Wi-Fi, or other amenities."
-    }
-    return explanations.get(risk_area, "This risk may affect the overall guest experience.")
 
 def get_complaint_df(hotel):
     rows = []
+
     for area, count in hotel["complaints"].items():
         if count >= 15:
             priority = "High"
@@ -379,7 +364,6 @@ def get_complaint_df(hotel):
             "Complaint Area": area,
             "Complaint Count": count,
             "Priority Level": priority,
-            "Why It Matters": risk_explanation(area),
             "Suggested Improvement Action": action_map.get(
                 area,
                 "Review related feedback and improve the affected service area."
@@ -387,95 +371,6 @@ def get_complaint_df(hotel):
         })
 
     return pd.DataFrame(rows).sort_values(by="Complaint Count", ascending=False)
-
-def traveller_match_score(hotel, traveller_type, risk_tolerance, budget_level):
-    score = 50
-
-    text = (
-        hotel["best_traveller_type"] + " " +
-        " ".join(hotel["suitability"]) + " " +
-        hotel["description"]
-    ).lower()
-
-    traveller_keywords = {
-        "Any": [],
-        "Family": ["family"],
-        "Business": ["business"],
-        "Budget": ["budget", "value", "affordable"],
-        "Shopping": ["shopping", "mall"],
-        "Event": ["event", "sports"],
-        "Couple": ["couple", "couples", "premium"]
-    }
-
-    for keyword in traveller_keywords.get(traveller_type, []):
-        if keyword in text:
-            score += 15
-
-    if budget_level != "Any":
-        if hotel["price_level"] == budget_level:
-            score += 18
-        else:
-            score -= 6
-
-    tolerance_rank = {"Low": 1, "Medium": 2, "High": 3}.get(risk_tolerance, 2)
-
-    if risk_rank(hotel["risk_level"]) <= tolerance_rank:
-        score += 14
-    else:
-        score -= 15
-
-    score += int(hotel["positive_pct"] * 0.12)
-    score -= int(hotel["negative_pct"] * 0.10)
-
-    return max(0, min(100, score))
-
-def sort_hotels(hotels, sort_by):
-    if sort_by == "Best match score":
-        return hotels
-    if sort_by == "Highest positive reviews":
-        return sorted(hotels, key=lambda h: h["positive_pct"], reverse=True)
-    if sort_by == "Lowest risk":
-        return sorted(hotels, key=lambda h: risk_rank(h["risk_level"]))
-    if sort_by == "Highest suitability score":
-        return sorted(hotels, key=lambda h: h["suitability_score"], reverse=True)
-    if sort_by == "Most reviews":
-        return sorted(hotels, key=lambda h: h["total_reviews"], reverse=True)
-    return hotels
-
-def compare_breakdown(hotel_a, hotel_b):
-    rows = []
-
-    rows.append({
-        "Decision Factor": "Higher Positive Sentiment",
-        "Winner": hotel_a["hotel"] if hotel_a["positive_pct"] > hotel_b["positive_pct"] else hotel_b["hotel"],
-        "Reason": f"{hotel_a['hotel']}: {hotel_a['positive_pct']}%, {hotel_b['hotel']}: {hotel_b['positive_pct']}%"
-    })
-
-    rows.append({
-        "Decision Factor": "Lower Negative Risk",
-        "Winner": hotel_a["hotel"] if hotel_a["negative_pct"] < hotel_b["negative_pct"] else hotel_b["hotel"],
-        "Reason": f"{hotel_a['hotel']}: {hotel_a['negative_pct']}%, {hotel_b['hotel']}: {hotel_b['negative_pct']}%"
-    })
-
-    rows.append({
-        "Decision Factor": "Better Traveller Suitability",
-        "Winner": hotel_a["hotel"] if hotel_a["suitability_score"] > hotel_b["suitability_score"] else hotel_b["hotel"],
-        "Reason": f"{hotel_a['hotel']}: {hotel_a['suitability_score']}/100, {hotel_b['hotel']}: {hotel_b['suitability_score']}/100"
-    })
-
-    rows.append({
-        "Decision Factor": "Lower Risk Level",
-        "Winner": hotel_a["hotel"] if risk_rank(hotel_a["risk_level"]) < risk_rank(hotel_b["risk_level"]) else hotel_b["hotel"],
-        "Reason": f"{hotel_a['hotel']}: {hotel_a['risk_level']}, {hotel_b['hotel']}: {hotel_b['risk_level']}"
-    })
-
-    rows.append({
-        "Decision Factor": "More Review Evidence",
-        "Winner": hotel_a["hotel"] if hotel_a["total_reviews"] > hotel_b["total_reviews"] else hotel_b["hotel"],
-        "Reason": f"{hotel_a['hotel']}: {hotel_a['total_reviews']} reviews, {hotel_b['hotel']}: {hotel_b['total_reviews']} reviews"
-    })
-
-    return pd.DataFrame(rows)
 
 def recommend_better_hotel(hotel_a, hotel_b):
     score_a = (
@@ -501,29 +396,24 @@ def recommend_better_hotel(hotel_a, hotel_b):
 
     return (
         f"Recommended Hotel: **{winner['hotel']}**. "
-        f"It is more suitable because it has stronger overall sentiment, lower negative review impact, "
-        f"and better traveller suitability compared with {loser['hotel']}."
+        f"It is more suitable because it has stronger overall sentiment, "
+        f"a lower negative review impact, and better traveller suitability compared with {loser['hotel']}."
     )
 
 # =====================================================
-# Review Checker Logic
+# Demo Review Checker Logic
+# Frontend-only until backend is ready
 # =====================================================
 positive_words = [
     "good", "great", "excellent", "clean", "comfortable", "friendly",
     "helpful", "nice", "spacious", "convenient", "worth", "amazing",
-    "perfect", "pleasant", "beautiful", "recommended", "polite", "fast"
+    "perfect", "pleasant", "beautiful", "recommended"
 ]
 
 negative_words = [
     "bad", "dirty", "rude", "slow", "expensive", "poor", "noisy",
     "smelly", "broken", "worst", "terrible", "disappointed",
-    "uncomfortable", "unclean", "overpriced", "small", "delay"
-]
-
-hotel_related_words = [
-    "hotel", "room", "bed", "bathroom", "staff", "service", "clean",
-    "dirty", "location", "price", "breakfast", "parking", "wifi",
-    "wi-fi", "lift", "pool", "gym", "restaurant", "check", "lobby"
+    "uncomfortable", "unclean", "overpriced"
 ]
 
 aspect_keywords = {
@@ -535,38 +425,6 @@ aspect_keywords = {
     "Facilities": ["pool", "gym", "wifi", "wi-fi", "parking", "lift", "elevator"],
     "Food": ["breakfast", "food", "restaurant", "meal", "buffet"]
 }
-
-def input_quality_check(review):
-    text = str(review).lower()
-    words = re.findall(r"[a-zA-Z]+", text)
-
-    detected_hotel_words = [word for word in words if word in hotel_related_words]
-    detected_aspects = []
-
-    for aspect, keywords in aspect_keywords.items():
-        if any(keyword in text for keyword in keywords):
-            detected_aspects.append(aspect)
-
-    if len(words) < 5:
-        quality = "Low"
-        note = "The review is very short, so the result may be less reliable."
-    elif len(detected_hotel_words) == 0:
-        quality = "Low"
-        note = "No strong hotel-related keywords were detected."
-    elif len(detected_aspects) >= 2:
-        quality = "High"
-        note = "The review contains clear hotel-related aspects."
-    else:
-        quality = "Medium"
-        note = "The review is hotel-related but contains limited aspect detail."
-
-    return {
-        "Review Length": len(words),
-        "Hotel Keywords Detected": ", ".join(sorted(set(detected_hotel_words))) if detected_hotel_words else "None",
-        "Detected Aspects": ", ".join(detected_aspects) if detected_aspects else "None",
-        "Input Quality": quality,
-        "Note": note
-    }
 
 def analyze_review_frontend(review):
     text = str(review).lower()
@@ -624,10 +482,21 @@ def analyze_review_frontend(review):
 # =====================================================
 st.markdown("""
 <style>
-#MainMenu { visibility: hidden; }
-footer { visibility: hidden; }
-header { visibility: hidden; }
-[data-testid="stToolbar"] { display: none; }
+#MainMenu {
+    visibility: hidden;
+}
+
+footer {
+    visibility: hidden;
+}
+
+header {
+    visibility: hidden;
+}
+
+[data-testid="stToolbar"] {
+    display: none;
+}
 
 .stApp {
     background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
@@ -732,7 +601,7 @@ header { visibility: hidden; }
     background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
     box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
     border: 1px solid #e2e8f0;
-    min-height: 405px;
+    min-height: 370px;
     margin-bottom: 22px;
     transition: all 0.2s ease-in-out;
 }
@@ -923,6 +792,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 page_options = list(PAGE_INFO.keys())
+
 current_page = st.session_state.get("page", page_options[0])
 
 if current_page not in page_options:
@@ -961,58 +831,13 @@ st.markdown(f"""
 # =====================================================
 if page == "🏠 Home / Find Hotels":
     st.subheader("Find Hotels by Area")
+    st.write("Select an area to discover hotels with sentiment summary, main strength, main risk, and best traveller type.")
 
-    filter_col1, filter_col2, filter_col3, filter_col4 = st.columns(4)
-
-    with filter_col1:
-        selected_area = st.selectbox("Area", get_areas())
-
-    with filter_col2:
-        traveller_type = st.selectbox(
-            "Traveller Type",
-            ["Any", "Family", "Business", "Budget", "Shopping", "Event", "Couple"]
-        )
-
-    with filter_col3:
-        risk_tolerance = st.selectbox(
-            "Risk Tolerance",
-            ["Low", "Medium", "High"],
-            index=1
-        )
-
-    with filter_col4:
-        budget_level = st.selectbox(
-            "Budget Level",
-            ["Any", "Budget", "Mid-range", "Premium"]
-        )
-
-    sort_by = st.selectbox(
-        "Sort Hotels By",
-        [
-            "Best match score",
-            "Highest positive reviews",
-            "Lowest risk",
-            "Highest suitability score",
-            "Most reviews"
-        ]
-    )
+    selected_area = st.selectbox("Select Area", get_areas())
 
     hotels = get_hotels_by_area(selected_area)
 
-    for hotel in hotels:
-        hotel["match_score"] = traveller_match_score(
-            hotel,
-            traveller_type,
-            risk_tolerance,
-            budget_level
-        )
-
-    if sort_by == "Best match score":
-        hotels = sorted(hotels, key=lambda h: h["match_score"], reverse=True)
-    else:
-        hotels = sort_hotels(hotels, sort_by)
-
-    st.markdown("### Recommended Hotels")
+    st.markdown("### Recommended Hotels in This Area")
 
     cols = st.columns(2)
 
@@ -1024,14 +849,12 @@ if page == "🏠 Home / Find Hotels":
             <div class="hotel-card">
                 <h3>{hotel["hotel"]}</h3>
                 <p class="small-text">{hotel["area"]} • {hotel["price_level"]}</p>
-                <p><b>Match Score:</b> {hotel["match_score"]}/100</p>
                 <p><b>Sentiment Summary</b></p>
                 <p>🟢 Positive: {hotel["positive_pct"]}%<br>
                 🟡 Neutral: {hotel["neutral_pct"]}%<br>
                 🔴 Negative: {hotel["negative_pct"]}%</p>
                 <p><b>Main Strength:</b> {hotel["main_strength"]}</p>
                 <p><b>Main Risk:</b> {hotel["main_risk"]}</p>
-                <p class="small-text">{risk_explanation(hotel["main_risk"])}</p>
                 <p><b>Best Traveller Type:</b><br>{hotel["best_traveller_type"]}</p>
                 <p><span class="{risk_class}">{risk_badge(hotel["risk_level"])}</span></p>
             </div>
@@ -1074,15 +897,13 @@ elif page == "🏨 Hotel Detail":
 
         with left:
             st.markdown("### Risk Alerts")
+
             for alert in hotel["risk_alerts"]:
                 st.markdown(f"""
                 <div class="warning-box">
                     ⚠️ {alert}
                 </div>
                 """, unsafe_allow_html=True)
-
-            st.markdown("### Main Risk Explanation")
-            st.info(risk_explanation(hotel["main_risk"]))
 
         with right:
             st.markdown("### Traveller Suitability")
@@ -1100,15 +921,7 @@ elif page == "🏨 Hotel Detail":
 
         st.markdown("### Review List")
 
-        review_filter = st.selectbox(
-            "Filter Reviews",
-            ["All", "Positive", "Neutral", "Negative"]
-        )
-
         for sentiment, review in hotel["reviews"]:
-            if review_filter != "All" and sentiment != review_filter:
-                continue
-
             if sentiment == "Positive":
                 box_class = "good-box"
             elif sentiment == "Negative":
@@ -1201,10 +1014,6 @@ elif page == "⚖️ Compare Hotels":
             })
             st.bar_chart(chart_df.set_index("Hotel"))
 
-            st.markdown("### Decision Breakdown")
-            breakdown_df = compare_breakdown(hotel_a, hotel_b)
-            st.dataframe(breakdown_df, use_container_width=True)
-
             st.markdown("### Recommendation")
             recommendation = recommend_better_hotel(hotel_a, hotel_b)
             st.success(recommendation)
@@ -1227,7 +1036,6 @@ elif page == "🔍 Review Checker":
         if review_input.strip() == "":
             st.warning("Please paste a hotel review first.")
         else:
-            quality = input_quality_check(review_input)
             result = analyze_review_frontend(review_input)
 
             c1, c2, c3, c4 = st.columns(4)
@@ -1275,6 +1083,7 @@ elif page == "🔍 Review Checker":
                     st.info("No clear cons detected.")
 
             st.markdown("### Detected Hotel Aspects")
+
             if result["detected_aspects"]:
                 for aspect in result["detected_aspects"]:
                     st.markdown(f'<span class="tag">{aspect}</span>', unsafe_allow_html=True)
@@ -1285,16 +1094,13 @@ elif page == "🔍 Review Checker":
             st.write(result["explanation"])
 
             st.markdown("### Traveller Decision Note")
+
             if result["risk"] == "High":
                 st.error("This review contains clear risk signals. Users should compare more reviews before booking.")
             elif result["risk"] == "Medium":
                 st.warning("This review is mixed or has some concerns. Users should check more reviews before deciding.")
             else:
                 st.success("This review looks generally safe, but users should still compare multiple reviews.")
-
-            with st.expander("View Input Quality Check"):
-                quality_df = pd.DataFrame([quality])
-                st.dataframe(quality_df, use_container_width=True)
 
 # =====================================================
 # Page 5: Improvement Insights
@@ -1320,6 +1126,7 @@ elif page == "📊 Improvement Insights":
         st.dataframe(complaint_df, use_container_width=True)
 
         st.markdown("### Suggested Improvement Focus")
+
         top_issue = complaint_df.iloc[0]
 
         if top_issue["Priority Level"] == "High":

@@ -373,8 +373,10 @@ def render_topbar():
         '<div class="brand-pill">Traveller-friendly review assistant</div>'
         '</div>'
         '</div>'
+
         '<div class="nav-card">'
         '<div class="nav-row">'
+        '<a class="nav-link" href="/" target="_self">🏡 Home</a>'
         '<a class="nav-link" href="/find_hotels" target="_self">🏠 Find Hotels</a>'
         '<a class="nav-link" href="/hotel_detail" target="_self">🏨 Hotel Detail</a>'
         '<a class="nav-link" href="/compare_hotels" target="_self">⚖️ Compare</a>'

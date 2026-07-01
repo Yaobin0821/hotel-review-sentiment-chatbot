@@ -214,15 +214,15 @@ HOTELS = [
 # Helper Functions
 # =====================================================
 def get_areas():
-    return sorted(list(set([h["area"] for h in HOTELS])))
+    return sorted(list(set([hotel["area"] for hotel in HOTELS])))
 
 def get_hotels_by_area(area):
-    return [h for h in HOTELS if h["area"] == area]
+    return [hotel for hotel in HOTELS if hotel["area"] == area]
 
 def get_hotel_names(area=None):
     if area:
-        return [h["hotel"] for h in HOTELS if h["area"] == area]
-    return [h["hotel"] for h in HOTELS]
+        return [hotel["hotel"] for hotel in HOTELS if hotel["area"] == area]
+    return [hotel["hotel"] for hotel in HOTELS]
 
 def get_hotel_by_name(name):
     for hotel in HOTELS:
@@ -234,9 +234,9 @@ def sentiment_label_style(label):
     label = str(label).lower()
     if label == "positive":
         return "🟢 Positive"
-    elif label == "neutral":
+    if label == "neutral":
         return "🟡 Neutral"
-    elif label == "negative":
+    if label == "negative":
         return "🔴 Negative"
     return label
 
@@ -244,9 +244,9 @@ def risk_badge(risk):
     risk = str(risk).lower()
     if risk == "low":
         return "🟢 Low Risk"
-    elif risk == "medium":
+    if risk == "medium":
         return "🟡 Medium Risk"
-    elif risk == "high":
+    if risk == "high":
         return "🔴 High Risk"
     return risk
 
@@ -254,9 +254,9 @@ def risk_css_class(risk):
     risk = str(risk).lower()
     if risk == "low":
         return "risk-low"
-    elif risk == "medium":
+    if risk == "medium":
         return "risk-medium"
-    elif risk == "high":
+    if risk == "high":
         return "risk-high"
     return "risk-medium"
 
@@ -362,8 +362,8 @@ aspect_keywords = {
 
 def analyze_review_frontend(review):
     text = str(review).lower()
-    clean_text = re.sub(r"[^a-zA-Z\s]", " ", text)
-    words = clean_text.split()
+    cleaned_text = re.sub(r"[^a-zA-Z\s]", " ", text)
+    words = cleaned_text.split()
 
     positive_count = sum(1 for word in words if word in positive_words)
     negative_count = sum(1 for word in words if word in negative_words)
@@ -416,117 +416,97 @@ def analyze_review_frontend(review):
 # =====================================================
 st.markdown("""
 <style>
-/* Whole page */
+#MainMenu {
+    visibility: hidden;
+}
+
+footer {
+    visibility: hidden;
+}
+
+header {
+    visibility: hidden;
+}
+
+[data-testid="stToolbar"] {
+    display: none;
+}
+
 .stApp {
     background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
 }
 
 .block-container {
-    padding-top: 1.3rem;
+    padding-top: 1.2rem;
     padding-bottom: 2rem;
+    max-width: 1280px;
 }
 
-/* Sidebar */
-[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #0f172a 0%, #111827 50%, #1e3a8a 100%);
-    min-width: 310px;
+.topbar {
+    padding: 20px 24px;
+    border-radius: 24px;
+    background: rgba(255,255,255,0.88);
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.07);
+    margin-bottom: 20px;
 }
 
-[data-testid="stSidebar"] * {
-    color: white;
+.brand-title {
+    font-size: 24px;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 3px;
 }
 
-[data-testid="stSidebar"] .stRadio label {
-    font-size: 17px !important;
-    font-weight: 700 !important;
-}
-
-[data-testid="stSidebar"] [role="radiogroup"] label {
-    background: rgba(255, 255, 255, 0.09);
-    padding: 14px 16px;
-    border-radius: 16px;
-    margin-bottom: 10px;
-    border: 1px solid rgba(255,255,255,0.18);
-    transition: all 0.2s ease-in-out;
-}
-
-[data-testid="stSidebar"] [role="radiogroup"] label:hover {
-    background: rgba(255, 255, 255, 0.18);
-    transform: translateX(4px);
-}
-
-.sidebar-title {
-    padding: 18px 16px;
-    border-radius: 20px;
-    background: rgba(255,255,255,0.12);
-    border: 1px solid rgba(255,255,255,0.18);
-    margin-bottom: 18px;
-}
-
-.sidebar-title h2 {
-    color: white;
-    margin-bottom: 4px;
-}
-
-.sidebar-title p {
-    color: #dbeafe;
+.brand-subtitle {
     font-size: 14px;
-    margin: 0;
+    color: #64748b;
 }
 
-.active-page-box {
-    padding: 16px;
-    border-radius: 18px;
-    background: rgba(59, 130, 246, 0.25);
-    border: 1px solid rgba(147, 197, 253, 0.45);
-    margin-top: 16px;
-    margin-bottom: 16px;
-}
-
-/* Hero */
 .hero {
     padding: 42px;
     border-radius: 30px;
     background:
-        radial-gradient(circle at top right, rgba(96,165,250,0.45), transparent 28%),
-        linear-gradient(135deg, #020617, #1e3a8a 55%, #2563eb);
-    color: white;
-    margin-bottom: 28px;
-    box-shadow: 0 18px 40px rgba(30, 64, 175, 0.25);
+        radial-gradient(circle at top right, rgba(96,165,250,0.35), transparent 28%),
+        linear-gradient(135deg, #ffffff 0%, #eff6ff 48%, #dbeafe 100%);
+    color: #0f172a;
+    margin-bottom: 24px;
+    box-shadow: 0 18px 40px rgba(30, 64, 175, 0.12);
+    border: 1px solid #dbeafe;
 }
 
 .hero h1 {
-    color: white;
+    color: #0f172a;
     font-size: 46px;
     margin-bottom: 10px;
     letter-spacing: -0.5px;
 }
 
 .hero p {
-    color: #dbeafe;
+    color: #334155;
     font-size: 18px;
     max-width: 900px;
 }
 
 .hero-badge {
     display: inline-block;
-    background: rgba(255,255,255,0.14);
-    border: 1px solid rgba(255,255,255,0.25);
+    background: #dbeafe;
+    border: 1px solid #bfdbfe;
     padding: 8px 14px;
     border-radius: 999px;
-    color: #dbeafe;
+    color: #1d4ed8;
     font-size: 14px;
+    font-weight: 700;
     margin-bottom: 15px;
 }
 
-/* Page header */
 .page-header {
-    padding: 24px;
+    padding: 22px 24px;
     border-radius: 24px;
-    background: rgba(255, 255, 255, 0.86);
+    background: rgba(255, 255, 255, 0.92);
     border: 1px solid #e2e8f0;
-    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.07);
-    margin-bottom: 24px;
+    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
+    margin-bottom: 22px;
 }
 
 .page-header h2 {
@@ -540,12 +520,24 @@ st.markdown("""
     font-size: 16px;
 }
 
-/* Cards */
+.nav-hint {
+    padding: 18px 20px;
+    border-radius: 20px;
+    background: #ffffff;
+    border: 1px solid #dbeafe;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
+    margin-bottom: 22px;
+}
+
+.nav-hint b {
+    color: #1d4ed8;
+}
+
 .card {
     padding: 24px;
     border-radius: 24px;
-    background: rgba(255,255,255,0.94);
-    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+    background: rgba(255,255,255,0.95);
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.07);
     border: 1px solid #e5e7eb;
     margin-bottom: 18px;
 }
@@ -554,16 +546,16 @@ st.markdown("""
     padding: 24px;
     border-radius: 26px;
     background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.09);
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
     border: 1px solid #e2e8f0;
-    min-height: 355px;
+    min-height: 370px;
     margin-bottom: 22px;
     transition: all 0.2s ease-in-out;
 }
 
 .hotel-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 18px 38px rgba(15, 23, 42, 0.13);
+    box-shadow: 0 18px 38px rgba(15, 23, 42, 0.12);
 }
 
 .hotel-card h3 {
@@ -576,7 +568,6 @@ st.markdown("""
     color: #334155;
 }
 
-/* Tags */
 .tag {
     display: inline-block;
     padding: 7px 12px;
@@ -588,20 +579,6 @@ st.markdown("""
     font-weight: 600;
 }
 
-.nav-hint {
-    padding: 18px;
-    border-radius: 20px;
-    background: #ffffff;
-    border: 1px solid #dbeafe;
-    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
-    margin-bottom: 22px;
-}
-
-.nav-hint b {
-    color: #1d4ed8;
-}
-
-/* Risk badges */
 .risk-low {
     background: #dcfce7;
     color: #166534;
@@ -629,7 +606,6 @@ st.markdown("""
     font-weight: 700;
 }
 
-/* Alert boxes */
 .info-box {
     padding: 20px;
     border-radius: 20px;
@@ -666,7 +642,6 @@ st.markdown("""
     box-shadow: 0 6px 18px rgba(220, 38, 38, 0.08);
 }
 
-/* Text */
 .small-text {
     color: #64748b;
     font-size: 14px;
@@ -677,7 +652,6 @@ st.markdown("""
     font-size: 13px;
 }
 
-/* Buttons */
 .stButton > button {
     border-radius: 14px;
     padding: 0.65rem 1rem;
@@ -693,19 +667,43 @@ st.markdown("""
     color: white;
 }
 
-/* Metrics */
 [data-testid="stMetric"] {
-    background: rgba(255,255,255,0.9);
+    background: rgba(255,255,255,0.92);
     padding: 16px;
     border-radius: 18px;
     border: 1px solid #e2e8f0;
-    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
+}
+
+div[role="radiogroup"] {
+    background: white;
+    border: 1px solid #dbeafe;
+    padding: 10px;
+    border-radius: 22px;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+    margin-bottom: 22px;
+}
+
+div[role="radiogroup"] label {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    padding: 12px 16px;
+    border-radius: 16px;
+    margin-right: 8px;
+    font-weight: 700;
+    color: #0f172a;
+    transition: all 0.2s ease-in-out;
+}
+
+div[role="radiogroup"] label:hover {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
 }
 </style>
 """, unsafe_allow_html=True)
 
 # =====================================================
-# Sidebar Navigation
+# Top Navigation
 # =====================================================
 if "page" not in st.session_state:
     st.session_state.page = "🏠 Home / Find Hotels"
@@ -733,49 +731,20 @@ PAGE_INFO = {
     }
 }
 
-st.sidebar.markdown("""
-<div class="sidebar-title">
-    <h2>🏨 Traveller Platform</h2>
-    <p>Hotel review decision-support frontend</p>
+st.markdown("""
+<div class="topbar">
+    <div class="brand-title">🏨 Hotel Review Decision Support Platform</div>
+    <div class="brand-subtitle">A traveller-focused web application for hotel review sentiment, risk, and suitability analysis.</div>
 </div>
 """, unsafe_allow_html=True)
 
-st.sidebar.markdown("### 🧭 Main Navigation")
-st.sidebar.caption("Choose a page below")
-
-page = st.sidebar.radio(
+page = st.radio(
     "Navigation",
     list(PAGE_INFO.keys()),
     key="page",
+    horizontal=True,
     label_visibility="collapsed"
 )
-
-st.sidebar.markdown(f"""
-<div class="active-page-box">
-    <b>Current Page</b><br>
-    {page}<br><br>
-    <span style="color:#bfdbfe;">{PAGE_INFO[page]["desc"]}</span>
-</div>
-""", unsafe_allow_html=True)
-
-st.sidebar.divider()
-
-st.sidebar.markdown("### ✨ Platform Purpose")
-st.sidebar.write(
-    "This platform helps travellers find hotels, compare review risks, and understand whether a hotel is suitable before booking."
-)
-
-st.sidebar.divider()
-
-st.sidebar.markdown("### 🔎 Page Guide")
-st.sidebar.write("🏠 Find hotels by area")
-st.sidebar.write("🏨 View hotel details")
-st.sidebar.write("⚖️ Compare two hotels")
-st.sidebar.write("🔍 Check one review")
-st.sidebar.write("📊 View complaint insights")
-
-st.sidebar.divider()
-st.sidebar.info("Prototype mode: backend and final dataset can be connected later.")
 
 # =====================================================
 # Header
@@ -783,8 +752,8 @@ st.sidebar.info("Prototype mode: backend and final dataset can be connected late
 st.markdown("""
 <div class="hero">
     <div class="hero-badge">Traveller Decision-Support Platform</div>
-    <h1>Hotel Review Decision Support Platform</h1>
-    <p>Explore hotels by area, understand review sentiment, compare booking risks, and make smarter travel decisions using review-based insights.</p>
+    <h1>Make Better Hotel Decisions from Reviews</h1>
+    <p>Explore hotels by area, understand review sentiment, compare booking risks, and identify whether a hotel matches your traveller profile.</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -801,11 +770,11 @@ st.markdown(f"""
 if page == "🏠 Home / Find Hotels":
     st.markdown("""
     <div class="nav-hint">
-        <b>Step 1:</b> Select an area → <b>Step 2:</b> Review hotel cards → <b>Step 3:</b> Open hotel detail before booking.
+        <b>How to use:</b> Select an area → Review hotel cards → Open hotel detail before booking.
     </div>
     """, unsafe_allow_html=True)
 
-    st.subheader("🏠 Find Hotels by Area")
+    st.subheader("Find Hotels by Area")
     st.write("Select an area to discover hotels with sentiment summary, main strength, main risk, and best traveller type.")
 
     selected_area = st.selectbox("Select Area", get_areas())
@@ -835,7 +804,7 @@ if page == "🏠 Home / Find Hotels":
             </div>
             """, unsafe_allow_html=True)
 
-            if st.button(f"View {hotel['hotel']}", key=f"view_{hotel['hotel']}"):
+            if st.button(f"View Details", key=f"view_{hotel['hotel']}"):
                 st.session_state.selected_hotel = hotel["hotel"]
                 st.session_state.page = "🏨 Hotel Detail"
                 st.rerun()
@@ -849,8 +818,6 @@ elif page == "🏨 Hotel Detail":
         <b>Use this page to:</b> check full hotel sentiment, risk alerts, suitability, and review examples.
     </div>
     """, unsafe_allow_html=True)
-
-    st.subheader("🏨 Hotel Detail")
 
     default_hotel = st.session_state.get("selected_hotel", get_hotel_names()[0])
 
@@ -928,8 +895,6 @@ elif page == "⚖️ Compare Hotels":
         <b>Use this page to:</b> compare two hotels from the same area and get a booking recommendation.
     </div>
     """, unsafe_allow_html=True)
-
-    st.subheader("⚖️ Compare Hotels")
 
     selected_area = st.selectbox("Select Area", get_areas(), key="compare_area")
     hotel_options = get_hotel_names(selected_area)
@@ -1019,7 +984,6 @@ elif page == "🔍 Review Checker":
     </div>
     """, unsafe_allow_html=True)
 
-    st.subheader("🔍 Review Checker")
     st.caption("User input is not saved in this page.")
 
     review_input = st.text_area(
@@ -1109,8 +1073,6 @@ elif page == "📊 Improvement Insights":
         <b>Use this page to:</b> identify common complaint areas and priority improvement actions for a selected hotel.
     </div>
     """, unsafe_allow_html=True)
-
-    st.subheader("📊 Improvement Insights")
 
     hotel_name = st.selectbox("Select Hotel", get_hotel_names(), key="insight_hotel")
     hotel = get_hotel_by_name(hotel_name)

@@ -1,23 +1,129 @@
 import pandas as pd
 import re
+import torch
+import streamlit as st
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from data import HOTELS
+
+
+# =========================================================
+# Hugging Face DistilBERT Sentiment Model
+# =========================================================
+
+HF_MODEL_ID = "qm0720/staywise-kl-distilbert-sentiment"
+
+# Your training label order:
+# 0 = negative, 1 = neutral, 2 = positive
+FALLBACK_LABEL_ID_TO_NAME = {
+    0: "Negative",
+    1: "Neutral",
+    2: "Positive"
+}
+
+
+@st.cache_resource(show_spinner="Loading DistilBERT sentiment model...")
+def load_distilbert_sentiment_model():
+    """
+    Load trained DistilBERT sentiment model from Hugging Face Hub.
+    Cached by Streamlit so the model is not reloaded every time.
+    """
+    tokenizer = AutoTokenizer.from_pretrained(HF_MODEL_ID)
+    model = AutoModelForSequenceClassification.from_pretrained(HF_MODEL_ID)
+    model.eval()
+    return tokenizer, model
+
+
+def normalize_model_label(raw_label, predicted_id):
+    """
+    Convert model label into display label: Positive / Neutral / Negative.
+    This handles both custom labels and default Transformer labels such as LABEL_0.
+    """
+    if raw_label is None:
+        return FALLBACK_LABEL_ID_TO_NAME.get(predicted_id, "Neutral")
+
+    label = str(raw_label).strip().lower()
+
+    label_map = {
+        "label_0": "Negative",
+        "label_1": "Neutral",
+        "label_2": "Positive",
+        "negative": "Negative",
+        "neutral": "Neutral",
+        "positive": "Positive",
+        "neg": "Negative",
+        "neu": "Neutral",
+        "pos": "Positive"
+    }
+
+    return label_map.get(label, FALLBACK_LABEL_ID_TO_NAME.get(predicted_id, "Neutral"))
+
+
+def predict_sentiment_distilbert(review_text):
+    """
+    Predict overall sentiment using the uploaded DistilBERT model from Hugging Face.
+    Returns sentiment, confidence, and probability breakdown.
+    """
+    tokenizer, model = load_distilbert_sentiment_model()
+
+    text = str(review_text).strip()
+
+    inputs = tokenizer(
+        text,
+        return_tensors="pt",
+        truncation=True,
+        padding=True,
+        max_length=128
+    )
+
+    with torch.no_grad():
+        outputs = model(**inputs)
+        probabilities_tensor = torch.softmax(outputs.logits, dim=1).squeeze()
+        probabilities = probabilities_tensor.tolist()
+
+    predicted_id = int(torch.argmax(outputs.logits, dim=1).item())
+
+    raw_label = None
+    if hasattr(model.config, "id2label"):
+        raw_label = model.config.id2label.get(predicted_id)
+
+    predicted_label = normalize_model_label(raw_label, predicted_id)
+    confidence = round(float(probabilities[predicted_id]) * 100, 2)
+
+    return {
+        "sentiment": predicted_label,
+        "confidence": confidence,
+        "probabilities": {
+            "Negative": round(float(probabilities[0]) * 100, 2),
+            "Neutral": round(float(probabilities[1]) * 100, 2),
+            "Positive": round(float(probabilities[2]) * 100, 2)
+        }
+    }
+
+
+# =========================================================
+# Hotel Data Helper Functions
+# =========================================================
 
 def get_areas():
     return ["Bukit Jalil", "KLCC", "Petaling Jaya", "Sunway"]
 
+
 def get_hotels_by_area(area):
     return [hotel for hotel in HOTELS if hotel["area"] == area]
+
 
 def get_hotel_names(area=None):
     if area:
         return [hotel["hotel"] for hotel in HOTELS if hotel["area"] == area]
     return [hotel["hotel"] for hotel in HOTELS]
 
+
 def get_hotel_by_name(name):
     for hotel in HOTELS:
         if hotel["hotel"] == name:
             return hotel
     return None
+
 
 def sentiment_label_style(label):
     label = str(label).lower()
@@ -29,6 +135,7 @@ def sentiment_label_style(label):
         return "🔴 Negative"
     return label
 
+
 def risk_badge(risk):
     risk = str(risk).lower()
     if risk == "low":
@@ -38,6 +145,7 @@ def risk_badge(risk):
     if risk == "high":
         return "🔴 High Risk"
     return risk
+
 
 def risk_css_class(risk):
     risk = str(risk).lower()
@@ -49,6 +157,7 @@ def risk_css_class(risk):
         return "risk-high"
     return "risk-medium"
 
+
 def get_sentiment_df(hotel):
     return pd.DataFrame({
         "Sentiment": ["Positive", "Neutral", "Negative"],
@@ -58,6 +167,7 @@ def get_sentiment_df(hotel):
             hotel["negative_pct"]
         ]
     })
+
 
 def get_complaint_df(hotel):
     rows = []
@@ -96,6 +206,7 @@ def get_complaint_df(hotel):
 
     return pd.DataFrame(rows).sort_values(by="Complaint Count", ascending=False)
 
+
 def recommend_better_hotel(hotel_a, hotel_b):
     score_a = (
         hotel_a["positive_pct"] * 0.45
@@ -123,6 +234,11 @@ def recommend_better_hotel(hotel_a, hotel_b):
         f"It is more suitable because it has stronger overall sentiment, "
         f"a lower negative review impact, and better traveller suitability compared with {loser['hotel']}."
     )
+
+
+# =========================================================
+# Keyword, Emoji, Emoticon and Aspect Rules
+# =========================================================
 
 positive_words = [
     "good", "great", "excellent", "clean", "comfortable", "friendly",
@@ -153,6 +269,7 @@ aspect_keywords = {
     "Facilities": ["pool", "gym", "wifi", "wi-fi", "parking", "lift", "elevator"],
     "Food": ["breakfast", "food", "restaurant", "meal", "buffet"]
 }
+
 
 def detect_emoji_sentiment(review):
     text = str(review)
@@ -195,6 +312,7 @@ def detect_emoji_sentiment(review):
         "neutral_signals": detected_neutral,
         "total_signals": positive_count + negative_count + neutral_count
     }
+
 
 def get_aspect_sentiment_breakdown(review):
     text = str(review).lower()
@@ -247,7 +365,19 @@ def get_aspect_sentiment_breakdown(review):
 
     return rows
 
-def analyze_review_frontend(review):
+
+def detect_review_aspects(review):
+    text = str(review).lower()
+    detected_aspects = []
+
+    for aspect, keywords in aspect_keywords.items():
+        if any(keyword in text for keyword in keywords):
+            detected_aspects.append(aspect)
+
+    return detected_aspects
+
+
+def get_keyword_signals(review):
     text = str(review).lower()
     cleaned_text = re.sub(r"[^a-zA-Z\s]", " ", text)
     words = cleaned_text.split()
@@ -255,60 +385,144 @@ def analyze_review_frontend(review):
     positive_count = sum(1 for word in words if word in positive_words)
     negative_count = sum(1 for word in words if word in negative_words)
 
-    emoji_info = detect_emoji_sentiment(review)
-
-    if negative_count > positive_count:
-        sentiment = "Negative"
-        confidence = min(90, 60 + negative_count * 10)
-        risk = "High" if negative_count >= 2 else "Medium"
-        explanation = "The review contains more negative expressions than positive expressions."
-    elif positive_count > negative_count:
-        sentiment = "Positive"
-        confidence = min(90, 60 + positive_count * 10)
-        risk = "Low"
-        explanation = "The review contains more positive expressions than negative expressions."
-    else:
-        if emoji_info["emoji_sentiment"] == "Positive":
-            sentiment = "Positive"
-            confidence = 68
-            risk = "Low"
-            explanation = "The text is not strongly positive or negative, but positive emoji or emoticon signals were detected."
-        elif emoji_info["emoji_sentiment"] == "Negative":
-            sentiment = "Negative"
-            confidence = 68
-            risk = "Medium"
-            explanation = "The text is not strongly positive or negative, but negative emoji or emoticon signals were detected."
-        elif emoji_info["emoji_sentiment"] == "Neutral":
-            sentiment = "Neutral"
-            confidence = 62
-            risk = "Medium"
-            explanation = "The review contains neutral emoji or emoticon signals and does not strongly lean positive or negative."
-        else:
-            sentiment = "Neutral"
-            confidence = 60
-            risk = "Medium"
-            explanation = "The review does not strongly lean toward positive or negative sentiment."
-
-    if emoji_info["emoji_sentiment"] == "Mixed":
-        confidence = max(55, confidence - 8)
-        risk = "Medium"
-        explanation += " However, the emoji or emoticon signals are mixed, so the result should be interpreted carefully."
-
-    detected_aspects = []
-
-    for aspect, keywords in aspect_keywords.items():
-        if any(keyword in text for keyword in keywords):
-            detected_aspects.append(aspect)
-
     pros = [word for word in sorted(set(words)) if word in positive_words]
     cons = [word for word in sorted(set(words)) if word in negative_words]
 
+    return words, positive_count, negative_count, pros, cons
+
+
+def calculate_risk_level(sentiment, confidence, negative_count, emoji_info, aspect_breakdown):
+    """
+    Risk is not only based on model sentiment.
+    It also considers negative keywords, negative emoji signals and negative aspect sentiment.
+    """
+    negative_aspect_count = sum(
+        1 for row in aspect_breakdown
+        if row["Aspect Sentiment"] == "Negative"
+    )
+
+    emoji_sentiment = emoji_info["emoji_sentiment"]
+
+    if sentiment == "Negative":
+        if confidence >= 75 or negative_count >= 2 or negative_aspect_count >= 2:
+            return "High"
+        return "Medium"
+
+    if sentiment == "Neutral":
+        if negative_count >= 2 or negative_aspect_count >= 2 or emoji_sentiment == "Negative":
+            return "Medium"
+        return "Medium"
+
     if sentiment == "Positive":
-        suitability = "This review suggests the hotel may be suitable for users who value comfort, service, or convenience."
-    elif sentiment == "Negative":
-        suitability = "Users should be careful before booking because this review contains possible risk indicators."
+        if negative_count >= 2 or negative_aspect_count >= 2 or emoji_sentiment == "Mixed":
+            return "Medium"
+        return "Low"
+
+    return "Medium"
+
+
+def generate_suitability_note(sentiment, risk):
+    if sentiment == "Positive":
+        if risk == "Low":
+            return "This review suggests the hotel may be suitable for users who value comfort, service, or convenience."
+        return "Although the overall sentiment is positive, users should still check the highlighted concerns before booking."
+
+    if sentiment == "Negative":
+        return "Users should be careful before booking because this review contains possible risk indicators."
+
+    return "This review is mixed or average. Users may need to compare more reviews before booking."
+
+
+def generate_explanation(sentiment, confidence, probabilities, emoji_info, positive_count, negative_count, aspect_breakdown):
+    negative_aspect_count = sum(
+        1 for row in aspect_breakdown
+        if row["Aspect Sentiment"] == "Negative"
+    )
+
+    positive_aspect_count = sum(
+        1 for row in aspect_breakdown
+        if row["Aspect Sentiment"] == "Positive"
+    )
+
+    explanation = (
+        f"The overall sentiment was predicted as {sentiment} by the DistilBERT transformer model "
+        f"with {confidence}% confidence. "
+        f"The model probability distribution is: "
+        f"Positive {probabilities['Positive']}%, "
+        f"Neutral {probabilities['Neutral']}%, "
+        f"Negative {probabilities['Negative']}%. "
+    )
+
+    if positive_count > 0 or negative_count > 0:
+        explanation += (
+            f"Keyword analysis detected {positive_count} positive keyword signal(s) "
+            f"and {negative_count} negative keyword signal(s). "
+        )
     else:
-        suitability = "This review is mixed or average. Users may need to compare more reviews before booking."
+        explanation += "No strong positive or negative keyword signal was detected. "
+
+    if emoji_info["emoji_sentiment"] != "No emoji signal":
+        explanation += (
+            f"Emoji or emoticon analysis detected a {emoji_info['emoji_sentiment']} signal. "
+        )
+
+    if positive_aspect_count > 0 or negative_aspect_count > 0:
+        explanation += (
+            f"Aspect-based analysis found {positive_aspect_count} positive aspect(s) "
+            f"and {negative_aspect_count} negative aspect(s). "
+        )
+
+    if emoji_info["emoji_sentiment"] == "Mixed":
+        explanation += (
+            "However, the emoji or emoticon signals are mixed, so the result should be interpreted carefully."
+        )
+
+    return explanation
+
+
+# =========================================================
+# Main Review Checker Function
+# =========================================================
+
+def analyze_review_frontend(review):
+    """
+    Main function used by Review Checker page.
+    Overall sentiment is predicted by Hugging Face DistilBERT.
+    Emoji, aspect, risk, pros and cons are still handled by rule-based analysis.
+    """
+    # 1. DistilBERT sentiment prediction
+    sentiment_result = predict_sentiment_distilbert(review)
+
+    sentiment = sentiment_result["sentiment"]
+    confidence = sentiment_result["confidence"]
+    probabilities = sentiment_result["probabilities"]
+
+    # 2. Rule-based supporting analysis
+    words, positive_count, negative_count, pros, cons = get_keyword_signals(review)
+    emoji_info = detect_emoji_sentiment(review)
+    detected_aspects = detect_review_aspects(review)
+    aspect_breakdown = get_aspect_sentiment_breakdown(review)
+
+    # 3. Risk and explanation
+    risk = calculate_risk_level(
+        sentiment=sentiment,
+        confidence=confidence,
+        negative_count=negative_count,
+        emoji_info=emoji_info,
+        aspect_breakdown=aspect_breakdown
+    )
+
+    suitability = generate_suitability_note(sentiment, risk)
+
+    explanation = generate_explanation(
+        sentiment=sentiment,
+        confidence=confidence,
+        probabilities=probabilities,
+        emoji_info=emoji_info,
+        positive_count=positive_count,
+        negative_count=negative_count,
+        aspect_breakdown=aspect_breakdown
+    )
 
     return {
         "sentiment": sentiment,
@@ -320,8 +534,10 @@ def analyze_review_frontend(review):
         "detected_aspects": detected_aspects,
         "explanation": explanation,
         "emoji_info": emoji_info,
-        "aspect_breakdown": get_aspect_sentiment_breakdown(review)
+        "aspect_breakdown": aspect_breakdown,
+        "probabilities": probabilities
     }
+
 
 def get_processing_details(review):
     text = str(review)
@@ -332,12 +548,20 @@ def get_processing_details(review):
 
     return pd.DataFrame([
         {
+            "Processing Step": "Input Text",
+            "Result": text
+        },
+        {
+            "Processing Step": "Overall Sentiment Model",
+            "Result": f"DistilBERT transformer model loaded from Hugging Face Hub: {HF_MODEL_ID}"
+        },
+        {
             "Processing Step": "Lowercasing",
-            "Result": "Applied"
+            "Result": "Applied for keyword-based supporting analysis"
         },
         {
             "Processing Step": "Punctuation Removal",
-            "Result": "Applied for keyword-based text analysis"
+            "Result": "Applied for keyword-based supporting analysis"
         },
         {
             "Processing Step": "Token Count",

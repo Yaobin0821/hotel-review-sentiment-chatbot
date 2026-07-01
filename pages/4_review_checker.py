@@ -411,12 +411,22 @@ def get_concern_text(risk):
 
 def build_chip_html(items, chip_class, empty_message):
     if not items:
-        return f'<div class="empty-line">{escape(empty_message)}</div>'
+        return (
+            f'<div class="empty-line">'
+            f'{escape(empty_message)}'
+            f'</div>'
+        )
 
-    return "".join(
-        f'<span class="{chip_class}">{escape(str(item).title())}</span>'
-        for item in items
-    )
+    chips = []
+
+    for item in items:
+        chips.append(
+            f'<span class="{chip_class}">'
+            f'{escape(str(item).title())}'
+            f'</span>'
+        )
+
+    return "".join(chips)
 
 
 def render_traveller_box(title, desc, items, chip_class, empty_message):
@@ -545,54 +555,54 @@ def render_friendly_review_details(result):
     emoji_html = ""
 
     if emoji_signal != "No emoji signal":
-        emoji_html = f"""
-        <div class="detail-row">
-            <div class="detail-label">Emoji clue</div>
-            <div class="chip-area">
-                <span class="chip-topic">{escape(emoji_signal)}</span>
-            </div>
-        </div>
-        """
+        emoji_html = (
+            '<div class="detail-row">'
+            '<div class="detail-label">Emoji clue</div>'
+            '<div class="chip-area">'
+            f'<span class="chip-topic">{escape(emoji_signal)}</span>'
+            '</div>'
+            '</div>'
+        )
 
-    st.markdown(
-        f"""
-        <div class="friendly-detail-box">
-            <div class="friendly-detail-title">What this review talks about</div>
-            <div class="friendly-detail-desc">
-                A simple breakdown of useful booking signals found in this review.
-            </div>
+    detail_html = (
+        '<div class="friendly-detail-box">'
+        '<div class="friendly-detail-title">What this review talks about</div>'
+        '<div class="friendly-detail-desc">'
+        'A simple breakdown of useful booking signals found in this review.'
+        '</div>'
 
-            <div class="detail-row">
-                <div class="detail-label">Good signs</div>
-                <div class="chip-area">
-                    {positive_html}
-                </div>
-            </div>
+        '<div class="detail-row">'
+        '<div class="detail-label">Good signs</div>'
+        '<div class="chip-area">'
+        f'{positive_html}'
+        '</div>'
+        '</div>'
 
-            <div class="detail-row">
-                <div class="detail-label">Possible concerns</div>
-                <div class="chip-area">
-                    {concern_html}
-                </div>
-            </div>
+        '<div class="detail-row">'
+        '<div class="detail-label">Possible concerns</div>'
+        '<div class="chip-area">'
+        f'{concern_html}'
+        '</div>'
+        '</div>'
 
-            <div class="detail-row">
-                <div class="detail-label">Hotel areas mentioned</div>
-                <div class="chip-area">
-                    {topic_html}
-                </div>
-            </div>
+        '<div class="detail-row">'
+        '<div class="detail-label">Hotel areas mentioned</div>'
+        '<div class="chip-area">'
+        f'{topic_html}'
+        '</div>'
+        '</div>'
 
-            {emoji_html}
+        f'{emoji_html}'
 
-            <div class="simple-explanation">
-                <b>Simple explanation:</b><br>
-                {escape(build_friendly_detail_sentence(result))}
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
+        '<div class="simple-explanation">'
+        '<b>Simple explanation:</b><br>'
+        f'{escape(build_friendly_detail_sentence(result))}'
+        '</div>'
+
+        '</div>'
     )
+
+    st.markdown(detail_html, unsafe_allow_html=True)
 
 
 def render_empty_state():

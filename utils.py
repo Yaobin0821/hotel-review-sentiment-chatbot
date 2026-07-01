@@ -12,7 +12,7 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 # =========================================================
 
 BASE_DIR = Path(__file__).resolve().parent
-DATASET_PATH = BASE_DIR / "data" / "Hotel_Review_Summary_Final.csv"
+DATASET_PATH = BASE_DIR / "data" / "Hotel_Review_Summary_Processed.csv"
 
 
 # =========================================================

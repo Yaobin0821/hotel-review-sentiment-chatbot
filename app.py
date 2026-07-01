@@ -9,7 +9,7 @@ import html
 # Page Configuration
 # =====================================================
 st.set_page_config(
-    page_title="Hotel Review Sentiment Analysis System",
+    page_title="Hotel Review Sentiment Analyzer",
     page_icon="🏨",
     layout="wide"
 )
@@ -226,25 +226,17 @@ def aspect_sentiment(review):
             aspect_text = " ".join(related)
             prediction, confidence, cleaned, score_df = predict_with_details(aspect_text)
 
-            if prediction == "negative":
-                priority = "High"
-            elif prediction == "neutral":
-                priority = "Medium"
-            else:
-                priority = "Low"
-
             results.append({
                 "Aspect": aspect,
                 "Related Text": aspect_text,
                 "Sentiment": prediction,
-                "Confidence": f"{confidence * 100:.2f}%" if confidence is not None else "N/A",
-                "Improvement Priority": priority
+                "Confidence": f"{confidence * 100:.2f}%" if confidence is not None else "N/A"
             })
 
     return results
 
 # =====================================================
-# Extra Analysis
+# User-Focused Analysis
 # =====================================================
 def detect_keywords(review):
     text = clean_text(review)
@@ -255,42 +247,68 @@ def detect_keywords(review):
 
     return detected_positive, detected_negative
 
-def generate_recommendation(overall, aspect_results):
+def generate_user_summary(overall, aspect_results):
+    positive_aspects = [r["Aspect"] for r in aspect_results if r["Sentiment"] == "positive"]
     negative_aspects = [r["Aspect"] for r in aspect_results if r["Sentiment"] == "negative"]
     neutral_aspects = [r["Aspect"] for r in aspect_results if r["Sentiment"] == "neutral"]
-    positive_aspects = [r["Aspect"] for r in aspect_results if r["Sentiment"] == "positive"]
 
     if overall == "positive":
         if positive_aspects:
-            return "The customer is generally satisfied. The hotel should maintain strong performance in: " + ", ".join(positive_aspects) + "."
-        return "The customer is generally satisfied. The hotel should maintain its current service quality."
+            return "This review suggests that the guest had a good hotel experience, especially in: " + ", ".join(positive_aspects) + "."
+        return "This review suggests that the guest had a generally positive hotel experience."
 
     elif overall == "neutral":
         if neutral_aspects:
-            return "The review contains mixed or moderate opinions. The hotel should monitor these areas: " + ", ".join(neutral_aspects) + "."
-        return "The review contains mixed opinions. The hotel should maintain positive areas and improve weaker parts."
+            return "This review shows a mixed or average experience. The user may want to read more reviews before making a booking decision."
+        return "This review is moderate and does not strongly show satisfaction or dissatisfaction."
 
     elif overall == "negative":
         if negative_aspects:
-            return "The customer is dissatisfied. The hotel should prioritize improvement in: " + ", ".join(negative_aspects) + "."
-        return "The customer is dissatisfied. The hotel should review the complaint and improve the related service area."
+            return "This review highlights possible concerns in: " + ", ".join(negative_aspects) + ". Users should consider these issues before booking."
+        return "This review suggests that the guest was not satisfied with the hotel experience."
 
-    return "No recommendation available."
+    return "No user summary available."
 
-def generate_summary(overall, confidence, aspect_results):
-    total_aspects = len(aspect_results)
-    negative_count = len([r for r in aspect_results if r["Sentiment"] == "negative"])
-    neutral_count = len([r for r in aspect_results if r["Sentiment"] == "neutral"])
-    positive_count = len([r for r in aspect_results if r["Sentiment"] == "positive"])
+def generate_travel_advice(overall, aspect_results):
+    negative_aspects = [r["Aspect"] for r in aspect_results if r["Sentiment"] == "negative"]
+    positive_aspects = [r["Aspect"] for r in aspect_results if r["Sentiment"] == "positive"]
 
-    return {
-        "Overall Sentiment": overall,
-        "Confidence Level": confidence_level(confidence),
-        "Detected Aspects": total_aspects,
-        "Positive Aspects": positive_count,
-        "Neutral Aspects": neutral_count,
-        "Negative Aspects": negative_count
-    }
+    if overall == "positive":
+        return "This hotel review looks generally good. It may be suitable for users who value the positive aspects mentioned in the review."
+
+    elif overall == "neutral":
+        return "This review is mixed. Users are recommended to compare more reviews before deciding whether to book this hotel."
+
+    elif overall == "negative":
+        if len(negative_aspects) >= 2:
+            return "Users should be careful before booking because several negative aspects were detected."
+        elif len(negative_aspects) == 1:
+            return "Users should pay attention to the negative aspect detected before booking."
+        else:
+            return "Users should check more reviews because this review indicates an unsatisfactory experience."
+
+    return "No travel advice available."
+
+def generate_pros_cons(aspect_results, pos_words, neg_words):
+    pros = []
+    cons = []
+
+    for r in aspect_results:
+        if r["Sentiment"] == "positive":
+            pros.append(r["Aspect"])
+        elif r["Sentiment"] == "negative":
+            cons.append(r["Aspect"])
+
+    if pos_words:
+        pros.extend(pos_words)
+
+    if neg_words:
+        cons.extend(neg_words)
+
+    pros = sorted(list(set(pros)))
+    cons = sorted(list(set(cons)))
+
+    return pros, cons
 
 def analyze_review(review):
     valid, message = validate_input(review)
@@ -303,15 +321,16 @@ def analyze_review(review):
             "Confidence": "",
             "Confidence Level": "",
             "Detected Aspects": "",
-            "Positive Keywords": "",
-            "Negative Keywords": "",
-            "Recommendation": message
+            "Pros": "",
+            "Cons": "",
+            "User Summary": message,
+            "Travel Advice": message
         }
 
     overall, confidence, cleaned, score_df = predict_with_details(review)
     aspect_results = aspect_sentiment(review)
     pos_words, neg_words = detect_keywords(review)
-    recommendation = generate_recommendation(overall, aspect_results)
+    pros, cons = generate_pros_cons(aspect_results, pos_words, neg_words)
 
     detected_aspects = []
     for r in aspect_results:
@@ -324,9 +343,10 @@ def analyze_review(review):
         "Confidence": f"{confidence * 100:.2f}%" if confidence is not None else "N/A",
         "Confidence Level": confidence_level(confidence),
         "Detected Aspects": "; ".join(detected_aspects) if detected_aspects else "No aspect detected",
-        "Positive Keywords": ", ".join(pos_words) if pos_words else "None",
-        "Negative Keywords": ", ".join(neg_words) if neg_words else "None",
-        "Recommendation": recommendation
+        "Pros": ", ".join(pros) if pros else "None",
+        "Cons": ", ".join(cons) if cons else "None",
+        "User Summary": generate_user_summary(overall, aspect_results),
+        "Travel Advice": generate_travel_advice(overall, aspect_results)
     }
 
 # =====================================================
@@ -343,7 +363,7 @@ st.markdown("""
 .hero {
     padding: 35px;
     border-radius: 24px;
-    background: linear-gradient(135deg, #111827, #1e3a8a);
+    background: linear-gradient(135deg, #0f172a, #2563eb);
     color: white;
     margin-bottom: 25px;
 }
@@ -375,6 +395,10 @@ st.markdown("""
     background-color: #fee2e2;
     border-left: 8px solid #dc2626;
 }
+.info-box {
+    background-color: #eff6ff;
+    border-left: 8px solid #2563eb;
+}
 .small {
     color: #475569;
     font-size: 14px;
@@ -386,30 +410,28 @@ st.markdown("""
 # Sidebar
 # =====================================================
 with st.sidebar:
-    st.title("📌 System Menu")
-    st.write("**Project:** Hotel Review Sentiment Analysis")
-    st.write("**Domain:** Malaysia Tourism / Hotel Reviews")
-    st.write("**Model:** TF-IDF + Machine Learning Classifier")
+    st.title("📌 User Menu")
+    st.write("**System:** Hotel Review Sentiment Analyzer")
+    st.write("**Target Users:** Travellers and hotel customers")
+    st.write("**Purpose:** Help users understand hotel reviews before booking")
 
     st.divider()
 
-    st.write("**Result Outputs:**")
-    st.write("✅ Overall sentiment")
-    st.write("✅ Confidence score")
-    st.write("✅ Sentiment score chart")
-    st.write("✅ Aspect table")
-    st.write("✅ Key sentiment words")
-    st.write("✅ Recommendation")
-    st.write("✅ Downloadable result")
-    st.write("✅ Analysis history")
+    st.write("**Main Functions:**")
+    st.write("✅ Analyze hotel review sentiment")
+    st.write("✅ Detect hotel aspects")
+    st.write("✅ Show pros and cons")
+    st.write("✅ Provide travel decision advice")
+    st.write("✅ Compare multiple reviews")
+    st.write("✅ Download analysis result")
 
 # =====================================================
 # Header
 # =====================================================
 st.markdown("""
 <div class="hero">
-    <h1>🏨 Hotel Review Sentiment Analysis System</h1>
-    <p>An NLP-based system for analyzing hotel reviews, detecting sentiment, identifying hotel aspects, and supporting hotel management decision-making.</p>
+    <h1>🏨 Hotel Review Sentiment Analyzer</h1>
+    <p>A user-friendly NLP system that helps travellers understand hotel reviews before making booking decisions.</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -417,11 +439,11 @@ st.markdown("""
 # Tabs
 # =====================================================
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "🔍 Single Review Analysis",
-    "📋 Batch Analysis",
+    "🔍 Analyze Review",
+    "📋 Compare Reviews",
     "📊 Model & Dataset",
-    "🕘 Analysis History",
-    "📘 User Guide"
+    "🕘 My Analysis History",
+    "📘 Help"
 ])
 
 # =====================================================
@@ -431,23 +453,23 @@ with tab1:
     left, right = st.columns([1.2, 1])
 
     with left:
-        st.subheader("💬 Enter Hotel Review")
+        st.subheader("💬 Paste a Hotel Review")
 
         review = st.text_area(
-            "Type or paste one hotel review:",
+            "Enter one hotel review:",
             height=180,
             placeholder="Example: The room was clean and spacious. The staff were friendly, but the price was expensive."
         )
 
-        analyze_button = st.button("🔍 Analyze Review", use_container_width=True)
+        analyze_button = st.button("🔍 Analyze This Review", use_container_width=True)
 
-        st.subheader("📌 Sample Reviews")
+        st.subheader("📌 Try Sample Reviews")
 
         samples = {
-            "Positive Sample": "The room was clean and spacious. The staff were friendly and helpful.",
-            "Neutral Sample": "The location was good but the room was average and the price was quite expensive.",
-            "Negative Sample": "The room was dirty, the wi-fi was slow, and the staff were rude.",
-            "Invalid Sample": "hahaha"
+            "Good Review": "The room was clean and spacious. The staff were friendly and helpful.",
+            "Mixed Review": "The location was good but the room was average and the price was quite expensive.",
+            "Bad Review": "The room was dirty, the wi-fi was slow, and the staff were rude.",
+            "Invalid Input": "hahaha"
         }
 
         for label, sample in samples.items():
@@ -455,26 +477,26 @@ with tab1:
                 st.write(sample)
 
     with right:
-        st.subheader("📊 System Overview")
+        st.subheader("✨ What This System Helps You Know")
 
         st.markdown("""
-        <div class="card">
-            <h3>Result Output</h3>
-            <p>The system shows overall sentiment, confidence score, aspect sentiment, keywords, and recommendation.</p>
+        <div class="card info-box">
+            <h3>Before Booking</h3>
+            <p>You can paste a hotel review to understand whether it is positive, neutral, or negative.</p>
         </div>
-        <div class="card">
-            <h3>Aspect Detection</h3>
-            <p>Room, Service, Cleanliness, Location, Price, Facilities, and Food.</p>
+        <div class="card info-box">
+            <h3>Aspect Understanding</h3>
+            <p>The system checks important hotel aspects such as room, service, cleanliness, location, price, facilities, and food.</p>
         </div>
-        <div class="card">
-            <h3>Hotel Manager Support</h3>
-            <p>The system highlights improvement priority for negative aspects.</p>
+        <div class="card info-box">
+            <h3>Decision Support</h3>
+            <p>The system gives simple travel advice based on the detected sentiment and aspects.</p>
         </div>
         """, unsafe_allow_html=True)
 
     if analyze_button:
         st.divider()
-        st.subheader("🤖 Detailed Analysis Result")
+        st.subheader("🤖 Review Analysis Result")
 
         valid, message = validate_input(review)
 
@@ -485,8 +507,10 @@ with tab1:
             overall, confidence, cleaned, score_df = predict_with_details(review)
             aspect_results = aspect_sentiment(review)
             pos_words, neg_words = detect_keywords(review)
-            recommendation = generate_recommendation(overall, aspect_results)
-            summary = generate_summary(overall, confidence, aspect_results)
+            pros, cons = generate_pros_cons(aspect_results, pos_words, neg_words)
+
+            user_summary = generate_user_summary(overall, aspect_results)
+            travel_advice = generate_travel_advice(overall, aspect_results)
 
             # Summary metrics
             m1, m2, m3, m4 = st.columns(4)
@@ -495,32 +519,58 @@ with tab1:
             m3.metric("Confidence Level", confidence_level(confidence))
             m4.metric("Detected Aspects", len(aspect_results))
 
-            # Overall result card
+            # Main result
             css_class = sentiment_css(overall)
             st.markdown(f"""
             <div class="card {css_class}">
                 <h2>Overall Sentiment: {sentiment_badge(overall)}</h2>
-                <p>The model predicts that this review is mainly <b>{overall}</b>.</p>
+                <p>This review is predicted as <b>{overall}</b>.</p>
             </div>
             """, unsafe_allow_html=True)
 
-            # Sentiment score distribution
+            # User summary
+            st.markdown("### 🧾 What This Review Means")
+            st.info(user_summary)
+
+            # Travel advice
+            st.markdown("### 🧭 Travel Decision Advice")
+            if overall == "positive":
+                st.success(travel_advice)
+            elif overall == "neutral":
+                st.warning(travel_advice)
+            else:
+                st.error(travel_advice)
+
+            # Pros and cons
+            st.markdown("### ✅ Pros and ⚠️ Cons Detected")
+
+            c1, c2 = st.columns(2)
+
+            with c1:
+                if pros:
+                    st.success(", ".join(pros))
+                else:
+                    st.info("No clear pros detected.")
+
+            with c2:
+                if cons:
+                    st.error(", ".join(cons))
+                else:
+                    st.info("No clear cons detected.")
+
+            # Score distribution
             st.markdown("### 📈 Sentiment Score Distribution")
             if score_df is not None:
                 score_df_display = score_df.copy()
                 score_df_display["Score"] = score_df_display["Score"].astype(float)
                 st.bar_chart(score_df_display.set_index("Sentiment"))
 
-                with st.expander("View Sentiment Score Table"):
+                with st.expander("View Score Details"):
                     score_df_display["Score (%)"] = score_df_display["Score"] * 100
                     st.dataframe(score_df_display, use_container_width=True)
 
-            # Preprocessed text
-            st.markdown("### 🧹 Pre-processed Text")
-            st.code(cleaned)
-
             # Aspect table
-            st.markdown("### 🧩 Aspect-Based Sentiment Analysis")
+            st.markdown("### 🧩 Hotel Aspect Analysis")
 
             if aspect_results:
                 aspect_df = pd.DataFrame(aspect_results)
@@ -535,45 +585,16 @@ with tab1:
                         <h4>{r["Aspect"]}: {sentiment_badge(r["Sentiment"])}</h4>
                         <p><b>Related text:</b> {safe_text}</p>
                         <p><b>Confidence:</b> {r["Confidence"]}</p>
-                        <p><b>Improvement Priority:</b> {r["Improvement Priority"]}</p>
                     </div>
                     """, unsafe_allow_html=True)
             else:
                 st.info("No specific hotel aspect was detected from this review.")
 
-            # Keyword detection
-            st.markdown("### 🔑 Key Sentiment Words Detected")
+            # Preprocessed text
+            with st.expander("View Pre-processed Text"):
+                st.code(cleaned)
 
-            k1, k2 = st.columns(2)
-
-            with k1:
-                if pos_words:
-                    st.success("Positive words: " + ", ".join(pos_words))
-                else:
-                    st.info("Positive words: None detected")
-
-            with k2:
-                if neg_words:
-                    st.error("Negative words: " + ", ".join(neg_words))
-                else:
-                    st.info("Negative words: None detected")
-
-            # Summary table
-            st.markdown("### 📌 Analysis Summary")
-            summary_df = pd.DataFrame([summary])
-            st.dataframe(summary_df, use_container_width=True)
-
-            # Recommendation
-            st.markdown("### 💡 Management Recommendation")
-
-            if overall == "positive":
-                st.success(recommendation)
-            elif overall == "neutral":
-                st.warning(recommendation)
-            else:
-                st.error(recommendation)
-
-            # Save result to history
+            # Save result
             result_row = analyze_review(review)
             st.session_state.history.append(result_row)
 
@@ -581,18 +602,18 @@ with tab1:
             csv = result_df.to_csv(index=False).encode("utf-8")
 
             st.download_button(
-                label="⬇️ Download This Result as CSV",
+                label="⬇️ Download This Analysis Result",
                 data=csv,
-                file_name="single_review_analysis_result.csv",
+                file_name="hotel_review_analysis_result.csv",
                 mime="text/csv"
             )
 
 # =====================================================
-# Tab 2: Batch Analysis
+# Tab 2: Compare Multiple Reviews
 # =====================================================
 with tab2:
-    st.subheader("📋 Batch Review Analysis")
-    st.write("Enter multiple hotel reviews. Each line will be analyzed as one review.")
+    st.subheader("📋 Compare Multiple Hotel Reviews")
+    st.write("Paste several hotel reviews. Each line will be analyzed as one review.")
 
     batch_text = st.text_area(
         "Paste multiple reviews here, one review per line:",
@@ -600,7 +621,7 @@ with tab2:
         placeholder="The room was clean and comfortable.\nThe staff were rude and the bathroom was dirty.\nThe location was convenient but the room was average."
     )
 
-    batch_button = st.button("📊 Analyze Batch Reviews", use_container_width=True)
+    batch_button = st.button("📊 Compare Reviews", use_container_width=True)
 
     if batch_button:
         reviews = [line.strip() for line in batch_text.split("\n") if line.strip() != ""]
@@ -611,22 +632,21 @@ with tab2:
             batch_results = [analyze_review(review) for review in reviews]
             batch_df = pd.DataFrame(batch_results)
 
-            st.success(f"Batch analysis completed for {len(batch_results)} reviews.")
+            st.success(f"Analysis completed for {len(batch_results)} reviews.")
             st.dataframe(batch_df, use_container_width=True)
 
-            # Batch summary
-            st.markdown("### 📊 Batch Sentiment Summary")
-            batch_counts = batch_df["Overall Sentiment"].value_counts()
-            st.bar_chart(batch_counts)
+            st.markdown("### 📊 Overall Sentiment Summary")
+            sentiment_counts = batch_df["Overall Sentiment"].value_counts()
+            st.bar_chart(sentiment_counts)
 
             st.session_state.history.extend(batch_results)
 
             csv = batch_df.to_csv(index=False).encode("utf-8")
 
             st.download_button(
-                label="⬇️ Download Batch Results as CSV",
+                label="⬇️ Download Comparison Result",
                 data=csv,
-                file_name="batch_review_analysis_results.csv",
+                file_name="hotel_review_comparison_result.csv",
                 mime="text/csv"
             )
 
@@ -685,20 +705,20 @@ with tab3:
 
     st.markdown("### Knowledge Representation")
     st.write("The system represents knowledge using:")
-    st.write("- Cleaned CSV dataset")
+    st.write("- Cleaned hotel review dataset")
     st.write("- TF-IDF numerical feature representation")
     st.write("- Sentiment labels: positive, neutral, negative")
     st.write("- Aspect keyword dictionary")
-    st.write("- Saved model file: hotel_sentiment_model.pkl")
+    st.write("- Saved machine learning model file")
 
     st.markdown("### Model Performance")
     st.code(classification_report_text)
 
 # =====================================================
-# Tab 4: Analysis History
+# Tab 4: History
 # =====================================================
 with tab4:
-    st.subheader("🕘 Analysis History")
+    st.subheader("🕘 My Analysis History")
 
     if len(st.session_state.history) == 0:
         st.info("No analysis history yet. Analyze a review first.")
@@ -709,9 +729,9 @@ with tab4:
         csv = history_df.to_csv(index=False).encode("utf-8")
 
         st.download_button(
-            label="⬇️ Download Full Analysis History",
+            label="⬇️ Download My Analysis History",
             data=csv,
-            file_name="analysis_history.csv",
+            file_name="my_hotel_review_analysis_history.csv",
             mime="text/csv"
         )
 
@@ -720,27 +740,34 @@ with tab4:
             st.rerun()
 
 # =====================================================
-# Tab 5: User Guide
+# Tab 5: Help
 # =====================================================
 with tab5:
-    st.subheader("📘 User Guide")
+    st.subheader("📘 Help")
 
     st.markdown("""
-    ### How to Use the System
+    ### How to Use This System
 
-    1. Go to **Single Review Analysis**.
-    2. Enter one hotel-related review.
-    3. Click **Analyze Review**.
-    4. The system will display:
+    1. Go to **Analyze Review**.
+    2. Paste one hotel-related review.
+    3. Click **Analyze This Review**.
+    4. The system will show:
        - Overall sentiment
        - Confidence score
-       - Sentiment score distribution
-       - Pre-processed text
-       - Aspect-based sentiment
-       - Key sentiment words
-       - Management recommendation
-    5. Use **Batch Analysis** to analyze multiple reviews.
-    6. Download results as CSV.
+       - What the review means
+       - Travel decision advice
+       - Pros and cons
+       - Hotel aspect analysis
+    5. Go to **Compare Reviews** if you want to analyze several reviews at once.
+    6. Download the result as CSV if needed.
+
+    ### Who Can Use This System?
+
+    This system is designed for:
+    - Travellers
+    - Hotel customers
+    - Users comparing hotel reviews before booking
+    - Tourism review analysis users
 
     ### System Limitation
 
@@ -749,7 +776,7 @@ with tab5:
     - Very short input
     - Sarcasm
     - Slang
-    - Reviews with unclear meaning
+    - Unclear reviews
 
     Therefore, input validation is included to reject irrelevant or inappropriate text before prediction.
     """)

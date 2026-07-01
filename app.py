@@ -804,13 +804,22 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+page_options = list(PAGE_INFO.keys())
+
+current_page = st.session_state.get("page", page_options[0])
+
+if current_page not in page_options:
+    current_page = page_options[0]
+
 page = st.radio(
     "Navigation",
-    list(PAGE_INFO.keys()),
-    key="page",
+    page_options,
+    index=page_options.index(current_page),
     horizontal=True,
     label_visibility="collapsed"
 )
+
+st.session_state.page = page
 
 # =====================================================
 # Header

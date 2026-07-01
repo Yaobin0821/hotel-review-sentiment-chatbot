@@ -19,7 +19,7 @@ st.set_page_config(
 # =====================================================
 @st.cache_resource
 def load_model():
-    return joblib.load("hotel_sentiment_model.pkl")
+    return joblib.load("models/hotel_sentiment_model.pkl")
 
 try:
     model = load_model()

@@ -471,9 +471,10 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-selected_area = st.selectbox(
+selected_area = st.radio(
     "Select Area",
     get_areas(),
+    horizontal=True,
     label_visibility="collapsed"
 )
 

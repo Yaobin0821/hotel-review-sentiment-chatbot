@@ -250,6 +250,16 @@ def risk_badge(risk):
         return "🔴 High Risk"
     return risk
 
+def risk_css_class(risk):
+    risk = str(risk).lower()
+    if risk == "low":
+        return "risk-low"
+    elif risk == "medium":
+        return "risk-medium"
+    elif risk == "high":
+        return "risk-high"
+    return "risk-medium"
+
 def get_sentiment_df(hotel):
     return pd.DataFrame({
         "Sentiment": ["Positive", "Neutral", "Negative"],
@@ -262,6 +272,7 @@ def get_sentiment_df(hotel):
 
 def get_complaint_df(hotel):
     rows = []
+
     for area, count in hotel["complaints"].items():
         if count >= 15:
             priority = "High"
@@ -287,7 +298,10 @@ def get_complaint_df(hotel):
             "Complaint Area": area,
             "Complaint Count": count,
             "Priority Level": priority,
-            "Suggested Improvement Action": action_map.get(area, "Review related feedback and improve the affected service area.")
+            "Suggested Improvement Action": action_map.get(
+                area,
+                "Review related feedback and improve the affected service area."
+            )
         })
 
     return pd.DataFrame(rows).sort_values(by="Complaint Count", ascending=False)
@@ -298,6 +312,7 @@ def recommend_better_hotel(hotel_a, hotel_b):
         - hotel_a["negative_pct"] * 0.35
         + hotel_a["suitability_score"] * 0.20
     )
+
     score_b = (
         hotel_b["positive_pct"] * 0.45
         - hotel_b["negative_pct"] * 0.35
@@ -321,7 +336,7 @@ def recommend_better_hotel(hotel_a, hotel_b):
 
 # =====================================================
 # Demo Review Checker Logic
-# This is frontend-only until backend is ready
+# Frontend-only until backend is ready
 # =====================================================
 positive_words = [
     "good", "great", "excellent", "clean", "comfortable", "friendly",
@@ -350,8 +365,8 @@ def analyze_review_frontend(review):
     clean_text = re.sub(r"[^a-zA-Z\s]", " ", text)
     words = clean_text.split()
 
-    positive_count = sum(1 for w in words if w in positive_words)
-    negative_count = sum(1 for w in words if w in negative_words)
+    positive_count = sum(1 for word in words if word in positive_words)
+    negative_count = sum(1 for word in words if word in negative_words)
 
     if negative_count > positive_count:
         sentiment = "Negative"
@@ -367,12 +382,13 @@ def analyze_review_frontend(review):
         risk = "Medium"
 
     detected_aspects = []
+
     for aspect, keywords in aspect_keywords.items():
-        if any(k in text for k in keywords):
+        if any(keyword in text for keyword in keywords):
             detected_aspects.append(aspect)
 
-    pros = [w for w in sorted(set(words)) if w in positive_words]
-    cons = [w for w in sorted(set(words)) if w in negative_words]
+    pros = [word for word in sorted(set(words)) if word in positive_words]
+    cons = [word for word in sorted(set(words)) if word in negative_words]
 
     if sentiment == "Positive":
         suitability = "This review suggests the hotel may be suitable for users who value comfort, service, or convenience."
@@ -400,122 +416,257 @@ def analyze_review_frontend(review):
 # =====================================================
 st.markdown("""
 <style>
-.block-container {
-    padding-top: 1.5rem;
+/* Whole page */
+.stApp {
+    background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
 }
 
-.hero {
-    padding: 34px;
-    border-radius: 26px;
-    background: linear-gradient(135deg, #0f172a, #1d4ed8);
+.block-container {
+    padding-top: 1.3rem;
+    padding-bottom: 2rem;
+}
+
+/* Sidebar */
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #0f172a 0%, #111827 50%, #1e3a8a 100%);
+    min-width: 310px;
+}
+
+[data-testid="stSidebar"] * {
     color: white;
-    margin-bottom: 25px;
+}
+
+[data-testid="stSidebar"] .stRadio label {
+    font-size: 17px !important;
+    font-weight: 700 !important;
+}
+
+[data-testid="stSidebar"] [role="radiogroup"] label {
+    background: rgba(255, 255, 255, 0.09);
+    padding: 14px 16px;
+    border-radius: 16px;
+    margin-bottom: 10px;
+    border: 1px solid rgba(255,255,255,0.18);
+    transition: all 0.2s ease-in-out;
+}
+
+[data-testid="stSidebar"] [role="radiogroup"] label:hover {
+    background: rgba(255, 255, 255, 0.18);
+    transform: translateX(4px);
+}
+
+.sidebar-title {
+    padding: 18px 16px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.18);
+    margin-bottom: 18px;
+}
+
+.sidebar-title h2 {
+    color: white;
+    margin-bottom: 4px;
+}
+
+.sidebar-title p {
+    color: #dbeafe;
+    font-size: 14px;
+    margin: 0;
+}
+
+.active-page-box {
+    padding: 16px;
+    border-radius: 18px;
+    background: rgba(59, 130, 246, 0.25);
+    border: 1px solid rgba(147, 197, 253, 0.45);
+    margin-top: 16px;
+    margin-bottom: 16px;
+}
+
+/* Hero */
+.hero {
+    padding: 42px;
+    border-radius: 30px;
+    background:
+        radial-gradient(circle at top right, rgba(96,165,250,0.45), transparent 28%),
+        linear-gradient(135deg, #020617, #1e3a8a 55%, #2563eb);
+    color: white;
+    margin-bottom: 28px;
+    box-shadow: 0 18px 40px rgba(30, 64, 175, 0.25);
 }
 
 .hero h1 {
     color: white;
-    font-size: 42px;
-    margin-bottom: 8px;
+    font-size: 46px;
+    margin-bottom: 10px;
+    letter-spacing: -0.5px;
 }
 
 .hero p {
     color: #dbeafe;
     font-size: 18px;
+    max-width: 900px;
 }
 
+.hero-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.25);
+    padding: 8px 14px;
+    border-radius: 999px;
+    color: #dbeafe;
+    font-size: 14px;
+    margin-bottom: 15px;
+}
+
+/* Page header */
+.page-header {
+    padding: 24px;
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.86);
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.07);
+    margin-bottom: 24px;
+}
+
+.page-header h2 {
+    margin: 0 0 8px 0;
+    color: #0f172a;
+}
+
+.page-header p {
+    margin: 0;
+    color: #475569;
+    font-size: 16px;
+}
+
+/* Cards */
 .card {
-    padding: 22px;
-    border-radius: 20px;
-    background: white;
-    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
+    padding: 24px;
+    border-radius: 24px;
+    background: rgba(255,255,255,0.94);
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
     border: 1px solid #e5e7eb;
     margin-bottom: 18px;
 }
 
 .hotel-card {
-    padding: 22px;
-    border-radius: 20px;
-    background: #ffffff;
-    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
-    border: 1px solid #e5e7eb;
-    min-height: 330px;
-    margin-bottom: 20px;
+    padding: 24px;
+    border-radius: 26px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.09);
+    border: 1px solid #e2e8f0;
+    min-height: 355px;
+    margin-bottom: 22px;
+    transition: all 0.2s ease-in-out;
+}
+
+.hotel-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 18px 38px rgba(15, 23, 42, 0.13);
 }
 
 .hotel-card h3 {
     margin-bottom: 8px;
     color: #0f172a;
+    font-size: 22px;
 }
 
+.hotel-card p {
+    color: #334155;
+}
+
+/* Tags */
 .tag {
     display: inline-block;
-    padding: 6px 11px;
+    padding: 7px 12px;
     border-radius: 999px;
     background: #eff6ff;
     color: #1d4ed8;
     font-size: 13px;
-    margin: 3px 4px 3px 0;
+    margin: 4px 5px 4px 0;
+    font-weight: 600;
 }
 
+.nav-hint {
+    padding: 18px;
+    border-radius: 20px;
+    background: #ffffff;
+    border: 1px solid #dbeafe;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+    margin-bottom: 22px;
+}
+
+.nav-hint b {
+    color: #1d4ed8;
+}
+
+/* Risk badges */
 .risk-low {
     background: #dcfce7;
     color: #166534;
-    padding: 7px 12px;
+    padding: 8px 13px;
     border-radius: 999px;
     display: inline-block;
-    font-weight: 600;
+    font-weight: 700;
 }
 
 .risk-medium {
     background: #fef9c3;
     color: #854d0e;
-    padding: 7px 12px;
+    padding: 8px 13px;
     border-radius: 999px;
     display: inline-block;
-    font-weight: 600;
+    font-weight: 700;
 }
 
 .risk-high {
     background: #fee2e2;
     color: #991b1b;
-    padding: 7px 12px;
+    padding: 8px 13px;
     border-radius: 999px;
     display: inline-block;
-    font-weight: 600;
+    font-weight: 700;
 }
 
+/* Alert boxes */
 .info-box {
-    padding: 18px;
-    border-radius: 18px;
+    padding: 20px;
+    border-radius: 20px;
     background: #eff6ff;
-    border-left: 7px solid #2563eb;
-    margin-bottom: 15px;
+    border-left: 8px solid #2563eb;
+    margin-bottom: 16px;
+    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.08);
 }
 
 .warning-box {
-    padding: 18px;
-    border-radius: 18px;
+    padding: 20px;
+    border-radius: 20px;
     background: #fff7ed;
-    border-left: 7px solid #ea580c;
-    margin-bottom: 15px;
+    border-left: 8px solid #ea580c;
+    margin-bottom: 16px;
+    box-shadow: 0 6px 18px rgba(234, 88, 12, 0.08);
 }
 
 .good-box {
-    padding: 18px;
-    border-radius: 18px;
+    padding: 20px;
+    border-radius: 20px;
     background: #ecfdf5;
-    border-left: 7px solid #16a34a;
-    margin-bottom: 15px;
+    border-left: 8px solid #16a34a;
+    margin-bottom: 16px;
+    box-shadow: 0 6px 18px rgba(22, 163, 74, 0.08);
 }
 
 .bad-box {
-    padding: 18px;
-    border-radius: 18px;
+    padding: 20px;
+    border-radius: 20px;
     background: #fef2f2;
-    border-left: 7px solid #dc2626;
-    margin-bottom: 15px;
+    border-left: 8px solid #dc2626;
+    margin-bottom: 16px;
+    box-shadow: 0 6px 18px rgba(220, 38, 38, 0.08);
 }
 
+/* Text */
 .small-text {
     color: #64748b;
     font-size: 14px;
@@ -524,6 +675,31 @@ st.markdown("""
 .footer-note {
     color: #64748b;
     font-size: 13px;
+}
+
+/* Buttons */
+.stButton > button {
+    border-radius: 14px;
+    padding: 0.65rem 1rem;
+    font-weight: 700;
+    border: 1px solid #2563eb;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: white;
+}
+
+.stButton > button:hover {
+    border: 1px solid #1e40af;
+    background: linear-gradient(135deg, #1d4ed8, #1e40af);
+    color: white;
+}
+
+/* Metrics */
+[data-testid="stMetric"] {
+    background: rgba(255,255,255,0.9);
+    padding: 16px;
+    border-radius: 18px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
 }
 </style>
 """, unsafe_allow_html=True)
@@ -534,37 +710,88 @@ st.markdown("""
 if "page" not in st.session_state:
     st.session_state.page = "🏠 Home / Find Hotels"
 
-st.sidebar.title("🏨 Traveller Platform")
-st.sidebar.caption("Hotel review decision-support frontend")
+PAGE_INFO = {
+    "🏠 Home / Find Hotels": {
+        "title": "Home / Find Hotels",
+        "desc": "Browse hotels by area and quickly understand each hotel's review-based strengths and risks."
+    },
+    "🏨 Hotel Detail": {
+        "title": "Hotel Detail",
+        "desc": "View full sentiment summary, risk alerts, traveller suitability, and review examples."
+    },
+    "⚖️ Compare Hotels": {
+        "title": "Compare Hotels",
+        "desc": "Compare two hotels from the same area before making a booking decision."
+    },
+    "🔍 Review Checker": {
+        "title": "Review Checker",
+        "desc": "Paste one review and check its sentiment, risks, pros, cons, and explanation."
+    },
+    "📊 Improvement Insights": {
+        "title": "Improvement Insights",
+        "desc": "View common complaint areas and suggested improvement actions for a selected hotel."
+    }
+}
+
+st.sidebar.markdown("""
+<div class="sidebar-title">
+    <h2>🏨 Traveller Platform</h2>
+    <p>Hotel review decision-support frontend</p>
+</div>
+""", unsafe_allow_html=True)
+
+st.sidebar.markdown("### 🧭 Main Navigation")
+st.sidebar.caption("Choose a page below")
 
 page = st.sidebar.radio(
     "Navigation",
-    [
-        "🏠 Home / Find Hotels",
-        "🏨 Hotel Detail",
-        "⚖️ Compare Hotels",
-        "🔍 Review Checker",
-        "📊 Improvement Insights"
-    ],
-    key="page"
+    list(PAGE_INFO.keys()),
+    key="page",
+    label_visibility="collapsed"
 )
 
+st.sidebar.markdown(f"""
+<div class="active-page-box">
+    <b>Current Page</b><br>
+    {page}<br><br>
+    <span style="color:#bfdbfe;">{PAGE_INFO[page]["desc"]}</span>
+</div>
+""", unsafe_allow_html=True)
+
 st.sidebar.divider()
-st.sidebar.write("### Platform Purpose")
+
+st.sidebar.markdown("### ✨ Platform Purpose")
 st.sidebar.write(
-    "This frontend helps travellers explore hotels, understand review sentiment, compare hotel risks, and make better booking decisions."
+    "This platform helps travellers find hotels, compare review risks, and understand whether a hotel is suitable before booking."
 )
 
 st.sidebar.divider()
-st.sidebar.info("Frontend prototype mode: backend and final dataset can be connected later.")
+
+st.sidebar.markdown("### 🔎 Page Guide")
+st.sidebar.write("🏠 Find hotels by area")
+st.sidebar.write("🏨 View hotel details")
+st.sidebar.write("⚖️ Compare two hotels")
+st.sidebar.write("🔍 Check one review")
+st.sidebar.write("📊 View complaint insights")
+
+st.sidebar.divider()
+st.sidebar.info("Prototype mode: backend and final dataset can be connected later.")
 
 # =====================================================
 # Header
 # =====================================================
 st.markdown("""
 <div class="hero">
+    <div class="hero-badge">Traveller Decision-Support Platform</div>
     <h1>Hotel Review Decision Support Platform</h1>
-    <p>Explore hotels by area, understand review sentiment, compare risks, and make smarter booking decisions.</p>
+    <p>Explore hotels by area, understand review sentiment, compare booking risks, and make smarter travel decisions using review-based insights.</p>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown(f"""
+<div class="page-header">
+    <h2>{page}</h2>
+    <p>{PAGE_INFO[page]["desc"]}</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -572,7 +799,13 @@ st.markdown("""
 # Page 1: Home / Find Hotels
 # =====================================================
 if page == "🏠 Home / Find Hotels":
-    st.subheader("🏠 Home / Find Hotels")
+    st.markdown("""
+    <div class="nav-hint">
+        <b>Step 1:</b> Select an area → <b>Step 2:</b> Review hotel cards → <b>Step 3:</b> Open hotel detail before booking.
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.subheader("🏠 Find Hotels by Area")
     st.write("Select an area to discover hotels with sentiment summary, main strength, main risk, and best traveller type.")
 
     selected_area = st.selectbox("Select Area", get_areas())
@@ -585,18 +818,16 @@ if page == "🏠 Home / Find Hotels":
 
     for index, hotel in enumerate(hotels):
         with cols[index % 3]:
-            risk_class = {
-                "Low": "risk-low",
-                "Medium": "risk-medium",
-                "High": "risk-high"
-            }.get(hotel["risk_level"], "risk-medium")
+            risk_class = risk_css_class(hotel["risk_level"])
 
             st.markdown(f"""
             <div class="hotel-card">
                 <h3>{hotel["hotel"]}</h3>
                 <p class="small-text">{hotel["area"]} • {hotel["price_level"]}</p>
                 <p><b>Sentiment Summary</b></p>
-                <p>🟢 Positive: {hotel["positive_pct"]}% &nbsp; 🟡 Neutral: {hotel["neutral_pct"]}% &nbsp; 🔴 Negative: {hotel["negative_pct"]}%</p>
+                <p>🟢 Positive: {hotel["positive_pct"]}%<br>
+                🟡 Neutral: {hotel["neutral_pct"]}%<br>
+                🔴 Negative: {hotel["negative_pct"]}%</p>
                 <p><b>Main Strength:</b> {hotel["main_strength"]}</p>
                 <p><b>Main Risk:</b> {hotel["main_risk"]}</p>
                 <p><b>Best Traveller Type:</b><br>{hotel["best_traveller_type"]}</p>
@@ -613,8 +844,13 @@ if page == "🏠 Home / Find Hotels":
 # Page 2: Hotel Detail
 # =====================================================
 elif page == "🏨 Hotel Detail":
+    st.markdown("""
+    <div class="nav-hint">
+        <b>Use this page to:</b> check full hotel sentiment, risk alerts, suitability, and review examples.
+    </div>
+    """, unsafe_allow_html=True)
+
     st.subheader("🏨 Hotel Detail")
-    st.write("Select a hotel to view detailed traveller-focused review insights.")
 
     default_hotel = st.session_state.get("selected_hotel", get_hotel_names()[0])
 
@@ -687,8 +923,13 @@ elif page == "🏨 Hotel Detail":
 # Page 3: Compare Hotels
 # =====================================================
 elif page == "⚖️ Compare Hotels":
+    st.markdown("""
+    <div class="nav-hint">
+        <b>Use this page to:</b> compare two hotels from the same area and get a booking recommendation.
+    </div>
+    """, unsafe_allow_html=True)
+
     st.subheader("⚖️ Compare Hotels")
-    st.write("Select two hotels from the same area to compare sentiment, risks, suitability, and traveller recommendation.")
 
     selected_area = st.selectbox("Select Area", get_areas(), key="compare_area")
     hotel_options = get_hotel_names(selected_area)
@@ -772,8 +1013,13 @@ elif page == "⚖️ Compare Hotels":
 # Page 4: Review Checker
 # =====================================================
 elif page == "🔍 Review Checker":
+    st.markdown("""
+    <div class="nav-hint">
+        <b>Use this page to:</b> paste one hotel review and understand its sentiment, risks, pros, cons, and explanation.
+    </div>
+    """, unsafe_allow_html=True)
+
     st.subheader("🔍 Review Checker")
-    st.write("Paste one hotel review to understand its sentiment, risk, suitability, pros, cons, and explanation.")
     st.caption("User input is not saved in this page.")
 
     review_input = st.text_area(
@@ -835,6 +1081,7 @@ elif page == "🔍 Review Checker":
                     st.info("No clear cons detected.")
 
             st.markdown("### Detected Hotel Aspects")
+
             if result["detected_aspects"]:
                 for aspect in result["detected_aspects"]:
                     st.markdown(f'<span class="tag">{aspect}</span>', unsafe_allow_html=True)
@@ -845,6 +1092,7 @@ elif page == "🔍 Review Checker":
             st.write(result["explanation"])
 
             st.markdown("### Traveller Decision Note")
+
             if result["risk"] == "High":
                 st.error("This review contains clear risk signals. Users should compare more reviews before booking.")
             elif result["risk"] == "Medium":
@@ -856,8 +1104,13 @@ elif page == "🔍 Review Checker":
 # Page 5: Improvement Insights
 # =====================================================
 elif page == "📊 Improvement Insights":
+    st.markdown("""
+    <div class="nav-hint">
+        <b>Use this page to:</b> identify common complaint areas and priority improvement actions for a selected hotel.
+    </div>
+    """, unsafe_allow_html=True)
+
     st.subheader("📊 Improvement Insights")
-    st.write("Select one hotel to view common complaint areas, priority level, and suggested improvement actions.")
 
     hotel_name = st.selectbox("Select Hotel", get_hotel_names(), key="insight_hotel")
     hotel = get_hotel_by_name(hotel_name)

@@ -1,8 +1,9 @@
 import streamlit as st
+from textwrap import dedent
 
 
 def load_css():
-    st.markdown("""
+    st.markdown(dedent("""
     <style>
         :root {
             --bg-main: #F7F3EC;
@@ -46,6 +47,14 @@ def load_css():
             right: 1rem;
         }
 
+        section[data-testid="stSidebar"] {
+            display: none !important;
+        }
+
+        div[data-testid="collapsedControl"] {
+            display: none !important;
+        }
+
         .block-container {
             max-width: 1180px;
             padding-top: 1.3rem;
@@ -68,11 +77,11 @@ def load_css():
 
         .app-shell {
             max-width: 1180px;
-            margin: 0 auto;
+            margin: 0 auto 1rem auto;
         }
 
         .brand-card {
-            background: rgba(255, 255, 255, 0.82);
+            background: rgba(255, 255, 255, 0.86);
             backdrop-filter: blur(14px);
             border: 1px solid var(--border);
             border-radius: 28px;
@@ -132,10 +141,10 @@ def load_css():
         }
 
         .nav-card {
-            background: rgba(255, 255, 255, 0.7);
+            background: rgba(255, 255, 255, 0.76);
             border: 1px solid var(--border);
             border-radius: 999px;
-            padding: 0.5rem;
+            padding: 0.48rem;
             box-shadow: 0 8px 24px rgba(74, 55, 40, 0.055);
             margin-bottom: 1.1rem;
             overflow-x: auto;
@@ -167,7 +176,7 @@ def load_css():
         }
 
         .page-hero {
-            background: rgba(255, 255, 255, 0.84);
+            background: rgba(255, 255, 255, 0.86);
             border: 1px solid var(--border);
             border-radius: 30px;
             padding: 1.65rem 1.75rem;
@@ -312,54 +321,31 @@ def load_css():
             }
         }
     </style>
-    """, unsafe_allow_html=True)
+    """), unsafe_allow_html=True)
 
 
 def render_topbar():
-    st.markdown("""
-    <div class="app-shell">
-        <div class="brand-card">
-            <div class="brand-row">
-                <div class="brand-left">
-                    <div class="brand-logo">🏨</div>
-                    <div>
-                        <div class="brand-title">StayWise KL</div>
-                        <div class="brand-subtitle">Hotel review guidance for smarter bookings</div>
-                    </div>
-                </div>
-                <div class="brand-pill">Traveller-friendly review assistant</div>
-            </div>
-        </div>
-
-        <div class="nav-card">
-            <div class="nav-row">
-                <a class="nav-link" href="/" target="_self">🏠 Find Hotels</a>
-                <a class="nav-link" href="/hotel_detail" target="_self">🏨 Hotel Detail</a>
-                <a class="nav-link" href="/compare" target="_self">⚖️ Compare</a>
-                <a class="nav-link" href="/review_checker" target="_self">🔍 Review Checker</a>
-                <a class="nav-link" href="/insights" target="_self">📊 Insights</a>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(dedent("""
+    <div class="app-shell"><div class="brand-card"><div class="brand-row"><div class="brand-left"><div class="brand-logo">🏨</div><div><div class="brand-title">StayWise KL</div><div class="brand-subtitle">Hotel review guidance for smarter bookings</div></div></div><div class="brand-pill">Traveller-friendly review assistant</div></div></div><div class="nav-card"><div class="nav-row"><a class="nav-link" href="/find_hotels" target="_self">🏠 Find Hotels</a><a class="nav-link" href="/hotel_detail" target="_self">🏨 Hotel Detail</a><a class="nav-link" href="/compare_hotels" target="_self">⚖️ Compare</a><a class="nav-link" href="/review_checker" target="_self">🔍 Review Checker</a><a class="nav-link" href="/improvement_insights" target="_self">📊 Insights</a></div></div></div>
+    """), unsafe_allow_html=True)
 
 
 def render_page_header(title, subtitle):
     st.markdown(
-        f"""
+        dedent(f"""
         <div class="page-hero">
             <div class="page-kicker">Travel decision support</div>
             <div class="page-title">{title}</div>
             <div class="page-desc">{subtitle}</div>
         </div>
-        """,
+        """),
         unsafe_allow_html=True
     )
 
 
 def render_footer():
-    st.markdown("""
+    st.markdown(dedent("""
     <div class="footer-card">
         StayWise KL helps travellers understand hotel review signals before making a booking decision.
     </div>
-    """, unsafe_allow_html=True)
+    """), unsafe_allow_html=True)

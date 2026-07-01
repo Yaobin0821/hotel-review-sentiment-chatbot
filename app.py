@@ -401,20 +401,29 @@ def recommend_better_hotel(hotel_a, hotel_b):
     )
 
 # =====================================================
-# Demo Review Checker Logic
+# Review Checker Logic
 # Frontend-only until backend is ready
+# Includes emoji / emoticon sentiment integration
 # =====================================================
 positive_words = [
     "good", "great", "excellent", "clean", "comfortable", "friendly",
     "helpful", "nice", "spacious", "convenient", "worth", "amazing",
-    "perfect", "pleasant", "beautiful", "recommended"
+    "perfect", "pleasant", "beautiful", "recommended", "polite", "fast"
 ]
 
 negative_words = [
     "bad", "dirty", "rude", "slow", "expensive", "poor", "noisy",
     "smelly", "broken", "worst", "terrible", "disappointed",
-    "uncomfortable", "unclean", "overpriced"
+    "uncomfortable", "unclean", "overpriced", "delay", "small"
 ]
+
+positive_emojis = ["😊", "😍", "👍", "😁", "😄", "❤️", "✨", "🥰", "👏", "✅"]
+negative_emojis = ["😡", "😠", "👎", "😞", "😢", "🤮", "😤", "❌", "💔", "😭"]
+neutral_emojis = ["😐", "🤔", "🙂", "😶"]
+
+positive_emoticons = [":)", ":-)", ":D", ":-D", ";)", ";-)"]
+negative_emoticons = [":(", ":-(", ":'(", ">:(", ":-/"]
+neutral_emoticons = [":|", ":-|", ":/"]
 
 aspect_keywords = {
     "Room": ["room", "bed", "bathroom", "toilet", "shower", "pillow"],
@@ -426,6 +435,99 @@ aspect_keywords = {
     "Food": ["breakfast", "food", "restaurant", "meal", "buffet"]
 }
 
+def detect_emoji_sentiment(review):
+    text = str(review)
+
+    detected_positive = []
+    detected_negative = []
+    detected_neutral = []
+
+    for signal in positive_emojis + positive_emoticons:
+        if signal in text:
+            detected_positive.append(signal)
+
+    for signal in negative_emojis + negative_emoticons:
+        if signal in text:
+            detected_negative.append(signal)
+
+    for signal in neutral_emojis + neutral_emoticons:
+        if signal in text:
+            detected_neutral.append(signal)
+
+    positive_count = len(detected_positive)
+    negative_count = len(detected_negative)
+    neutral_count = len(detected_neutral)
+
+    if positive_count == 0 and negative_count == 0 and neutral_count == 0:
+        emoji_sentiment = "No emoji signal"
+    elif positive_count > negative_count and positive_count >= neutral_count:
+        emoji_sentiment = "Positive"
+    elif negative_count > positive_count and negative_count >= neutral_count:
+        emoji_sentiment = "Negative"
+    elif neutral_count > positive_count and neutral_count > negative_count:
+        emoji_sentiment = "Neutral"
+    else:
+        emoji_sentiment = "Mixed"
+
+    return {
+        "emoji_sentiment": emoji_sentiment,
+        "positive_signals": detected_positive,
+        "negative_signals": detected_negative,
+        "neutral_signals": detected_neutral,
+        "total_signals": positive_count + negative_count + neutral_count
+    }
+
+def get_aspect_sentiment_breakdown(review):
+    text = str(review).lower()
+    cleaned_text = re.sub(r"[^a-zA-Z\s]", " ", text)
+    words = cleaned_text.split()
+
+    rows = []
+
+    for aspect, keywords in aspect_keywords.items():
+        matched_keywords = []
+        aspect_positions = []
+
+        for index, word in enumerate(words):
+            for keyword in keywords:
+                clean_keyword = keyword.replace("-", "").lower()
+                clean_word = word.replace("-", "").lower()
+
+                if clean_word == clean_keyword or clean_keyword in clean_word:
+                    matched_keywords.append(keyword)
+                    aspect_positions.append(index)
+
+        if not matched_keywords:
+            continue
+
+        local_positive = 0
+        local_negative = 0
+
+        for position in aspect_positions:
+            start = max(0, position - 5)
+            end = min(len(words), position + 6)
+            context_words = words[start:end]
+
+            local_positive += sum(1 for word in context_words if word in positive_words)
+            local_negative += sum(1 for word in context_words if word in negative_words)
+
+        if local_positive > local_negative:
+            aspect_sentiment = "Positive"
+        elif local_negative > local_positive:
+            aspect_sentiment = "Negative"
+        else:
+            aspect_sentiment = "Neutral"
+
+        rows.append({
+            "Aspect": aspect,
+            "Aspect Sentiment": aspect_sentiment,
+            "Matched Keywords": ", ".join(sorted(set(matched_keywords))),
+            "Positive Signals": local_positive,
+            "Negative Signals": local_negative
+        })
+
+    return rows
+
 def analyze_review_frontend(review):
     text = str(review).lower()
     cleaned_text = re.sub(r"[^a-zA-Z\s]", " ", text)
@@ -434,18 +536,44 @@ def analyze_review_frontend(review):
     positive_count = sum(1 for word in words if word in positive_words)
     negative_count = sum(1 for word in words if word in negative_words)
 
+    emoji_info = detect_emoji_sentiment(review)
+
     if negative_count > positive_count:
         sentiment = "Negative"
         confidence = min(90, 60 + negative_count * 10)
         risk = "High" if negative_count >= 2 else "Medium"
+        explanation = "The review contains more negative expressions than positive expressions."
     elif positive_count > negative_count:
         sentiment = "Positive"
         confidence = min(90, 60 + positive_count * 10)
         risk = "Low"
+        explanation = "The review contains more positive expressions than negative expressions."
     else:
-        sentiment = "Neutral"
-        confidence = 60
+        if emoji_info["emoji_sentiment"] == "Positive":
+            sentiment = "Positive"
+            confidence = 68
+            risk = "Low"
+            explanation = "The text is not strongly positive or negative, but positive emoji or emoticon signals were detected."
+        elif emoji_info["emoji_sentiment"] == "Negative":
+            sentiment = "Negative"
+            confidence = 68
+            risk = "Medium"
+            explanation = "The text is not strongly positive or negative, but negative emoji or emoticon signals were detected."
+        elif emoji_info["emoji_sentiment"] == "Neutral":
+            sentiment = "Neutral"
+            confidence = 62
+            risk = "Medium"
+            explanation = "The review contains neutral emoji or emoticon signals and does not strongly lean positive or negative."
+        else:
+            sentiment = "Neutral"
+            confidence = 60
+            risk = "Medium"
+            explanation = "The review does not strongly lean toward positive or negative sentiment."
+
+    if emoji_info["emoji_sentiment"] == "Mixed":
+        confidence = max(55, confidence - 8)
         risk = "Medium"
+        explanation += " However, the emoji or emoticon signals are mixed, so the result should be interpreted carefully."
 
     detected_aspects = []
 
@@ -458,13 +586,10 @@ def analyze_review_frontend(review):
 
     if sentiment == "Positive":
         suitability = "This review suggests the hotel may be suitable for users who value comfort, service, or convenience."
-        explanation = "The review contains more positive expressions than negative expressions."
     elif sentiment == "Negative":
         suitability = "Users should be careful before booking because this review contains possible risk indicators."
-        explanation = "The review contains more negative expressions than positive expressions."
     else:
         suitability = "This review is mixed or average. Users may need to compare more reviews before booking."
-        explanation = "The review does not strongly lean toward positive or negative sentiment."
 
     return {
         "sentiment": sentiment,
@@ -474,8 +599,44 @@ def analyze_review_frontend(review):
         "pros": pros,
         "cons": cons,
         "detected_aspects": detected_aspects,
-        "explanation": explanation
+        "explanation": explanation,
+        "emoji_info": emoji_info,
+        "aspect_breakdown": get_aspect_sentiment_breakdown(review)
     }
+
+def get_processing_details(review):
+    text = str(review)
+    cleaned_text = re.sub(r"[^a-zA-Z\s]", " ", text.lower())
+    words = cleaned_text.split()
+    emoji_info = detect_emoji_sentiment(review)
+    aspect_breakdown = get_aspect_sentiment_breakdown(review)
+
+    return pd.DataFrame([
+        {
+            "Processing Step": "Lowercasing",
+            "Result": "Applied"
+        },
+        {
+            "Processing Step": "Punctuation Removal",
+            "Result": "Applied for keyword-based text analysis"
+        },
+        {
+            "Processing Step": "Token Count",
+            "Result": len(words)
+        },
+        {
+            "Processing Step": "Emoji / Emoticon Sentiment Integration",
+            "Result": emoji_info["emoji_sentiment"]
+        },
+        {
+            "Processing Step": "Detected Emoji / Emoticon Signals",
+            "Result": emoji_info["total_signals"]
+        },
+        {
+            "Processing Step": "Aspect-based Analysis",
+            "Result": f"{len(aspect_breakdown)} hotel aspect(s) detected"
+        }
+    ])
 
 # =====================================================
 # CSS Styling
@@ -776,7 +937,7 @@ PAGE_INFO = {
     },
     "🔍 Review Checker": {
         "title": "Review Checker",
-        "desc": "Paste one review and check its sentiment, risks, pros, cons, and explanation."
+        "desc": "Paste one review and check its sentiment, emoji signals, aspects, risks, pros, cons, and explanation."
     },
     "📊 Improvement Insights": {
         "title": "Improvement Insights",
@@ -1027,7 +1188,7 @@ elif page == "🔍 Review Checker":
     review_input = st.text_area(
         "Paste one hotel review",
         height=170,
-        placeholder="Example: The room was dirty, the wi-fi was slow, and the staff were rude."
+        placeholder="Example: The room was clean and comfortable 😊 but the check-in was slow."
     )
 
     analyze = st.button("Analyze Review", use_container_width=True)
@@ -1037,12 +1198,14 @@ elif page == "🔍 Review Checker":
             st.warning("Please paste a hotel review first.")
         else:
             result = analyze_review_frontend(review_input)
+            emoji_info = result["emoji_info"]
+            aspect_breakdown = result["aspect_breakdown"]
 
             c1, c2, c3, c4 = st.columns(4)
             c1.metric("Sentiment", sentiment_label_style(result["sentiment"]))
             c2.metric("Confidence", f"{result['confidence']}%")
             c3.metric("Risk", result["risk"])
-            c4.metric("Detected Aspects", len(result["detected_aspects"]))
+            c4.metric("Emoji Signal", emoji_info["emoji_sentiment"])
 
             if result["sentiment"] == "Positive":
                 st.markdown(f"""
@@ -1065,6 +1228,28 @@ elif page == "🔍 Review Checker":
                     <p>{result["suitability"]}</p>
                 </div>
                 """, unsafe_allow_html=True)
+
+            st.markdown("### Emoji / Emoticon Sentiment Integration")
+
+            emoji_col1, emoji_col2, emoji_col3 = st.columns(3)
+
+            with emoji_col1:
+                if emoji_info["positive_signals"]:
+                    st.success("Positive signals: " + " ".join(emoji_info["positive_signals"]))
+                else:
+                    st.info("No positive emoji signals")
+
+            with emoji_col2:
+                if emoji_info["negative_signals"]:
+                    st.error("Negative signals: " + " ".join(emoji_info["negative_signals"]))
+                else:
+                    st.info("No negative emoji signals")
+
+            with emoji_col3:
+                if emoji_info["neutral_signals"]:
+                    st.warning("Neutral signals: " + " ".join(emoji_info["neutral_signals"]))
+                else:
+                    st.info("No neutral emoji signals")
 
             st.markdown("### Pros and Cons")
 
@@ -1090,6 +1275,14 @@ elif page == "🔍 Review Checker":
             else:
                 st.info("No specific hotel aspect detected.")
 
+            st.markdown("### Aspect Sentiment Breakdown")
+
+            if aspect_breakdown:
+                aspect_df = pd.DataFrame(aspect_breakdown)
+                st.dataframe(aspect_df, use_container_width=True)
+            else:
+                st.info("No aspect sentiment breakdown available because no hotel aspect was detected.")
+
             st.markdown("### Explanation")
             st.write(result["explanation"])
 
@@ -1101,6 +1294,10 @@ elif page == "🔍 Review Checker":
                 st.warning("This review is mixed or has some concerns. Users should check more reviews before deciding.")
             else:
                 st.success("This review looks generally safe, but users should still compare multiple reviews.")
+
+            with st.expander("View Processing Details"):
+                processing_df = get_processing_details(review_input)
+                st.dataframe(processing_df, use_container_width=True)
 
 # =====================================================
 # Page 5: Improvement Insights

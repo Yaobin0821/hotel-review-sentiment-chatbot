@@ -1,0 +1,11 @@
+Best Model: Naive Bayes
+
+              precision    recall  f1-score   support
+
+    negative       0.86      1.00      0.92        24
+     neutral       0.94      0.62      0.75        24
+    positive       0.82      0.96      0.88        24
+
+    accuracy                           0.86        72
+   macro avg       0.87      0.86      0.85        72
+weighted avg       0.87      0.86      0.85        72

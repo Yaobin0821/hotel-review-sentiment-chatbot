@@ -359,35 +359,33 @@ def load_css():
 
 
 def render_topbar():
-    st.markdown(
-        dedent("""
-        <div class="app-shell">
-            <div class="brand-card">
-                <div class="brand-row">
-                    <div class="brand-left">
-                        <div class="brand-logo">🏨</div>
-                        <div>
-                            <div class="brand-title">StayWise KL</div>
-                            <div class="brand-subtitle">Hotel review guidance for smarter bookings</div>
-                        </div>
-                    </div>
-                    <div class="brand-pill">Traveller-friendly review assistant</div>
-                </div>
-            </div>
-
-            <div class="nav-card">
-                <div class="nav-row">
-                    <a class="nav-link" href="/find_hotels" target="_self">🏠 Find Hotels</a>
-                    <a class="nav-link" href="/hotel_detail" target="_self">🏨 Hotel Detail</a>
-                    <a class="nav-link" href="/compare_hotels" target="_self">⚖️ Compare</a>
-                    <a class="nav-link" href="/review_checker" target="_self">🔍 Review Checker</a>
-                    <a class="nav-link" href="/improvement_insights" target="_self">📊 Insights</a>
-                </div>
-            </div>
-        </div>
-        """),
-        unsafe_allow_html=True
+    topbar_html = (
+        '<div class="app-shell">'
+        '<div class="brand-card">'
+        '<div class="brand-row">'
+        '<div class="brand-left">'
+        '<div class="brand-logo">🏨</div>'
+        '<div>'
+        '<div class="brand-title">StayWise KL</div>'
+        '<div class="brand-subtitle">Hotel review guidance for smarter bookings</div>'
+        '</div>'
+        '</div>'
+        '<div class="brand-pill">Traveller-friendly review assistant</div>'
+        '</div>'
+        '</div>'
+        '<div class="nav-card">'
+        '<div class="nav-row">'
+        '<a class="nav-link" href="/find_hotels" target="_self">🏠 Find Hotels</a>'
+        '<a class="nav-link" href="/hotel_detail" target="_self">🏨 Hotel Detail</a>'
+        '<a class="nav-link" href="/compare_hotels" target="_self">⚖️ Compare</a>'
+        '<a class="nav-link" href="/review_checker" target="_self">🔍 Review Checker</a>'
+        '<a class="nav-link" href="/improvement_insights" target="_self">📊 Insights</a>'
+        '</div>'
+        '</div>'
+        '</div>'
     )
+
+    st.markdown(topbar_html, unsafe_allow_html=True)
 
 
 def render_page_header(title, subtitle):

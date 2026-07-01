@@ -33,7 +33,7 @@ except Exception:
 @st.cache_data
 def load_dataset():
     try:
-        return pd.read_csv("cleaned_hotel_reviews_dataset.csv")
+        return pd.read_csv("data/training_dataset.csv")
     except:
         return None
 

@@ -2,10 +2,7 @@ import html
 import streamlit as st
 import pandas as pd
 from styles import load_css, render_topbar, render_page_header, render_footer
-from utils import (
-    analyze_review_frontend,
-    get_processing_details
-)
+from utils import analyze_review_frontend, get_processing_details
 
 
 st.set_page_config(
@@ -15,340 +12,475 @@ st.set_page_config(
 )
 
 
-def load_tourist_review_css():
+def load_review_checker_css():
     st.markdown("""
     <style>
-        .block-container {
-            max-width: 1120px;
-            padding-top: 1.5rem;
-            padding-bottom: 2rem;
+        .review-layout {
+            display: grid;
+            grid-template-columns: 0.95fr 1.05fr;
+            gap: 1.1rem;
+            align-items: start;
+            margin-top: 0.5rem;
         }
 
-        .tourist-hero {
-            background: linear-gradient(135deg, #EFF6FF 0%, #F8FAFC 60%, #ECFDF5 100%);
-            border: 1px solid #DBEAFE;
-            border-radius: 26px;
-            padding: 1.5rem 1.6rem;
-            margin-bottom: 1.2rem;
-            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
-        }
-
-        .hero-title {
-            font-size: 1.45rem;
-            font-weight: 800;
-            color: #0F172A;
-            margin-bottom: 0.35rem;
-        }
-
-        .hero-subtitle {
-            color: #475569;
-            font-size: 0.98rem;
-            line-height: 1.55;
-            margin-bottom: 0.9rem;
-        }
-
-        .tourist-chip {
-            display: inline-block;
-            background: #FFFFFF;
-            color: #2563EB;
-            border: 1px solid #BFDBFE;
-            border-radius: 999px;
-            padding: 0.35rem 0.75rem;
-            font-size: 0.82rem;
-            font-weight: 650;
-            margin-right: 0.4rem;
-            margin-bottom: 0.35rem;
-        }
-
-        div[data-testid="stTextArea"] textarea {
-            border-radius: 18px;
-            border: 1px solid #CBD5E1;
-            font-size: 1rem;
-        }
-
-        div[data-testid="stButton"] button {
-            border-radius: 16px;
-            height: 3.1rem;
-            font-size: 1rem;
-            font-weight: 800;
-            background: linear-gradient(90deg, #2563EB, #16A34A);
-            border: none;
-            color: white;
-        }
-
-        .main-advice-card {
+        .booking-card {
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid var(--border);
             border-radius: 28px;
-            padding: 1.45rem 1.55rem;
-            margin: 1.1rem 0;
-            border: 1px solid;
-            box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
+            padding: 1.35rem;
+            box-shadow: var(--shadow-card);
         }
 
-        .advice-positive {
-            background: linear-gradient(135deg, #ECFDF5, #F0FDF4);
-            border-color: #BBF7D0;
+        .booking-card.sticky {
+            position: sticky;
+            top: 1rem;
         }
 
-        .advice-neutral {
-            background: linear-gradient(135deg, #FFFBEB, #FEFCE8);
-            border-color: #FDE68A;
+        .card-kicker {
+            color: var(--brand-dark);
+            background: #FFF4E8;
+            border: 1px solid #F2CBAE;
+            display: inline-flex;
+            border-radius: 999px;
+            padding: 0.35rem 0.68rem;
+            font-size: 0.78rem;
+            font-weight: 850;
+            margin-bottom: 0.85rem;
         }
 
-        .advice-negative {
-            background: linear-gradient(135deg, #FEF2F2, #FFF1F2);
-            border-color: #FECACA;
+        .input-title {
+            font-size: 1.45rem;
+            font-weight: 900;
+            color: var(--text-main);
+            letter-spacing: -0.04em;
+            line-height: 1.12;
+            margin-bottom: 0.45rem;
         }
 
-        .advice-small {
-            font-size: 0.85rem;
-            font-weight: 800;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
-            margin-bottom: 0.35rem;
+        .input-desc {
             color: #64748B;
+            line-height: 1.6;
+            font-size: 0.95rem;
+            margin-bottom: 1rem;
+        }
+
+        .sample-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+            margin: 0.95rem 0 1rem 0;
+        }
+
+        .sample-chip {
+            background: #FFFDF8;
+            color: #7A4D33;
+            border: 1px solid #EAD7C6;
+            border-radius: 999px;
+            padding: 0.38rem 0.72rem;
+            font-size: 0.82rem;
+            font-weight: 720;
+        }
+
+        .privacy-note {
+            margin-top: 0.85rem;
+            background: #F8F4EE;
+            color: #7C6F64;
+            border: 1px dashed #D8CDBE;
+            border-radius: 16px;
+            padding: 0.75rem 0.85rem;
+            font-size: 0.86rem;
+            line-height: 1.45;
+        }
+
+        .empty-result {
+            min-height: 410px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            background:
+                linear-gradient(135deg, rgba(255, 244, 232, 0.95), rgba(234, 243, 239, 0.95));
+            border: 1px solid #E7DDD0;
+            border-radius: 30px;
+            padding: 2rem;
+            box-shadow: var(--shadow-card);
+        }
+
+        .empty-icon {
+            width: 58px;
+            height: 58px;
+            border-radius: 20px;
+            background: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.7rem;
+            box-shadow: 0 10px 24px rgba(74, 55, 40, 0.08);
+            margin-bottom: 1rem;
+        }
+
+        .empty-title {
+            font-size: 1.55rem;
+            font-weight: 900;
+            letter-spacing: -0.04em;
+            margin-bottom: 0.55rem;
+            color: var(--text-main);
+        }
+
+        .empty-desc {
+            color: #64748B;
+            line-height: 1.65;
+            max-width: 520px;
+        }
+
+        .advice-card {
+            border-radius: 30px;
+            padding: 1.55rem;
+            border: 1px solid;
+            box-shadow: var(--shadow-card);
+            margin-bottom: 1rem;
+        }
+
+        .advice-good {
+            background: linear-gradient(135deg, #F0FFF7, #FFFFFF);
+            border-color: #BCE8CF;
+        }
+
+        .advice-mid {
+            background: linear-gradient(135deg, #FFF9E8, #FFFFFF);
+            border-color: #F0DDA0;
+        }
+
+        .advice-risk {
+            background: linear-gradient(135deg, #FFF1EE, #FFFFFF);
+            border-color: #F4C7BF;
+        }
+
+        .advice-label {
+            color: #7C6F64;
+            font-size: 0.8rem;
+            font-weight: 900;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
         }
 
         .advice-title {
+            color: var(--text-main);
             font-size: 2rem;
-            font-weight: 850;
-            color: #0F172A;
-            margin-bottom: 0.45rem;
-            line-height: 1.18;
+            font-weight: 950;
+            letter-spacing: -0.06em;
+            line-height: 1.08;
+            margin-bottom: 0.65rem;
         }
 
-        .advice-body {
+        .advice-text {
             color: #334155;
-            font-size: 1.02rem;
-            line-height: 1.65;
-            max-width: 880px;
+            font-size: 1rem;
+            line-height: 1.7;
+            max-width: 720px;
         }
 
-        .summary-grid {
+        .result-strip {
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 1rem;
-            margin: 1rem 0 1.2rem 0;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
         }
 
-        .summary-card {
-            background: white;
-            border: 1px solid #E2E8F0;
+        .strip-card {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid var(--border);
             border-radius: 22px;
-            padding: 1rem 1.05rem;
-            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
-            min-height: 112px;
+            padding: 1rem;
+            box-shadow: 0 8px 20px rgba(74, 55, 40, 0.045);
         }
 
-        .summary-label {
-            color: #64748B;
-            font-size: 0.84rem;
-            font-weight: 750;
-            margin-bottom: 0.4rem;
-        }
-
-        .summary-value {
-            color: #0F172A;
-            font-size: 1.35rem;
+        .strip-label {
+            color: #7C6F64;
+            font-size: 0.78rem;
             font-weight: 850;
-            line-height: 1.2;
+            margin-bottom: 0.35rem;
         }
 
-        .summary-note {
+        .strip-value {
+            color: var(--text-main);
+            font-size: 1.25rem;
+            font-weight: 900;
+            letter-spacing: -0.03em;
+        }
+
+        .strip-help {
             color: #64748B;
-            font-size: 0.84rem;
-            margin-top: 0.42rem;
-            line-height: 1.4;
+            font-size: 0.82rem;
+            margin-top: 0.3rem;
+            line-height: 1.35;
         }
 
-        .content-grid {
+        .two-col {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-            margin-top: 0.8rem;
+            gap: 0.85rem;
+            margin-bottom: 0.9rem;
         }
 
-        .info-box {
-            background: white;
-            border: 1px solid #E2E8F0;
+        .traveller-box {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid var(--border);
             border-radius: 24px;
-            padding: 1.15rem 1.2rem;
-            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.045);
-            min-height: 150px;
+            padding: 1.15rem;
+            box-shadow: 0 8px 20px rgba(74, 55, 40, 0.045);
+            min-height: 170px;
         }
 
         .box-title {
-            color: #0F172A;
+            color: var(--text-main);
             font-size: 1.08rem;
-            font-weight: 850;
+            font-weight: 900;
+            letter-spacing: -0.03em;
+            margin-bottom: 0.35rem;
+        }
+
+        .box-desc {
+            color: #64748B;
+            font-size: 0.9rem;
+            line-height: 1.45;
             margin-bottom: 0.75rem;
         }
 
-        .box-subtitle {
-            color: #64748B;
-            font-size: 0.9rem;
-            margin-bottom: 0.7rem;
-            line-height: 1.45;
-        }
-
-        .good-item {
-            display: inline-block;
-            background: #ECFDF5;
-            color: #047857;
-            border: 1px solid #A7F3D0;
+        .chip-good, .chip-bad, .chip-topic {
+            display: inline-flex;
+            align-items: center;
             border-radius: 999px;
-            padding: 0.42rem 0.78rem;
-            font-weight: 700;
-            font-size: 0.88rem;
-            margin-right: 0.38rem;
-            margin-bottom: 0.38rem;
+            padding: 0.42rem 0.72rem;
+            font-size: 0.85rem;
+            font-weight: 760;
+            margin-right: 0.35rem;
+            margin-bottom: 0.35rem;
         }
 
-        .bad-item {
-            display: inline-block;
-            background: #FEF2F2;
-            color: #B91C1C;
-            border: 1px solid #FECACA;
-            border-radius: 999px;
-            padding: 0.42rem 0.78rem;
-            font-weight: 700;
-            font-size: 0.88rem;
-            margin-right: 0.38rem;
-            margin-bottom: 0.38rem;
+        .chip-good {
+            color: #216E46;
+            background: #EAF7F0;
+            border: 1px solid #BFE3CF;
         }
 
-        .topic-item {
-            display: inline-block;
-            background: #EEF2FF;
-            color: #3730A3;
-            border: 1px solid #C7D2FE;
-            border-radius: 999px;
-            padding: 0.42rem 0.78rem;
-            font-weight: 700;
-            font-size: 0.88rem;
-            margin-right: 0.38rem;
-            margin-bottom: 0.38rem;
+        .chip-bad {
+            color: #A33A2F;
+            background: #FFF0EE;
+            border: 1px solid #F4C7BF;
         }
 
-        .empty-text {
-            background: #F8FAFC;
-            color: #64748B;
-            border: 1px solid #E2E8F0;
+        .chip-topic {
+            color: #6D4B30;
+            background: #FFF4E8;
+            border: 1px solid #EAD7C6;
+        }
+
+        .empty-line {
+            color: #7C6F64;
+            background: #F8F4EE;
+            border: 1px solid #E5D8CA;
             border-radius: 16px;
-            padding: 0.8rem 0.9rem;
-            font-size: 0.92rem;
+            padding: 0.8rem;
+            font-size: 0.9rem;
             line-height: 1.45;
         }
 
-        .plain-note {
-            background: #F8FAFC;
-            border: 1px solid #E2E8F0;
-            color: #334155;
-            border-radius: 20px;
-            padding: 1rem 1.05rem;
-            line-height: 1.65;
-            font-size: 0.96rem;
-            margin-top: 1rem;
-        }
-
-        .aspect-table-card {
-            background: white;
-            border: 1px solid #E2E8F0;
+        .reason-box {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid var(--border);
             border-radius: 24px;
-            padding: 1.15rem 1.2rem;
-            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.045);
-            margin-top: 1rem;
+            padding: 1.15rem;
+            box-shadow: 0 8px 20px rgba(74, 55, 40, 0.045);
+            margin-bottom: 0.9rem;
         }
 
-        .friendly-divider {
-            height: 1px;
-            background: #E2E8F0;
-            margin: 1rem 0;
+        .reason-title {
+            font-weight: 900;
+            color: var(--text-main);
+            font-size: 1.05rem;
+            margin-bottom: 0.45rem;
         }
 
-        @media (max-width: 900px) {
-            .summary-grid {
+        .reason-text {
+            color: #334155;
+            line-height: 1.65;
+            font-size: 0.95rem;
+        }
+
+        .details-card {
+            background: rgba(255, 255, 255, 0.82);
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            padding: 1rem;
+            margin-top: 0.6rem;
+        }
+
+        .mobile-only-space {
+            display: none;
+        }
+
+        @media (max-width: 950px) {
+            .review-layout {
                 grid-template-columns: 1fr;
             }
 
-            .content-grid {
+            .booking-card.sticky {
+                position: static;
+            }
+
+            .result-strip {
+                grid-template-columns: 1fr;
+            }
+
+            .two-col {
                 grid-template-columns: 1fr;
             }
 
             .advice-title {
                 font-size: 1.55rem;
             }
+
+            .mobile-only-space {
+                display: block;
+                height: 0.2rem;
+            }
         }
     </style>
     """, unsafe_allow_html=True)
 
 
-def get_advice_info(sentiment, risk):
-    sentiment_lower = str(sentiment).lower()
-    risk_lower = str(risk).lower()
+def escape(value):
+    return html.escape(str(value))
 
-    if sentiment_lower == "positive" and risk_lower == "low":
+
+def get_advice(sentiment, risk):
+    sentiment = str(sentiment).lower()
+    risk = str(risk).lower()
+
+    if sentiment == "negative" or risk == "high":
         return {
-            "css": "advice-positive",
-            "title": "Looks good to consider",
-            "short": "This review sounds mostly positive.",
-            "body": "This review gives a good impression of the hotel. It mentions positive experiences and does not show strong warning signs. You can consider this hotel, but it is still better to compare a few more reviews before booking."
+            "class": "advice-risk",
+            "title": "Check carefully before booking",
+            "text": "This review shows possible guest concerns. Read more reviews and see whether other travellers mention the same issue before you decide.",
         }
 
-    if sentiment_lower == "negative" or risk_lower == "high":
+    if sentiment == "neutral" or risk == "medium":
         return {
-            "css": "advice-negative",
-            "title": "Be careful before booking",
-            "short": "This review shows possible problems.",
-            "body": "This review contains negative signals or possible risk areas. Before booking, you should read more reviews and check whether other guests mention the same problems."
+            "class": "advice-mid",
+            "title": "Worth comparing with more reviews",
+            "text": "This review is not strongly positive or negative. It is better to compare a few more reviews before making your booking decision.",
         }
 
     return {
-        "css": "advice-neutral",
-        "title": "Compare more reviews first",
-        "short": "This review is mixed or not strong enough.",
-        "body": "This review does not give a very clear positive or negative answer. It may contain mixed feedback, so you should compare more reviews before making a decision."
+        "class": "advice-good",
+        "title": "Looks safe to consider",
+        "text": "This review gives a positive impression and does not show strong warning signs. You can consider this hotel, but checking more reviews is still recommended.",
     }
 
 
-def render_main_advice(sentiment, risk):
-    advice = get_advice_info(sentiment, risk)
+def get_review_feeling(sentiment):
+    sentiment = str(sentiment).lower()
+
+    if sentiment == "positive":
+        return "Positive"
+    if sentiment == "negative":
+        return "Negative"
+    return "Mixed"
+
+
+def get_concern_text(risk):
+    risk = str(risk).lower()
+
+    if risk == "high":
+        return "High"
+    if risk == "medium":
+        return "Some"
+    return "Low"
+
+
+def render_chip_list(items, chip_class, empty_message):
+    if not items:
+        st.markdown(f'<div class="empty-line">{escape(empty_message)}</div>', unsafe_allow_html=True)
+        return
+
+    chips = "".join(
+        f'<span class="{chip_class}">{escape(str(item).title())}</span>'
+        for item in items
+    )
+    st.markdown(chips, unsafe_allow_html=True)
+
+
+def build_simple_reason(result):
+    sentiment = result.get("sentiment", "Neutral")
+    confidence = result.get("confidence", 0)
+    pros = result.get("pros", [])
+    cons = result.get("cons", [])
+    aspects = result.get("detected_aspects", [])
+
+    if sentiment == "Positive":
+        sentence = f"This review sounds positive and the result is quite clear."
+    elif sentiment == "Negative":
+        sentence = f"This review sounds negative and may contain booking concerns."
+    else:
+        sentence = f"This review sounds mixed, so it is better to compare more guest feedback."
+
+    parts = [sentence]
+
+    if pros:
+        parts.append("Good signs mentioned: " + ", ".join(str(x).title() for x in pros[:4]) + ".")
+
+    if cons:
+        parts.append("Possible concerns mentioned: " + ", ".join(str(x).title() for x in cons[:4]) + ".")
+
+    if aspects:
+        parts.append("Main hotel topics: " + ", ".join(aspects[:4]) + ".")
+
+    parts.append(f"Clarity score: {confidence}%.")
+
+    return " ".join(parts)
+
+
+def render_empty_state():
+    st.markdown("""
+    <div class="empty-result">
+        <div class="empty-icon">🧳</div>
+        <div class="empty-title">Paste a review to get booking guidance</div>
+        <div class="empty-desc">
+            The result will focus on what travellers need most: whether the review sounds positive,
+            what is good, what to watch out for, and which hotel topics are mentioned.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def render_result(result, review_input):
+    sentiment = result.get("sentiment", "Neutral")
+    confidence = result.get("confidence", 0)
+    risk = result.get("risk", "Medium")
+    advice = get_advice(sentiment, risk)
 
     st.markdown(
         f"""
-        <div class="main-advice-card {advice["css"]}">
-            <div class="advice-small">Booking Advice</div>
-            <div class="advice-title">{html.escape(advice["title"])}</div>
-            <div class="advice-body">{html.escape(advice["body"])}</div>
+        <div class="advice-card {advice["class"]}">
+            <div class="advice-label">Booking guidance</div>
+            <div class="advice-title">{escape(advice["title"])}</div>
+            <div class="advice-text">{escape(advice["text"])}</div>
         </div>
         """,
         unsafe_allow_html=True
     )
-
-
-def render_summary_cards(sentiment, confidence, risk):
-    sentiment_text = {
-        "Positive": "Mostly Positive",
-        "Neutral": "Mixed / Neutral",
-        "Negative": "Mostly Negative"
-    }.get(str(sentiment), str(sentiment))
-
-    risk_text = {
-        "Low": "Low Concern",
-        "Medium": "Some Concern",
-        "High": "High Concern"
-    }.get(str(risk), str(risk))
-
-    st.markdown('<div class="summary-grid">', unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns(3)
 
     with col1:
         st.markdown(
             f"""
-            <div class="summary-card">
-                <div class="summary-label">Review Feeling</div>
-                <div class="summary-value">{html.escape(sentiment_text)}</div>
-                <div class="summary-note">Overall feeling detected from this review.</div>
+            <div class="strip-card">
+                <div class="strip-label">Review feeling</div>
+                <div class="strip-value">{escape(get_review_feeling(sentiment))}</div>
+                <div class="strip-help">Overall tone of this review.</div>
             </div>
             """,
             unsafe_allow_html=True
@@ -357,10 +489,10 @@ def render_summary_cards(sentiment, confidence, risk):
     with col2:
         st.markdown(
             f"""
-            <div class="summary-card">
-                <div class="summary-label">Confidence</div>
-                <div class="summary-value">{html.escape(str(confidence))}%</div>
-                <div class="summary-note">How confident the AI is about this result.</div>
+            <div class="strip-card">
+                <div class="strip-label">Result clarity</div>
+                <div class="strip-value">{escape(confidence)}%</div>
+                <div class="strip-help">How clear the review signal is.</div>
             </div>
             """,
             unsafe_allow_html=True
@@ -369,217 +501,138 @@ def render_summary_cards(sentiment, confidence, risk):
     with col3:
         st.markdown(
             f"""
-            <div class="summary-card">
-                <div class="summary-label">Booking Concern</div>
-                <div class="summary-value">{html.escape(risk_text)}</div>
-                <div class="summary-note">How much caution this review suggests.</div>
+            <div class="strip-card">
+                <div class="strip-label">Booking concern</div>
+                <div class="strip-value">{escape(get_concern_text(risk))}</div>
+                <div class="strip-help">How much caution is suggested.</div>
             </div>
             """,
             unsafe_allow_html=True
         )
 
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('<div class="mobile-only-space"></div>', unsafe_allow_html=True)
 
+    left, right = st.columns(2)
 
-def render_chip_list(items, css_class, empty_message):
-    if items:
-        chips = "".join(
-            f'<span class="{css_class}">{html.escape(str(item).title())}</span>'
-            for item in items
-        )
-        st.markdown(chips, unsafe_allow_html=True)
-    else:
-        st.markdown(
-            f'<div class="empty-text">{html.escape(empty_message)}</div>',
-            unsafe_allow_html=True
-        )
+    with left:
+        st.markdown("""
+        <div class="traveller-box">
+            <div class="box-title">What looks good</div>
+            <div class="box-desc">Positive points found in the review.</div>
+        """, unsafe_allow_html=True)
 
-
-def get_simple_reason(result):
-    sentiment = result.get("sentiment", "Neutral")
-    confidence = result.get("confidence", 0)
-    pros = result.get("pros", [])
-    cons = result.get("cons", [])
-    aspects = result.get("detected_aspects", [])
-
-    if sentiment == "Positive":
-        opening = f"The review sounds positive with {confidence}% confidence."
-    elif sentiment == "Negative":
-        opening = f"The review sounds negative with {confidence}% confidence."
-    else:
-        opening = f"The review sounds mixed or neutral with {confidence}% confidence."
-
-    reason_parts = [opening]
-
-    if pros:
-        reason_parts.append(
-            "Positive words detected include " + ", ".join([str(x).title() for x in pros[:4]]) + "."
+        render_chip_list(
+            result.get("pros", []),
+            "chip-good",
+            "No clear positive point was found."
         )
 
-    if cons:
-        reason_parts.append(
-            "Concern words detected include " + ", ".join([str(x).title() for x in cons[:4]]) + "."
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with right:
+        st.markdown("""
+        <div class="traveller-box">
+            <div class="box-title">What to watch out for</div>
+            <div class="box-desc">Possible concerns found in the review.</div>
+        """, unsafe_allow_html=True)
+
+        render_chip_list(
+            result.get("cons", []),
+            "chip-bad",
+            "No clear concern was found."
         )
 
-    if aspects:
-        reason_parts.append(
-            "The review mainly talks about " + ", ".join(aspects[:4]) + "."
-        )
+        st.markdown("</div>", unsafe_allow_html=True)
 
-    return " ".join(reason_parts)
+    st.markdown(
+        f"""
+        <div class="reason-box">
+            <div class="reason-title">Why this result?</div>
+            <div class="reason-text">{escape(build_simple_reason(result))}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
-
-def render_tourist_details(result):
-    aspects = result.get("detected_aspects", [])
-    aspect_breakdown = result.get("aspect_breakdown", [])
-    emoji_info = result.get("emoji_info", {})
-
-    with st.expander("Show more details"):
+    with st.expander("More review details"):
         st.markdown("#### Hotel topics mentioned")
         render_chip_list(
-            aspects,
-            "topic-item",
-            "No specific hotel topic was clearly mentioned."
+            result.get("detected_aspects", []),
+            "chip-topic",
+            "No specific hotel topic was found."
         )
 
-        st.markdown('<div class="friendly-divider"></div>', unsafe_allow_html=True)
+        emoji_info = result.get("emoji_info", {})
+        st.markdown("#### Emoji signal")
+        st.write(f"Emoji signal: **{emoji_info.get('emoji_sentiment', 'No emoji signal')}**")
 
-        st.markdown("#### Emoji or emoticon signal")
-        emoji_signal = emoji_info.get("emoji_sentiment", "No emoji signal")
-        st.write(f"Emoji signal: **{emoji_signal}**")
-
+        aspect_breakdown = result.get("aspect_breakdown", [])
         if aspect_breakdown:
-            st.markdown("#### Topic breakdown")
             aspect_df = pd.DataFrame(aspect_breakdown)
-
-            display_columns = [
-                "Aspect",
-                "Aspect Sentiment",
-                "Matched Keywords"
-            ]
-
-            available_columns = [
-                col for col in display_columns
+            show_cols = [
+                col for col in ["Aspect", "Aspect Sentiment", "Matched Keywords"]
                 if col in aspect_df.columns
             ]
+            st.dataframe(aspect_df[show_cols], use_container_width=True, hide_index=True)
 
-            st.dataframe(
-                aspect_df[available_columns],
-                use_container_width=True,
-                hide_index=True
-            )
-        else:
-            st.info("No detailed topic breakdown available.")
-
-
-def render_project_details(review_input):
-    with st.expander("Project technical details"):
-        st.caption("This section is mainly for project demonstration, not for normal hotel users.")
+    with st.expander("Project proof of model used"):
+        st.caption("This section is for lecturer/project demonstration.")
         processing_df = get_processing_details(review_input)
         st.dataframe(processing_df, use_container_width=True, hide_index=True)
 
 
 load_css()
-load_tourist_review_css()
+load_review_checker_css()
 render_topbar()
 
 render_page_header(
     "Review Checker",
-    "Paste a hotel review and get a simple booking-friendly summary."
+    "Paste one hotel review and receive simple booking guidance, not technical analysis."
 )
 
-st.markdown(
-    """
-    <div class="tourist-hero">
-        <div class="hero-title">Should I trust this review?</div>
-        <div class="hero-subtitle">
-            Paste one hotel review below. The system will summarize whether the review sounds positive,
-            mixed, or risky, and highlight what travellers may like or need to watch out for.
+left_col, right_col = st.columns([0.95, 1.05], gap="large")
+
+with left_col:
+    st.markdown("""
+    <div class="booking-card sticky">
+        <div class="card-kicker">For travellers</div>
+        <div class="input-title">Is this review helpful for booking?</div>
+        <div class="input-desc">
+            Paste a hotel review. StayWise will turn it into a simple booking note:
+            what looks good, what to watch out for, and whether you should compare more reviews.
         </div>
-        <span class="tourist-chip">Fast review summary</span>
-        <span class="tourist-chip">Booking concern check</span>
-        <span class="tourist-chip">Pros and cons</span>
+        <div class="sample-row">
+            <span class="sample-chip">Clean room</span>
+            <span class="sample-chip">Slow check-in</span>
+            <span class="sample-chip">Good location</span>
+            <span class="sample-chip">Noisy at night</span>
+        </div>
     </div>
-    """,
-    unsafe_allow_html=True
-)
+    """, unsafe_allow_html=True)
 
-review_input = st.text_area(
-    "Paste a hotel review",
-    height=115,
-    placeholder="Example: The room was clean and comfortable, but the check-in was slow."
-)
+    review_input = st.text_area(
+        "Paste a hotel review",
+        height=155,
+        placeholder="Example: The room was clean and comfortable, but the check-in was slow."
+    )
 
-analyze = st.button("Check This Review", use_container_width=True)
+    analyze = st.button("Get Booking Guidance", use_container_width=True)
 
-if analyze:
-    if review_input.strip() == "":
-        st.warning("Please paste a hotel review first.")
+    st.markdown("""
+    <div class="privacy-note">
+        Your text is only used to generate this result. For a better decision, compare several reviews before booking.
+    </div>
+    """, unsafe_allow_html=True)
+
+with right_col:
+    if analyze:
+        if review_input.strip() == "":
+            st.warning("Please paste a hotel review first.")
+            render_empty_state()
+        else:
+            result = analyze_review_frontend(review_input)
+            render_result(result, review_input)
     else:
-        result = analyze_review_frontend(review_input)
-
-        sentiment = result.get("sentiment", "Neutral")
-        confidence = result.get("confidence", 0)
-        risk = result.get("risk", "Medium")
-
-        render_main_advice(sentiment, risk)
-        render_summary_cards(sentiment, confidence, risk)
-
-        content_col1, content_col2 = st.columns(2)
-
-        with content_col1:
-            st.markdown(
-                """
-                <div class="info-box">
-                    <div class="box-title">What travellers may like</div>
-                    <div class="box-subtitle">Positive points found in this review.</div>
-                """,
-                unsafe_allow_html=True
-            )
-
-            render_chip_list(
-                result.get("pros", []),
-                "good-item",
-                "No clear positive point was detected in this review."
-            )
-
-            st.markdown("</div>", unsafe_allow_html=True)
-
-        with content_col2:
-            st.markdown(
-                """
-                <div class="info-box">
-                    <div class="box-title">What to watch out for</div>
-                    <div class="box-subtitle">Possible concerns found in this review.</div>
-                """,
-                unsafe_allow_html=True
-            )
-
-            render_chip_list(
-                result.get("cons", []),
-                "bad-item",
-                "No clear concern was detected in this review."
-            )
-
-            st.markdown("</div>", unsafe_allow_html=True)
-
-        simple_reason = get_simple_reason(result)
-
-        st.markdown(
-            f"""
-            <div class="plain-note">
-                <b>Why this result?</b><br>
-                {html.escape(simple_reason)}
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-        render_tourist_details(result)
-
-        render_project_details(review_input)
-
-else:
-    st.info("Paste a review and click Check This Review to start.")
+        render_empty_state()
 
 render_footer()

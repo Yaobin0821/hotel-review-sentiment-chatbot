@@ -1,301 +1,365 @@
 import streamlit as st
 
+
 def load_css():
     st.markdown("""
     <style>
-    #MainMenu {
-        visibility: hidden;
-    }
+        :root {
+            --bg-main: #F7F3EC;
+            --bg-card: #FFFFFF;
+            --text-main: #172033;
+            --text-muted: #6B7280;
+            --brand: #C7653A;
+            --brand-dark: #9B4325;
+            --sage: #52796F;
+            --sage-light: #EAF3EF;
+            --sand: #F2E3D0;
+            --cream: #FFFDF8;
+            --border: #E7DDD0;
+            --green: #2F855A;
+            --green-bg: #EAF7F0;
+            --amber: #B7791F;
+            --amber-bg: #FFF4D6;
+            --red: #C24136;
+            --red-bg: #FFF0EE;
+            --shadow-soft: 0 18px 45px rgba(74, 55, 40, 0.08);
+            --shadow-card: 0 10px 28px rgba(74, 55, 40, 0.07);
+            --radius-xl: 28px;
+            --radius-lg: 22px;
+            --radius-md: 16px;
+        }
 
-    footer {
-        visibility: hidden;
-    }
+        html, body, [data-testid="stAppViewContainer"] {
+            background:
+                radial-gradient(circle at top left, rgba(199, 101, 58, 0.10), transparent 28%),
+                radial-gradient(circle at top right, rgba(82, 121, 111, 0.10), transparent 26%),
+                var(--bg-main);
+            color: var(--text-main);
+            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
 
-    header {
-        visibility: hidden;
-    }
+        [data-testid="stHeader"] {
+            background: transparent;
+        }
 
-    [data-testid="stToolbar"] {
-        display: none;
-    }
+        [data-testid="stToolbar"] {
+            right: 1rem;
+        }
 
-    section[data-testid="stSidebar"] {
-        display: none !important;
-    }
+        .block-container {
+            max-width: 1180px;
+            padding-top: 1.3rem;
+            padding-bottom: 2.2rem;
+        }
 
-    .stApp {
-        background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
-    }
+        h1, h2, h3, h4 {
+            color: var(--text-main);
+            letter-spacing: -0.03em;
+        }
 
-    .block-container {
-        padding-top: 1.2rem;
-        padding-bottom: 2rem;
-        max-width: 1280px;
-    }
+        p {
+            color: #334155;
+            line-height: 1.65;
+        }
 
-    .topbar {
-        padding: 20px 24px;
-        border-radius: 24px;
-        background: rgba(255,255,255,0.88);
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.07);
-        margin-bottom: 16px;
-    }
+        a {
+            text-decoration: none;
+        }
 
-    .brand-title {
-        font-size: 24px;
-        font-weight: 800;
-        color: #0f172a;
-        margin-bottom: 3px;
-    }
+        .app-shell {
+            max-width: 1180px;
+            margin: 0 auto;
+        }
 
-    .brand-subtitle {
-        font-size: 14px;
-        color: #64748b;
-    }
+        .brand-card {
+            background: rgba(255, 255, 255, 0.82);
+            backdrop-filter: blur(14px);
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            padding: 1.15rem 1.35rem;
+            box-shadow: var(--shadow-soft);
+            margin-bottom: 0.85rem;
+        }
 
-    .nav-box {
-        background: white;
-        border: 1px solid #dbeafe;
-        padding: 12px;
-        border-radius: 22px;
-        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
-        margin-bottom: 22px;
-    }
+        .brand-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
 
-    .hero {
-        padding: 42px;
-        border-radius: 30px;
-        background:
-            radial-gradient(circle at top right, rgba(96,165,250,0.35), transparent 28%),
-            linear-gradient(135deg, #ffffff 0%, #eff6ff 48%, #dbeafe 100%);
-        color: #0f172a;
-        margin-bottom: 24px;
-        box-shadow: 0 18px 40px rgba(30, 64, 175, 0.12);
-        border: 1px solid #dbeafe;
-    }
+        .brand-left {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+        }
 
-    .hero h1 {
-        color: #0f172a;
-        font-size: 46px;
-        margin-bottom: 10px;
-        letter-spacing: -0.5px;
-    }
+        .brand-logo {
+            width: 46px;
+            height: 46px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #C7653A, #E6A15F);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.45rem;
+            box-shadow: 0 12px 26px rgba(199, 101, 58, 0.25);
+        }
 
-    .hero p {
-        color: #334155;
-        font-size: 18px;
-        max-width: 900px;
-    }
+        .brand-title {
+            font-size: 1.35rem;
+            font-weight: 850;
+            color: var(--text-main);
+            line-height: 1.15;
+        }
 
-    .hero-badge {
-        display: inline-block;
-        background: #dbeafe;
-        border: 1px solid #bfdbfe;
-        padding: 8px 14px;
-        border-radius: 999px;
-        color: #1d4ed8;
-        font-size: 14px;
-        font-weight: 700;
-        margin-bottom: 15px;
-    }
+        .brand-subtitle {
+            color: var(--text-muted);
+            font-size: 0.92rem;
+            margin-top: 0.25rem;
+        }
 
-    .page-header {
-        padding: 22px 24px;
-        border-radius: 24px;
-        background: rgba(255, 255, 255, 0.92);
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
-        margin-bottom: 22px;
-    }
+        .brand-pill {
+            background: var(--sage-light);
+            color: var(--sage);
+            border: 1px solid #CFE2DA;
+            border-radius: 999px;
+            padding: 0.5rem 0.8rem;
+            font-size: 0.83rem;
+            font-weight: 750;
+        }
 
-    .page-header h2 {
-        margin: 0 0 8px 0;
-        color: #0f172a;
-    }
+        .nav-card {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            padding: 0.5rem;
+            box-shadow: 0 8px 24px rgba(74, 55, 40, 0.055);
+            margin-bottom: 1.1rem;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
 
-    .page-header p {
-        margin: 0;
-        color: #475569;
-        font-size: 16px;
-    }
+        .nav-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+        }
 
-    .card {
-        padding: 24px;
-        border-radius: 24px;
-        background: rgba(255,255,255,0.95);
-        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.07);
-        border: 1px solid #e5e7eb;
-        margin-bottom: 18px;
-        min-height: 190px;
-    }
+        .nav-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.42rem;
+            color: #5F6B7A;
+            padding: 0.62rem 1rem;
+            border-radius: 999px;
+            font-weight: 720;
+            font-size: 0.92rem;
+            transition: all 0.16s ease;
+        }
 
-    .hotel-card {
-        padding: 24px;
-        border-radius: 26px;
-        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
-        border: 1px solid #e2e8f0;
-        min-height: 370px;
-        margin-bottom: 22px;
-        transition: all 0.2s ease-in-out;
-    }
+        .nav-link:hover {
+            background: #FFF7EF;
+            color: var(--brand-dark);
+        }
 
-    .hotel-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 18px 38px rgba(15, 23, 42, 0.12);
-    }
+        .page-hero {
+            background: rgba(255, 255, 255, 0.84);
+            border: 1px solid var(--border);
+            border-radius: 30px;
+            padding: 1.65rem 1.75rem;
+            box-shadow: var(--shadow-soft);
+            margin-bottom: 1.15rem;
+        }
 
-    .hotel-card h3 {
-        margin-bottom: 8px;
-        color: #0f172a;
-        font-size: 22px;
-    }
+        .page-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.42rem;
+            background: #FFF4E8;
+            color: var(--brand-dark);
+            border: 1px solid #F2CBAE;
+            border-radius: 999px;
+            padding: 0.38rem 0.72rem;
+            font-size: 0.8rem;
+            font-weight: 800;
+            margin-bottom: 0.85rem;
+        }
 
-    .hotel-card p {
-        color: #334155;
-    }
+        .page-title {
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 900;
+            letter-spacing: -0.06em;
+            color: var(--text-main);
+            line-height: 1.05;
+            margin-bottom: 0.6rem;
+        }
 
-    .tag {
-        display: inline-block;
-        padding: 7px 12px;
-        border-radius: 999px;
-        background: #eff6ff;
-        color: #1d4ed8;
-        font-size: 13px;
-        margin: 4px 5px 4px 0;
-        font-weight: 600;
-    }
+        .page-desc {
+            max-width: 760px;
+            font-size: 1.02rem;
+            color: #475569;
+            line-height: 1.65;
+        }
 
-    .risk-low {
-        background: #dcfce7;
-        color: #166534;
-        padding: 8px 13px;
-        border-radius: 999px;
-        display: inline-block;
-        font-weight: 700;
-    }
+        .soft-card {
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 1.2rem;
+            box-shadow: var(--shadow-card);
+        }
 
-    .risk-medium {
-        background: #fef9c3;
-        color: #854d0e;
-        padding: 8px 13px;
-        border-radius: 999px;
-        display: inline-block;
-        font-weight: 700;
-    }
+        .section-title {
+            font-size: 1.18rem;
+            font-weight: 850;
+            color: var(--text-main);
+            margin-bottom: 0.45rem;
+        }
 
-    .risk-high {
-        background: #fee2e2;
-        color: #991b1b;
-        padding: 8px 13px;
-        border-radius: 999px;
-        display: inline-block;
-        font-weight: 700;
-    }
+        .section-muted {
+            color: var(--text-muted);
+            font-size: 0.93rem;
+            line-height: 1.55;
+        }
 
-    .warning-box {
-        padding: 20px;
-        border-radius: 20px;
-        background: #fff7ed;
-        border-left: 8px solid #ea580c;
-        margin-bottom: 16px;
-        box-shadow: 0 6px 18px rgba(234, 88, 12, 0.08);
-    }
+        .footer-card {
+            color: #7C6F64;
+            font-size: 0.85rem;
+            text-align: center;
+            padding: 1.2rem 0 0.4rem 0;
+            margin-top: 1.2rem;
+            border-top: 1px solid rgba(120, 105, 90, 0.18);
+        }
 
-    .good-box {
-        padding: 20px;
-        border-radius: 20px;
-        background: #ecfdf5;
-        border-left: 8px solid #16a34a;
-        margin-bottom: 16px;
-        box-shadow: 0 6px 18px rgba(22, 163, 74, 0.08);
-    }
+        div[data-testid="stTextArea"] label {
+            color: var(--text-main);
+            font-weight: 750;
+        }
 
-    .bad-box {
-        padding: 20px;
-        border-radius: 20px;
-        background: #fef2f2;
-        border-left: 8px solid #dc2626;
-        margin-bottom: 16px;
-        box-shadow: 0 6px 18px rgba(220, 38, 38, 0.08);
-    }
+        div[data-testid="stTextArea"] textarea {
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid #D8CDBE;
+            border-radius: 20px;
+            color: var(--text-main);
+            font-size: 1rem;
+            line-height: 1.55;
+            box-shadow: inset 0 2px 8px rgba(74, 55, 40, 0.03);
+        }
 
-    .small-text {
-        color: #64748b;
-        font-size: 14px;
-    }
+        div[data-testid="stTextArea"] textarea:focus {
+            border-color: var(--brand);
+            box-shadow: 0 0 0 3px rgba(199, 101, 58, 0.12);
+        }
 
-    .footer-note {
-        color: #64748b;
-        font-size: 13px;
-    }
+        div[data-testid="stButton"] button {
+            border-radius: 18px;
+            height: 3.1rem;
+            font-weight: 850;
+            font-size: 1rem;
+            color: #FFFFFF !important;
+            background: linear-gradient(135deg, var(--brand), var(--brand-dark)) !important;
+            border: none !important;
+            box-shadow: 0 12px 24px rgba(155, 67, 37, 0.22);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
 
-    .stButton > button {
-        border-radius: 14px;
-        padding: 0.65rem 1rem;
-        font-weight: 700;
-        border: 1px solid #2563eb;
-        background: linear-gradient(135deg, #2563eb, #1d4ed8);
-        color: white;
-    }
+        div[data-testid="stButton"] button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 16px 30px rgba(155, 67, 37, 0.28);
+        }
 
-    .stButton > button:hover {
-        border: 1px solid #1e40af;
-        background: linear-gradient(135deg, #1d4ed8, #1e40af);
-        color: white;
-    }
+        div[data-testid="stButton"] button p {
+            color: #FFFFFF !important;
+            font-weight: 850;
+        }
 
-    [data-testid="stMetric"] {
-        background: rgba(255,255,255,0.92);
-        padding: 16px;
-        border-radius: 18px;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
-    }
+        .stDataFrame {
+            border-radius: 18px;
+            overflow: hidden;
+        }
+
+        div[data-testid="stExpander"] {
+            background: rgba(255, 255, 255, 0.78);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            box-shadow: 0 8px 24px rgba(74, 55, 40, 0.04);
+        }
+
+        div[data-testid="stExpander"] details summary {
+            font-weight: 780;
+            color: var(--text-main);
+        }
+
+        @media (max-width: 720px) {
+            .brand-row {
+                align-items: flex-start;
+            }
+
+            .brand-pill {
+                display: none;
+            }
+
+            .nav-row {
+                justify-content: flex-start;
+            }
+
+            .page-hero {
+                padding: 1.3rem;
+            }
+        }
     </style>
     """, unsafe_allow_html=True)
 
+
 def render_topbar():
     st.markdown("""
-    <div class="topbar">
-        <div class="brand-title">🏨 Hotel Review Decision Support Platform</div>
-        <div class="brand-subtitle">A traveller-focused web application for hotel review sentiment, risk, and suitability analysis.</div>
+    <div class="app-shell">
+        <div class="brand-card">
+            <div class="brand-row">
+                <div class="brand-left">
+                    <div class="brand-logo">🏨</div>
+                    <div>
+                        <div class="brand-title">StayWise KL</div>
+                        <div class="brand-subtitle">Hotel review guidance for smarter bookings</div>
+                    </div>
+                </div>
+                <div class="brand-pill">Traveller-friendly review assistant</div>
+            </div>
+        </div>
+
+        <div class="nav-card">
+            <div class="nav-row">
+                <a class="nav-link" href="/" target="_self">🏠 Find Hotels</a>
+                <a class="nav-link" href="/hotel_detail" target="_self">🏨 Hotel Detail</a>
+                <a class="nav-link" href="/compare" target="_self">⚖️ Compare</a>
+                <a class="nav-link" href="/review_checker" target="_self">🔍 Review Checker</a>
+                <a class="nav-link" href="/insights" target="_self">📊 Insights</a>
+            </div>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown('<div class="nav-box">', unsafe_allow_html=True)
 
-    nav_cols = st.columns(5)
-
-    with nav_cols[0]:
-        st.page_link("pages/1_find_hotels.py", label="Find Hotels", icon="🏠")
-
-    with nav_cols[1]:
-        st.page_link("pages/2_hotel_detail.py", label="Hotel Detail", icon="🏨")
-
-    with nav_cols[2]:
-        st.page_link("pages/3_compare_hotels.py", label="Compare", icon="⚖️")
-
-    with nav_cols[3]:
-        st.page_link("pages/4_review_checker.py", label="Review Checker", icon="🔍")
-
-    with nav_cols[4]:
-        st.page_link("pages/5_improvement_insights.py", label="Insights", icon="📊")
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-def render_page_header(title, description):
-    st.markdown(f"""
-    <div class="page-header">
-        <h2>{title}</h2>
-        <p>{description}</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-def render_footer():
-    st.divider()
+def render_page_header(title, subtitle):
     st.markdown(
-        '<p class="footer-note">Hotel Review Decision Support Platform for traveller-focused hotel review analysis.</p>',
+        f"""
+        <div class="page-hero">
+            <div class="page-kicker">Travel decision support</div>
+            <div class="page-title">{title}</div>
+            <div class="page-desc">{subtitle}</div>
+        </div>
+        """,
         unsafe_allow_html=True
     )
+
+
+def render_footer():
+    st.markdown("""
+    <div class="footer-card">
+        StayWise KL helps travellers understand hotel review signals before making a booking decision.
+    </div>
+    """, unsafe_allow_html=True)

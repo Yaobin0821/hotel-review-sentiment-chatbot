@@ -1,3 +1,4 @@
+import html
 import streamlit as st
 from styles import load_css, render_topbar, render_page_header, render_footer
 from utils import get_areas, get_hotels_by_area
@@ -43,7 +44,7 @@ def load_find_hotels_css():
             border-radius: 24px;
             padding: 1.15rem 1.25rem;
             box-shadow: 0 8px 22px rgba(74, 55, 40, 0.05);
-            margin-bottom: 1.25rem;
+            margin-bottom: 0.75rem;
         }
 
         .area-label {
@@ -59,7 +60,6 @@ def load_find_hotels_css():
             font-size: 1.1rem;
             font-weight: 850;
             color: var(--text-main);
-            margin-bottom: 0.65rem;
         }
 
         div[data-testid="stSelectbox"] label {
@@ -114,11 +114,9 @@ def load_find_hotels_css():
             border-radius: 28px;
             padding: 1.25rem;
             box-shadow: var(--shadow-card);
-            min-height: 430px;
+            min-height: 620px;
             margin-bottom: 0.75rem;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+            box-sizing: border-box;
             transition: transform 0.16s ease, box-shadow 0.16s ease;
         }
 
@@ -168,7 +166,7 @@ def load_find_hotels_css():
             border: 1px solid #E5D8CA;
             border-radius: 18px;
             padding: 0.85rem 0.9rem;
-            margin-bottom: 0.9rem;
+            margin-bottom: 0.95rem;
         }
 
         .recommendation-label {
@@ -189,11 +187,11 @@ def load_find_hotels_css():
             color: var(--text-main);
             font-size: 0.92rem;
             font-weight: 850;
-            margin-bottom: 0.6rem;
+            margin-bottom: 0.65rem;
         }
 
         .sentiment-row {
-            margin-bottom: 0.65rem;
+            margin-bottom: 0.72rem;
         }
 
         .sentiment-line {
@@ -201,8 +199,8 @@ def load_find_hotels_css():
             justify-content: space-between;
             color: #334155;
             font-size: 0.88rem;
-            font-weight: 700;
-            margin-bottom: 0.25rem;
+            font-weight: 750;
+            margin-bottom: 0.28rem;
         }
 
         .bar-track {
@@ -235,7 +233,7 @@ def load_find_hotels_css():
             display: grid;
             grid-template-columns: 1fr;
             gap: 0.65rem;
-            margin-top: 0.9rem;
+            margin-top: 1rem;
         }
 
         .info-item {
@@ -266,7 +264,7 @@ def load_find_hotels_css():
             padding: 0.42rem 0.74rem;
             font-size: 0.84rem;
             font-weight: 850;
-            margin-top: 0.8rem;
+            margin-top: 0.9rem;
         }
 
         .risk-low {
@@ -288,7 +286,8 @@ def load_find_hotels_css():
         }
 
         .button-space {
-            margin-top: 0.35rem;
+            margin-top: 0.2rem;
+            margin-bottom: 1rem;
         }
 
         div[data-testid="stButton"] button {
@@ -314,6 +313,10 @@ def load_find_hotels_css():
         }
     </style>
     """, unsafe_allow_html=True)
+
+
+def escape(value):
+    return html.escape(str(value))
 
 
 def risk_class_name(risk_level):
@@ -355,77 +358,85 @@ def build_hotel_recommendation(hotel):
     return f"Worth considering, but check whether {main_risk.lower()} matters to your trip."
 
 
-def render_sentiment_bar(label, value, css_class):
-    st.markdown(
-        f"""
-        <div class="sentiment-row">
-            <div class="sentiment-line">
-                <span>{label}</span>
-                <span>{value}%</span>
-            </div>
-            <div class="bar-track">
-                <div class="{css_class}" style="width: {value}%;"></div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
+def build_sentiment_bar(label, value, css_class):
+    return (
+        '<div class="sentiment-row">'
+        '<div class="sentiment-line">'
+        f'<span>{escape(label)}</span>'
+        f'<span>{escape(value)}%</span>'
+        '</div>'
+        '<div class="bar-track">'
+        f'<div class="{css_class}" style="width: {escape(value)}%;"></div>'
+        '</div>'
+        '</div>'
     )
+
+
+def build_hotel_card_html(hotel):
+    hotel_name = escape(hotel["hotel"])
+    area = escape(hotel["area"])
+    price = escape(hotel["price_level"])
+    recommendation = escape(build_hotel_recommendation(hotel))
+    main_strength = escape(hotel["main_strength"])
+    main_risk = escape(hotel["main_risk"])
+    best_traveller_type = escape(hotel["best_traveller_type"])
+    risk_class = risk_class_name(hotel["risk_level"])
+    risk_text = escape(risk_label(hotel["risk_level"]))
+
+    positive = hotel["positive_pct"]
+    neutral = hotel["neutral_pct"]
+    negative = hotel["negative_pct"]
+
+    sentiment_html = (
+        build_sentiment_bar("Positive", positive, "bar-positive")
+        + build_sentiment_bar("Neutral", neutral, "bar-neutral")
+        + build_sentiment_bar("Negative", negative, "bar-negative")
+    )
+
+    card_html = (
+        '<div class="hotel-card">'
+        '<div class="hotel-top">'
+        '<div>'
+        f'<div class="hotel-name">{hotel_name}</div>'
+        f'<div class="hotel-meta">{area} · {price}</div>'
+        '</div>'
+        '<div class="hotel-icon">🏨</div>'
+        '</div>'
+
+        '<div class="recommendation-box">'
+        '<div class="recommendation-label">Quick booking note</div>'
+        f'<div class="recommendation-text">{recommendation}</div>'
+        '</div>'
+
+        '<div class="sentiment-title">Guest review feeling</div>'
+        f'{sentiment_html}'
+
+        '<div class="hotel-info-grid">'
+        '<div class="info-item">'
+        '<div class="info-label">Main strength</div>'
+        f'<div class="info-value">{main_strength}</div>'
+        '</div>'
+
+        '<div class="info-item">'
+        '<div class="info-label">Main thing to check</div>'
+        f'<div class="info-value">{main_risk}</div>'
+        '</div>'
+
+        '<div class="info-item">'
+        '<div class="info-label">Best for</div>'
+        f'<div class="info-value">{best_traveller_type}</div>'
+        '</div>'
+        '</div>'
+
+        f'<span class="risk-chip {risk_class}">{risk_text}</span>'
+        '</div>'
+    )
+
+    return card_html
 
 
 def render_hotel_card(hotel):
-    risk_class = risk_class_name(hotel["risk_level"])
-
-    st.markdown(
-        f"""
-        <div class="hotel-card">
-            <div>
-                <div class="hotel-top">
-                    <div>
-                        <div class="hotel-name">{hotel["hotel"]}</div>
-                        <div class="hotel-meta">{hotel["area"]} · {hotel["price_level"]}</div>
-                    </div>
-                    <div class="hotel-icon">🏨</div>
-                </div>
-
-                <div class="recommendation-box">
-                    <div class="recommendation-label">Quick booking note</div>
-                    <div class="recommendation-text">{build_hotel_recommendation(hotel)}</div>
-                </div>
-
-                <div class="sentiment-title">Guest review feeling</div>
-        """,
-        unsafe_allow_html=True
-    )
-
-    render_sentiment_bar("Positive", hotel["positive_pct"], "bar-positive")
-    render_sentiment_bar("Neutral", hotel["neutral_pct"], "bar-neutral")
-    render_sentiment_bar("Negative", hotel["negative_pct"], "bar-negative")
-
-    st.markdown(
-        f"""
-                <div class="hotel-info-grid">
-                    <div class="info-item">
-                        <div class="info-label">Main strength</div>
-                        <div class="info-value">{hotel["main_strength"]}</div>
-                    </div>
-
-                    <div class="info-item">
-                        <div class="info-label">Main thing to check</div>
-                        <div class="info-value">{hotel["main_risk"]}</div>
-                    </div>
-
-                    <div class="info-item">
-                        <div class="info-label">Best for</div>
-                        <div class="info-value">{hotel["best_traveller_type"]}</div>
-                    </div>
-                </div>
-
-                <span class="risk-chip {risk_class}">{risk_label(hotel["risk_level"])}</span>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    st.markdown(build_hotel_card_html(hotel), unsafe_allow_html=True)
 
 
 load_css()
@@ -475,7 +486,7 @@ st.markdown(
             <div class="section-heading">Recommended hotels</div>
             <div class="section-sub">Review-based hotel options in the selected area.</div>
         </div>
-        <div class="area-pill">{selected_area}</div>
+        <div class="area-pill">{escape(selected_area)}</div>
     </div>
     """,
     unsafe_allow_html=True

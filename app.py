@@ -28,7 +28,7 @@ except Exception:
     st.stop()
 
 # =====================================================
-# Load Optional Dataset and Report
+# Load Optional Dataset and Classification Report
 # =====================================================
 @st.cache_data
 def load_dataset():
@@ -70,31 +70,61 @@ def clean_text(text):
 # Keywords
 # =====================================================
 aspect_keywords = {
-    "Room": ["room", "bed", "bathroom", "toilet", "shower", "pillow", "aircond", "air conditioning"],
-    "Service": ["staff", "service", "reception", "manager", "helpful", "friendly", "rude", "employee"],
-    "Cleanliness": ["clean", "cleanliness", "dirty", "smell", "hygiene", "dust", "stain", "tidy"],
-    "Location": ["location", "near", "distance", "mall", "station", "airport", "area", "convenient"],
-    "Price": ["price", "expensive", "cheap", "value", "worth", "cost", "money"],
-    "Facilities": ["pool", "gym", "wi-fi", "parking", "lift", "elevator", "facility", "facilities"],
-    "Food": ["breakfast", "food", "restaurant", "meal", "buffet", "dinner", "lunch"]
+    "Room": [
+        "room", "bed", "bathroom", "toilet", "shower", "pillow",
+        "aircond", "air conditioning"
+    ],
+    "Service": [
+        "staff", "service", "reception", "manager", "helpful",
+        "friendly", "rude", "employee", "front desk"
+    ],
+    "Cleanliness": [
+        "clean", "cleanliness", "dirty", "smell", "hygiene",
+        "dust", "stain", "tidy", "unclean", "smelly"
+    ],
+    "Location": [
+        "location", "near", "distance", "mall", "station",
+        "airport", "area", "convenient"
+    ],
+    "Price": [
+        "price", "expensive", "cheap", "value", "worth",
+        "cost", "money", "overpriced"
+    ],
+    "Facilities": [
+        "pool", "gym", "wi-fi", "parking", "lift", "elevator",
+        "facility", "facilities", "internet"
+    ],
+    "Food": [
+        "breakfast", "food", "restaurant", "meal", "buffet",
+        "dinner", "lunch"
+    ]
 }
 
 hotel_keywords = [
-    "hotel", "room", "bed", "bathroom", "toilet", "staff", "service", "reception",
-    "clean", "cleanliness", "dirty", "location", "price", "expensive", "cheap",
-    "value", "pool", "gym", "wi-fi", "wifi", "parking", "lift", "breakfast",
-    "food", "restaurant", "stay", "booking", "check in", "check-in", "checkout",
-    "lobby", "guest", "resort", "facilities", "facility", "housekeeping", "suite"
+    "hotel", "room", "bed", "bathroom", "toilet", "staff", "service",
+    "reception", "clean", "cleanliness", "dirty", "location", "price",
+    "expensive", "cheap", "value", "pool", "gym", "wi-fi", "wifi",
+    "parking", "lift", "breakfast", "food", "restaurant", "stay",
+    "booking", "check in", "check-in", "checkout", "lobby", "guest",
+    "resort", "facilities", "facility", "housekeeping", "suite",
+    "shower", "pillow", "airport", "mall"
 ]
 
 positive_words = [
-    "good", "great", "excellent", "clean", "comfortable", "friendly", "helpful",
-    "nice", "spacious", "convenient", "worth", "amazing", "perfect", "pleasant"
+    "good", "great", "excellent", "clean", "comfortable", "friendly",
+    "helpful", "nice", "spacious", "convenient", "worth", "amazing",
+    "perfect", "pleasant", "beautiful", "fast", "polite", "recommended",
+    "satisfied", "enjoyed", "love", "lovely", "best", "quiet", "fresh",
+    "smooth", "modern", "affordable"
 ]
 
 negative_words = [
-    "bad", "dirty", "rude", "slow", "expensive", "poor", "noisy", "smelly",
-    "broken", "worst", "terrible", "disappointed", "small", "uncomfortable"
+    "bad", "dirty", "rude", "slow", "expensive", "poor", "noisy",
+    "smelly", "broken", "worst", "terrible", "disappointed", "small",
+    "uncomfortable", "unclean", "awful", "horrible", "stain", "stained",
+    "dusty", "late", "unfriendly", "unhelpful", "problem", "complaint",
+    "overpriced", "old", "weak", "poorly", "messy", "leaking", "leak",
+    "smell", "noise", "bug", "bugs", "mold", "mould"
 ]
 
 bad_words = ["fuck", "shit", "bitch", "asshole"]
@@ -125,48 +155,8 @@ def validate_input(review):
     return True, ""
 
 # =====================================================
-# Prediction Functions
+# Helper Functions
 # =====================================================
-def predict_with_details(text):
-    cleaned = clean_text(text)
-    prediction = model.predict([cleaned])[0]
-
-    classes = list(model.classes_) if hasattr(model, "classes_") else ["negative", "neutral", "positive"]
-    confidence = None
-    score_df = None
-
-    try:
-        probabilities = model.predict_proba([cleaned])[0]
-        confidence = float(np.max(probabilities))
-        score_df = pd.DataFrame({
-            "Sentiment": classes,
-            "Score": probabilities
-        })
-    except:
-        try:
-            scores = model.decision_function([cleaned])
-            scores = np.array(scores)
-
-            if scores.ndim == 2:
-                scores = scores[0]
-
-            exp_scores = np.exp(scores - np.max(scores))
-            probabilities = exp_scores / exp_scores.sum()
-
-            confidence = float(np.max(probabilities))
-            score_df = pd.DataFrame({
-                "Sentiment": classes,
-                "Score": probabilities
-            })
-        except:
-            confidence = None
-            score_df = pd.DataFrame({
-                "Sentiment": [prediction],
-                "Score": [1.0]
-            })
-
-    return prediction, confidence, cleaned, score_df
-
 def sentiment_badge(sentiment):
     sentiment = str(sentiment).lower()
 
@@ -202,12 +192,126 @@ def confidence_level(confidence):
     else:
         return "Low"
 
+def get_model_classes():
+    if hasattr(model, "classes_"):
+        return list(model.classes_)
+    return ["negative", "neutral", "positive"]
+
+# =====================================================
+# Hybrid Keyword Correction
+# =====================================================
+def keyword_sentiment_override(text, model_prediction, model_confidence, score_df):
+    cleaned = clean_text(text)
+    words = cleaned.split()
+
+    positive_count = sum(1 for word in words if word in positive_words)
+    negative_count = sum(1 for word in words if word in negative_words)
+
+    # If there are many clear negative words, correct to negative.
+    if negative_count >= 2 and negative_count > positive_count:
+        prediction = "negative"
+        confidence = max(model_confidence if model_confidence is not None else 0, 0.85)
+
+        score_df = pd.DataFrame({
+            "Sentiment": ["negative", "neutral", "positive"],
+            "Score": [0.85, 0.10, 0.05]
+        })
+
+        note = "Keyword-assisted correction applied because multiple negative words were detected."
+        return prediction, confidence, score_df, note
+
+    # If there are many clear positive words, correct to positive.
+    if positive_count >= 2 and positive_count > negative_count:
+        prediction = "positive"
+        confidence = max(model_confidence if model_confidence is not None else 0, 0.85)
+
+        score_df = pd.DataFrame({
+            "Sentiment": ["negative", "neutral", "positive"],
+            "Score": [0.05, 0.10, 0.85]
+        })
+
+        note = "Keyword-assisted correction applied because multiple positive words were detected."
+        return prediction, confidence, score_df, note
+
+    # If both positive and negative words exist, it is likely a mixed review.
+    if positive_count >= 1 and negative_count >= 1:
+        prediction = "neutral"
+        confidence = max(model_confidence if model_confidence is not None else 0, 0.65)
+
+        score_df = pd.DataFrame({
+            "Sentiment": ["negative", "neutral", "positive"],
+            "Score": [0.25, 0.60, 0.15]
+        })
+
+        note = "Mixed sentiment correction applied because both positive and negative words were detected."
+        return prediction, confidence, score_df, note
+
+    note = "Model prediction used."
+    return model_prediction, model_confidence, score_df, note
+
+# =====================================================
+# Prediction Function
+# =====================================================
+def predict_with_details(text):
+    cleaned = clean_text(text)
+    prediction = model.predict([cleaned])[0]
+
+    classes = get_model_classes()
+    confidence = None
+    score_df = None
+
+    try:
+        probabilities = model.predict_proba([cleaned])[0]
+        confidence = float(np.max(probabilities))
+        score_df = pd.DataFrame({
+            "Sentiment": classes,
+            "Score": probabilities
+        })
+
+    except:
+        try:
+            scores = model.decision_function([cleaned])
+            scores = np.array(scores)
+
+            if scores.ndim == 2:
+                scores = scores[0]
+
+            exp_scores = np.exp(scores - np.max(scores))
+            probabilities = exp_scores / exp_scores.sum()
+
+            confidence = float(np.max(probabilities))
+            score_df = pd.DataFrame({
+                "Sentiment": classes,
+                "Score": probabilities
+            })
+
+        except:
+            confidence = None
+            score_df = pd.DataFrame({
+                "Sentiment": [prediction],
+                "Score": [1.0]
+            })
+
+    prediction, confidence, score_df, prediction_note = keyword_sentiment_override(
+        text,
+        prediction,
+        confidence,
+        score_df
+    )
+
+    return prediction, confidence, cleaned, score_df, prediction_note
+
 # =====================================================
 # Aspect-Based Sentiment Analysis
 # =====================================================
 def aspect_sentiment(review):
     review = normalize_typos(review)
-    clauses = re.split(r"[.!?,;]|\bbut\b|\bhowever\b|\balthough\b|\band\b", review)
+
+    clauses = re.split(
+        r"[.!?,;]|\bbut\b|\bhowever\b|\balthough\b|\band\b",
+        review
+    )
+
     results = []
 
     for aspect, keywords in aspect_keywords.items():
@@ -224,13 +328,14 @@ def aspect_sentiment(review):
 
         if related:
             aspect_text = " ".join(related)
-            prediction, confidence, cleaned, score_df = predict_with_details(aspect_text)
+            prediction, confidence, cleaned, score_df, prediction_note = predict_with_details(aspect_text)
 
             results.append({
                 "Aspect": aspect,
                 "Related Text": aspect_text,
                 "Sentiment": prediction,
-                "Confidence": f"{confidence * 100:.2f}%" if confidence is not None else "N/A"
+                "Confidence": f"{confidence * 100:.2f}%" if confidence is not None else "N/A",
+                "Prediction Note": prediction_note
             })
 
     return results
@@ -242,8 +347,8 @@ def detect_keywords(review):
     text = clean_text(review)
     words = text.split()
 
-    detected_positive = sorted(list(set([w for w in words if w in positive_words])))
-    detected_negative = sorted(list(set([w for w in words if w in negative_words])))
+    detected_positive = sorted(list(set([word for word in words if word in positive_words])))
+    detected_negative = sorted(list(set([word for word in words if word in negative_words])))
 
     return detected_positive, detected_negative
 
@@ -259,7 +364,7 @@ def generate_user_summary(overall, aspect_results):
 
     elif overall == "neutral":
         if neutral_aspects:
-            return "This review shows a mixed or average experience. The user may want to read more reviews before making a booking decision."
+            return "This review shows a mixed or average experience. Users may want to read more reviews before making a booking decision."
         return "This review is moderate and does not strongly show satisfaction or dissatisfaction."
 
     elif overall == "negative":
@@ -271,39 +376,35 @@ def generate_user_summary(overall, aspect_results):
 
 def generate_travel_advice(overall, aspect_results):
     negative_aspects = [r["Aspect"] for r in aspect_results if r["Sentiment"] == "negative"]
-    positive_aspects = [r["Aspect"] for r in aspect_results if r["Sentiment"] == "positive"]
 
     if overall == "positive":
         return "This hotel review looks generally good. It may be suitable for users who value the positive aspects mentioned in the review."
 
     elif overall == "neutral":
-        return "This review is mixed. Users are recommended to compare more reviews before deciding whether to book this hotel."
+        return "This review is mixed or average. Users are recommended to compare more reviews before deciding whether to book this hotel."
 
     elif overall == "negative":
         if len(negative_aspects) >= 2:
-            return "Users should be careful before booking because several negative aspects were detected."
+            return "Users should be careful before booking because several negative hotel aspects were detected."
         elif len(negative_aspects) == 1:
             return "Users should pay attention to the negative aspect detected before booking."
         else:
-            return "Users should check more reviews because this review indicates an unsatisfactory experience."
+            return "Users should check more reviews because this review indicates an unsatisfactory hotel experience."
 
     return "No travel advice available."
 
-def generate_pros_cons(aspect_results, pos_words, neg_words):
+def generate_pros_cons(aspect_results, positive_detected_words, negative_detected_words):
     pros = []
     cons = []
 
-    for r in aspect_results:
-        if r["Sentiment"] == "positive":
-            pros.append(r["Aspect"])
-        elif r["Sentiment"] == "negative":
-            cons.append(r["Aspect"])
+    for result in aspect_results:
+        if result["Sentiment"] == "positive":
+            pros.append(result["Aspect"])
+        elif result["Sentiment"] == "negative":
+            cons.append(result["Aspect"])
 
-    if pos_words:
-        pros.extend(pos_words)
-
-    if neg_words:
-        cons.extend(neg_words)
+    pros.extend(positive_detected_words)
+    cons.extend(negative_detected_words)
 
     pros = sorted(list(set(pros)))
     cons = sorted(list(set(cons)))
@@ -324,17 +425,22 @@ def analyze_review(review):
             "Pros": "",
             "Cons": "",
             "User Summary": message,
-            "Travel Advice": message
+            "Travel Advice": message,
+            "Prediction Note": "Input validation applied."
         }
 
-    overall, confidence, cleaned, score_df = predict_with_details(review)
+    overall, confidence, cleaned, score_df, prediction_note = predict_with_details(review)
     aspect_results = aspect_sentiment(review)
-    pos_words, neg_words = detect_keywords(review)
-    pros, cons = generate_pros_cons(aspect_results, pos_words, neg_words)
+    positive_detected_words, negative_detected_words = detect_keywords(review)
+    pros, cons = generate_pros_cons(
+        aspect_results,
+        positive_detected_words,
+        negative_detected_words
+    )
 
     detected_aspects = []
-    for r in aspect_results:
-        detected_aspects.append(f"{r['Aspect']}: {r['Sentiment']}")
+    for result in aspect_results:
+        detected_aspects.append(f"{result['Aspect']}: {result['Sentiment']}")
 
     return {
         "Review": review,
@@ -346,7 +452,8 @@ def analyze_review(review):
         "Pros": ", ".join(pros) if pros else "None",
         "Cons": ", ".join(cons) if cons else "None",
         "User Summary": generate_user_summary(overall, aspect_results),
-        "Travel Advice": generate_travel_advice(overall, aspect_results)
+        "Travel Advice": generate_travel_advice(overall, aspect_results),
+        "Prediction Note": prediction_note
     }
 
 # =====================================================
@@ -424,6 +531,7 @@ with st.sidebar:
     st.write("✅ Provide travel decision advice")
     st.write("✅ Compare multiple reviews")
     st.write("✅ Download analysis result")
+    st.write("✅ Hybrid keyword correction")
 
 # =====================================================
 # Header
@@ -447,7 +555,7 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 ])
 
 # =====================================================
-# Tab 1: Single Review Analysis
+# Tab 1: Analyze Review
 # =====================================================
 with tab1:
     left, right = st.columns([1.2, 1])
@@ -486,11 +594,11 @@ with tab1:
         </div>
         <div class="card info-box">
             <h3>Aspect Understanding</h3>
-            <p>The system checks important hotel aspects such as room, service, cleanliness, location, price, facilities, and food.</p>
+            <p>The system checks hotel aspects such as room, service, cleanliness, location, price, facilities, and food.</p>
         </div>
         <div class="card info-box">
             <h3>Decision Support</h3>
-            <p>The system gives simple travel advice based on the detected sentiment and aspects.</p>
+            <p>The system gives simple travel advice based on detected sentiment and hotel aspects.</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -504,23 +612,39 @@ with tab1:
             st.warning(message)
 
         else:
-            overall, confidence, cleaned, score_df = predict_with_details(review)
+            overall, confidence, cleaned, score_df, prediction_note = predict_with_details(review)
             aspect_results = aspect_sentiment(review)
-            pos_words, neg_words = detect_keywords(review)
-            pros, cons = generate_pros_cons(aspect_results, pos_words, neg_words)
+            positive_detected_words, negative_detected_words = detect_keywords(review)
+            pros, cons = generate_pros_cons(
+                aspect_results,
+                positive_detected_words,
+                negative_detected_words
+            )
 
             user_summary = generate_user_summary(overall, aspect_results)
             travel_advice = generate_travel_advice(overall, aspect_results)
 
-            # Summary metrics
+            # Summary Metrics
             m1, m2, m3, m4 = st.columns(4)
-            m1.metric("Overall Sentiment", sentiment_badge(overall))
-            m2.metric("Confidence", f"{confidence * 100:.2f}%" if confidence is not None else "N/A")
-            m3.metric("Confidence Level", confidence_level(confidence))
-            m4.metric("Detected Aspects", len(aspect_results))
 
-            # Main result
+            with m1:
+                st.metric("Overall Sentiment", sentiment_badge(overall))
+
+            with m2:
+                st.metric(
+                    "Confidence",
+                    f"{confidence * 100:.2f}%" if confidence is not None else "N/A"
+                )
+
+            with m3:
+                st.metric("Confidence Level", confidence_level(confidence))
+
+            with m4:
+                st.metric("Detected Aspects", len(aspect_results))
+
+            # Overall Card
             css_class = sentiment_css(overall)
+
             st.markdown(f"""
             <div class="card {css_class}">
                 <h2>Overall Sentiment: {sentiment_badge(overall)}</h2>
@@ -528,12 +652,17 @@ with tab1:
             </div>
             """, unsafe_allow_html=True)
 
-            # User summary
+            # Prediction Note
+            with st.expander("View Prediction Note"):
+                st.write(prediction_note)
+
+            # User Summary
             st.markdown("### 🧾 What This Review Means")
             st.info(user_summary)
 
-            # Travel advice
+            # Travel Advice
             st.markdown("### 🧭 Travel Decision Advice")
+
             if overall == "positive":
                 st.success(travel_advice)
             elif overall == "neutral":
@@ -541,60 +670,63 @@ with tab1:
             else:
                 st.error(travel_advice)
 
-            # Pros and cons
+            # Pros and Cons
             st.markdown("### ✅ Pros and ⚠️ Cons Detected")
 
-            c1, c2 = st.columns(2)
+            pros_col, cons_col = st.columns(2)
 
-            with c1:
+            with pros_col:
                 if pros:
                     st.success(", ".join(pros))
                 else:
                     st.info("No clear pros detected.")
 
-            with c2:
+            with cons_col:
                 if cons:
                     st.error(", ".join(cons))
                 else:
                     st.info("No clear cons detected.")
 
-            # Score distribution
+            # Sentiment Score Distribution
             st.markdown("### 📈 Sentiment Score Distribution")
+
             if score_df is not None:
                 score_df_display = score_df.copy()
                 score_df_display["Score"] = score_df_display["Score"].astype(float)
                 st.bar_chart(score_df_display.set_index("Sentiment"))
 
                 with st.expander("View Score Details"):
-                    score_df_display["Score (%)"] = score_df_display["Score"] * 100
-                    st.dataframe(score_df_display, use_container_width=True)
+                    score_table = score_df_display.copy()
+                    score_table["Score (%)"] = score_table["Score"] * 100
+                    st.dataframe(score_table, use_container_width=True)
 
-            # Aspect table
+            # Aspect Analysis
             st.markdown("### 🧩 Hotel Aspect Analysis")
 
             if aspect_results:
                 aspect_df = pd.DataFrame(aspect_results)
                 st.dataframe(aspect_df, use_container_width=True)
 
-                for r in aspect_results:
-                    aspect_class = sentiment_css(r["Sentiment"])
-                    safe_text = html.escape(r["Related Text"])
+                for result in aspect_results:
+                    aspect_class = sentiment_css(result["Sentiment"])
+                    safe_text = html.escape(result["Related Text"])
 
                     st.markdown(f"""
                     <div class="card {aspect_class}">
-                        <h4>{r["Aspect"]}: {sentiment_badge(r["Sentiment"])}</h4>
+                        <h4>{result["Aspect"]}: {sentiment_badge(result["Sentiment"])}</h4>
                         <p><b>Related text:</b> {safe_text}</p>
-                        <p><b>Confidence:</b> {r["Confidence"]}</p>
+                        <p><b>Confidence:</b> {result["Confidence"]}</p>
+                        <p><b>Prediction Note:</b> {result["Prediction Note"]}</p>
                     </div>
                     """, unsafe_allow_html=True)
             else:
                 st.info("No specific hotel aspect was detected from this review.")
 
-            # Preprocessed text
+            # Pre-processed Text
             with st.expander("View Pre-processed Text"):
                 st.code(cleaned)
 
-            # Save result
+            # Save Result
             result_row = analyze_review(review)
             st.session_state.history.append(result_row)
 
@@ -609,7 +741,7 @@ with tab1:
             )
 
 # =====================================================
-# Tab 2: Compare Multiple Reviews
+# Tab 2: Compare Reviews
 # =====================================================
 with tab2:
     st.subheader("📋 Compare Multiple Hotel Reviews")
@@ -683,6 +815,7 @@ with tab3:
         st.info("Upload cleaned_hotel_reviews_dataset.csv to GitHub to display dataset information here.")
 
     st.markdown("### Text Pre-processing Pipeline")
+
     preprocessing_steps = pd.DataFrame({
         "Step": [
             "Lowercasing",
@@ -701,6 +834,7 @@ with tab3:
             "Represent cleaned reviews as numerical features for model training."
         ]
     })
+
     st.dataframe(preprocessing_steps, use_container_width=True)
 
     st.markdown("### Knowledge Representation")
@@ -710,6 +844,7 @@ with tab3:
     st.write("- Sentiment labels: positive, neutral, negative")
     st.write("- Aspect keyword dictionary")
     st.write("- Saved machine learning model file")
+    st.write("- Hybrid keyword correction for obvious sentiment cases")
 
     st.markdown("### Model Performance")
     st.code(classification_report_text)
@@ -768,6 +903,11 @@ with tab5:
     - Hotel customers
     - Users comparing hotel reviews before booking
     - Tourism review analysis users
+
+    ### Advanced Feature
+
+    This system combines machine learning prediction with keyword-assisted correction.
+    The machine learning model provides the main sentiment prediction, while keyword correction helps improve obvious cases such as reviews containing multiple strong negative or positive words.
 
     ### System Limitation
 

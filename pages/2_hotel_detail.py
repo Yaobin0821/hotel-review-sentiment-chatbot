@@ -946,7 +946,7 @@ if hotel:
                 )
             else:
                 st.markdown(
-                    f'<div class="review-count-note">Showing {min(5, len(filtered_reviews_df))} {selected_review_type.lower()} review(s).</div>',
+                    f'<div class="review-count-note">Showing {min(15, len(filtered_reviews_df))} {selected_review_type.lower()} review(s).</div>',
                     unsafe_allow_html=True
                 )
 

@@ -477,7 +477,7 @@ def render_topbar():
                 <a class="topbar-link" href="/Compare_Hotels" target="_self">Compare</a>
                 <a class="topbar-link" href="/Review_Checker" target="_self">Review Checker</a>
                 <a class="topbar-link" href="/Improvement_Insights" target="_self">Area Insights</a>
-                <a class="topbar-staff-link" href="/Management_Insights" target="_self">Staff Portal &#128274;</a>
+                <a class="topbar-staff-link" href="/management_insights" target="_self">Staff Portal &#128274;</a>
             </div>
         </div>
     </div>

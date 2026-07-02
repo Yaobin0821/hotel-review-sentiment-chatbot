@@ -370,19 +370,36 @@ def render_topbar():
                 border: 1px solid var(--border, #E7DDD0);
                 border-radius: 26px;
                 box-shadow: var(--shadow-card, 0 10px 28px rgba(74, 55, 40, 0.07));
-                padding: 0.75rem 1rem;
+                padding: 0.72rem 1rem;
                 margin: 0 auto 1rem auto;
-                align-items: center;
+                align-items: center !important;
             }
 
             div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="column"] {
-                display: flex;
-                align-items: center;
-                justify-content: center;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                min-height: 48px !important;
+            }
+
+            div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="column"] > div {
+                width: 100% !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+            }
+
+            div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="column"]:first-child > div {
+                justify-content: flex-start !important;
+            }
+
+            div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="column"]:last-child > div {
+                justify-content: flex-end !important;
             }
 
             div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="stVerticalBlock"] {
                 gap: 0 !important;
+                justify-content: center !important;
             }
 
             .topbar-brand-display {
@@ -394,8 +411,8 @@ def render_topbar():
                 font-size: 1.05rem;
                 letter-spacing: -0.04em;
                 white-space: nowrap;
-                min-height: 38px;
-                width: 100%;
+                min-height: 42px;
+                line-height: 1;
             }
 
             .topbar-logo-display {
@@ -409,11 +426,16 @@ def render_topbar():
                 color: white;
                 font-size: 1.05rem;
                 box-shadow: 0 8px 18px rgba(155, 67, 37, 0.18);
+                flex: 0 0 38px;
             }
 
             div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="stPageLink"] {
                 width: fit-content !important;
                 margin: 0 !important;
+                padding: 0 !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
             }
 
             div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="stPageLink"] a {
@@ -421,7 +443,7 @@ def render_topbar():
                 color: #5F5148 !important;
                 font-size: 0.82rem !important;
                 font-weight: 850 !important;
-                padding: 0.5rem 0.7rem !important;
+                padding: 0.52rem 0.72rem !important;
                 border-radius: 999px !important;
                 transition: all 0.16s ease !important;
                 white-space: nowrap !important;
@@ -430,6 +452,7 @@ def render_topbar():
                 align-items: center !important;
                 justify-content: center !important;
                 background: transparent !important;
+                line-height: 1 !important;
             }
 
             div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="stPageLink"] a:hover {
@@ -441,8 +464,10 @@ def render_topbar():
                 font-size: 0.82rem !important;
                 font-weight: 850 !important;
                 margin: 0 !important;
+                padding: 0 !important;
                 color: inherit !important;
                 white-space: nowrap !important;
+                line-height: 1 !important;
             }
 
             div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="stPageLink"] svg {
@@ -454,7 +479,8 @@ def render_topbar():
                 background: #EAF7F0 !important;
                 border: 1px solid #BFE3CF !important;
                 font-weight: 900 !important;
-                padding: 0.5rem 0.78rem !important;
+                padding: 0.52rem 0.85rem !important;
+                box-shadow: 0 8px 18px rgba(47, 133, 90, 0.08);
             }
 
             div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="column"]:last-child div[data-testid="stPageLink"] a:hover {
@@ -463,10 +489,18 @@ def render_topbar():
                 transform: translateY(-1px);
             }
 
-            @media (max-width: 900px) {
+            @media (max-width: 1000px) {
                 div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) {
                     border-radius: 22px;
                     padding: 0.75rem;
+                }
+
+                div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="column"] {
+                    justify-content: flex-start !important;
+                }
+
+                div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="column"] > div {
+                    justify-content: flex-start !important;
                 }
             }
         </style>
@@ -484,7 +518,7 @@ def render_topbar():
         insights_col,
         staff_col
     ) = st.columns(
-        [1.75, 0.65, 0.95, 1.05, 0.75, 1.25, 1.05, 1.25],
+        [1.85, 0.65, 0.95, 1.05, 0.75, 1.25, 1.05, 1.35],
         gap="small"
     )
 

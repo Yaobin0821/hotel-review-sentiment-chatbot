@@ -1,6 +1,4 @@
 import html
-from textwrap import dedent
-
 import pandas as pd
 import streamlit as st
 
@@ -19,6 +17,14 @@ st.set_page_config(
     page_icon="⚖️",
     layout="wide"
 )
+
+
+def clean_html(markup):
+    return "\n".join(
+        line.strip()
+        for line in str(markup).splitlines()
+        if line.strip()
+    )
 
 
 def load_compare_css():
@@ -310,7 +316,7 @@ def risk_class_name(risk_level):
 def build_sentiment_bar(label, value, css_class):
     value_number = safe_pct(value)
 
-    return dedent(f"""
+    return clean_html(f"""
     <div class="sentiment-row">
         <div class="sentiment-line">
             <span>{escape(label)}</span>
@@ -332,10 +338,10 @@ def render_hotel_compare_card(hotel):
         + build_sentiment_bar("Negative", safe_get(hotel, "negative_pct", 0), "bar-negative")
     )
 
-    card_html = dedent(f"""
+    card_html = clean_html(f"""
     <div class="hotel-compare-card">
         <div class="hotel-card-title">{escape(safe_get(hotel, "hotel"))}</div>
-        <div class="hotel-card-meta">{escape(safe_get(hotel, "area"))} · {escape(safe_get(hotel, "price_level"))}</div>
+        <div class="hotel-card-meta">{escape(safe_get(hotel, "area"))} · {escape(get_review_count(hotel))} reviews</div>
 
         <span class="risk-chip {risk_class_name(risk_level)}">{escape(risk_badge(risk_level))}</span>
 
@@ -382,7 +388,7 @@ def render_hotel_compare_card(hotel):
     </div>
     """)
 
-    st.markdown(card_html, unsafe_allow_html=True)
+    st.html(card_html)
 
 
 def build_comparison_table(hotel_a, hotel_b):
@@ -453,18 +459,15 @@ render_page_header(
     "Compare two hotels from the same area before making a booking decision."
 )
 
-st.markdown(
-    dedent("""
-    <div class="compare-intro-card">
-        <div class="compare-intro-title">Choose two hotels to compare</div>
-        <div class="compare-intro-text">
-            Select an area first, then compare two hotels side by side using review sentiment,
-            booking concern, suitability, and traveller type.
-        </div>
+st.html(clean_html("""
+<div class="compare-intro-card">
+    <div class="compare-intro-title">Choose two hotels to compare</div>
+    <div class="compare-intro-text">
+        Select an area first, then compare two hotels side by side using review sentiment,
+        booking concern, suitability, and traveller type.
     </div>
-    """),
-    unsafe_allow_html=True
-)
+</div>
+"""))
 
 areas = get_areas()
 
@@ -473,13 +476,10 @@ if not areas:
     render_footer()
     st.stop()
 
-st.markdown(
-    dedent("""
-    <div class="picker-card">
-        <div class="picker-label">Step 1 · Select area</div>
-    """),
-    unsafe_allow_html=True
-)
+st.html(clean_html("""
+<div class="picker-card">
+    <div class="picker-label">Step 1 · Select area</div>
+"""))
 
 selected_area = st.selectbox(
     "Select Area",
@@ -488,7 +488,7 @@ selected_area = st.selectbox(
     label_visibility="collapsed"
 )
 
-st.markdown("</div>", unsafe_allow_html=True)
+st.html("</div>")
 
 hotels_in_area = get_hotels_by_area(selected_area)
 hotel_options = [hotel["hotel"] for hotel in hotels_in_area]
@@ -496,13 +496,10 @@ hotel_options = [hotel["hotel"] for hotel in hotels_in_area]
 if len(hotel_options) < 2:
     st.warning("This area does not have enough hotels for comparison.")
 else:
-    st.markdown(
-        dedent("""
-        <div class="picker-card">
-            <div class="picker-label">Step 2 · Select two hotels</div>
-        """),
-        unsafe_allow_html=True
-    )
+    st.html(clean_html("""
+    <div class="picker-card">
+        <div class="picker-label">Step 2 · Select two hotels</div>
+    """))
 
     col1, col2 = st.columns(2)
 
@@ -525,7 +522,7 @@ else:
             key="hotel_b"
         )
 
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.html("</div>")
 
     hotel_a = get_hotel_by_name(hotel_a_name)
     hotel_b = get_hotel_by_name(hotel_b_name)
@@ -535,15 +532,12 @@ else:
     else:
         recommendation = get_recommendation_text(hotel_a, hotel_b)
 
-        st.markdown(
-            dedent(f"""
-            <div class="recommendation-card">
-                <div class="recommendation-label">Quick recommendation</div>
-                <div class="recommendation-text">{escape(recommendation)}</div>
-            </div>
-            """),
-            unsafe_allow_html=True
-        )
+        st.html(clean_html(f"""
+        <div class="recommendation-card">
+            <div class="recommendation-label">Quick recommendation</div>
+            <div class="recommendation-text">{escape(recommendation)}</div>
+        </div>
+        """))
 
         compare_col1, compare_col2 = st.columns(2, gap="large")
 
@@ -553,15 +547,12 @@ else:
         with compare_col2:
             render_hotel_compare_card(hotel_b)
 
-        st.markdown(
-            '<div class="section-title">Detailed comparison</div>',
-            unsafe_allow_html=True
-        )
+        st.html('<div class="section-title">Detailed comparison</div>')
 
         comparison_df = build_comparison_table(hotel_a, hotel_b)
 
-        st.markdown('<div class="comparison-table-card">', unsafe_allow_html=True)
+        st.html('<div class="comparison-table-card">')
         st.dataframe(comparison_df, use_container_width=True, hide_index=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.html('</div>')
 
 render_footer()

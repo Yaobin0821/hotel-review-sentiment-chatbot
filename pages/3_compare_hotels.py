@@ -505,8 +505,8 @@ def load_compare_css():
         .traveller-summary-section {
             background: rgba(255, 255, 255, 0.94);
             border: 1px solid var(--border);
-            border-radius: 26px;
-            padding: 1.15rem;
+            border-radius: 24px;
+            padding: 1rem;
             box-shadow: var(--shadow-card);
             margin-top: 0.85rem;
             margin-bottom: 1rem;
@@ -514,25 +514,25 @@ def load_compare_css():
 
         .traveller-summary-title {
             color: var(--text-main);
-            font-size: 1.22rem;
+            font-size: 1.18rem;
             font-weight: 950;
             letter-spacing: -0.04em;
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.15rem;
         }
 
         .traveller-summary-desc {
             color: #64748B;
-            font-size: 0.88rem;
-            line-height: 1.45;
-            margin-bottom: 0.9rem;
+            font-size: 0.84rem;
+            line-height: 1.4;
+            margin-bottom: 0.8rem;
         }
 
         .summary-row {
             display: grid;
-            grid-template-columns: 210px 1fr 1fr 145px;
-            gap: 0.65rem;
-            align-items: stretch;
-            padding: 0.75rem 0;
+            grid-template-columns: 180px 1fr 1fr 120px;
+            gap: 0.5rem;
+            align-items: center;
+            padding: 0.55rem 0;
             border-top: 1px solid #EFE3D8;
         }
 
@@ -541,40 +541,27 @@ def load_compare_css():
         }
 
         .summary-topic {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-
-        .summary-topic-label {
             color: #7C6F64;
-            font-size: 0.72rem;
+            font-size: 0.74rem;
             font-weight: 950;
             text-transform: uppercase;
-            letter-spacing: 0.07em;
-            margin-bottom: 0.18rem;
-        }
-
-        .summary-topic-help {
-            color: #94A3B8;
-            font-size: 0.75rem;
-            font-weight: 700;
-            line-height: 1.3;
+            letter-spacing: 0.06em;
+            line-height: 1.25;
         }
 
         .summary-value-box {
             background: #FFFDF8;
             border: 1px solid #EAD7C6;
-            border-radius: 16px;
-            padding: 0.72rem;
-            min-height: 64px;
+            border-radius: 14px;
+            padding: 0.58rem 0.65rem;
+            min-height: auto;
         }
 
         .summary-hotel-name {
             color: #64748B;
-            font-size: 0.72rem;
+            font-size: 0.68rem;
             font-weight: 850;
-            margin-bottom: 0.24rem;
+            margin-bottom: 0.18rem;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -582,9 +569,9 @@ def load_compare_css():
 
         .summary-value {
             color: var(--text-main);
-            font-size: 0.9rem;
+            font-size: 0.84rem;
             font-weight: 900;
-            line-height: 1.35;
+            line-height: 1.3;
         }
 
         .summary-better {
@@ -594,12 +581,13 @@ def load_compare_css():
             background: #EAF7F0;
             color: #216E46;
             border: 1px solid #BFE3CF;
-            border-radius: 16px;
-            padding: 0.65rem;
-            font-size: 0.78rem;
+            border-radius: 14px;
+            padding: 0.55rem;
+            font-size: 0.72rem;
             font-weight: 900;
             text-align: center;
-            line-height: 1.35;
+            line-height: 1.25;
+            min-height: 48px;
         }
 
         .summary-better.neutral {
@@ -611,10 +599,12 @@ def load_compare_css():
         @media (max-width: 1000px) {
             .summary-row {
                 grid-template-columns: 1fr;
+                gap: 0.45rem;
             }
 
             .summary-better {
                 justify-content: flex-start;
+                min-height: auto;
             }
         }
 
@@ -807,18 +797,25 @@ def render_hotel_compare_card(hotel):
     render_html(card_html)
 
 
-def render_summary_row(topic, help_text, hotel_a, hotel_b, value_a, value_b, better_label):
+def render_summary_row(topic, hotel_a, hotel_b, value_a, value_b, better_label):
     hotel_a_name = safe_get(hotel_a, "hotel")
     hotel_b_name = safe_get(hotel_b, "hotel")
 
     better_class = "neutral" if better_label == "Similar" else ""
-    better_text = "Similar" if better_label == "Similar" else f"Better: {better_label}"
+
+    if better_label == "Similar":
+        better_text = "Similar"
+    elif better_label == hotel_a_name:
+        better_text = "Better: Hotel A"
+    elif better_label == hotel_b_name:
+        better_text = "Better: Hotel B"
+    else:
+        better_text = "Better"
 
     render_html(f"""
     <div class="summary-row">
         <div class="summary-topic">
-            <div class="summary-topic-label">{escape(topic)}</div>
-            <div class="summary-topic-help">{escape(help_text)}</div>
+            {escape(topic)}
         </div>
 
         <div class="summary-value-box">
@@ -847,13 +844,12 @@ def render_traveller_summary(hotel_a, hotel_b):
     <div class="traveller-summary-section">
         <div class="traveller-summary-title">Traveller comparison summary</div>
         <div class="traveller-summary-desc">
-            A simpler side-by-side view of the most important booking signals.
+            A compact side-by-side view of the most important booking signals.
         </div>
     """)
 
     render_summary_row(
-        topic="Guest review feeling",
-        help_text="Higher positive review percentage is better.",
+        topic="Guest feeling",
         hotel_a=hotel_a,
         hotel_b=hotel_b,
         value_a=f"{safe_get(hotel_a, 'positive_pct', 0)}% positive",
@@ -863,7 +859,6 @@ def render_traveller_summary(hotel_a, hotel_b):
 
     render_summary_row(
         topic="Booking concern",
-        help_text="Lower negative review percentage is safer.",
         hotel_a=hotel_a,
         hotel_b=hotel_b,
         value_a=f"{safe_get(hotel_a, 'negative_pct', 0)}% negative · {safe_get(hotel_a, 'risk_level')}",
@@ -872,8 +867,7 @@ def render_traveller_summary(hotel_a, hotel_b):
     )
 
     render_summary_row(
-        topic="What looks good",
-        help_text="Main positive area mentioned by guests.",
+        topic="Looks good",
         hotel_a=hotel_a,
         hotel_b=hotel_b,
         value_a=safe_get(hotel_a, "main_strength"),
@@ -882,8 +876,7 @@ def render_traveller_summary(hotel_a, hotel_b):
     )
 
     render_summary_row(
-        topic="What to check",
-        help_text="Main concern to read before booking.",
+        topic="Check first",
         hotel_a=hotel_a,
         hotel_b=hotel_b,
         value_a=safe_get(hotel_a, "main_risk"),
@@ -893,7 +886,6 @@ def render_traveller_summary(hotel_a, hotel_b):
 
     render_summary_row(
         topic="Best for",
-        help_text="Traveller type that may suit the hotel.",
         hotel_a=hotel_a,
         hotel_b=hotel_b,
         value_a=safe_get(hotel_a, "best_traveller_type"),
@@ -902,8 +894,7 @@ def render_traveller_summary(hotel_a, hotel_b):
     )
 
     render_summary_row(
-        topic="Suitability score",
-        help_text="Higher score suggests better overall suitability.",
+        topic="Score",
         hotel_a=hotel_a,
         hotel_b=hotel_b,
         value_a=f"{safe_get(hotel_a, 'suitability_score', 0)}/100",

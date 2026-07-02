@@ -389,39 +389,46 @@ def load_hotel_detail_css():
             margin-bottom: 0.75rem;
         }
 
-        .review-filter-card {
-            background: rgba(255, 255, 255, 0.88);
-            border: 1px solid var(--border);
-            border-radius: 18px;
-            padding: 0.85rem 0.95rem;
-            margin-bottom: 0.85rem;
-            box-shadow: 0 6px 14px rgba(74, 55, 40, 0.035);
+        .review-filter-row {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.9rem;
         }
 
-        .review-filter-title {
-            color: var(--text-main);
-            font-size: 0.95rem;
-            font-weight: 900;
-            margin-bottom: 0.3rem;
-        }
-
-        .review-filter-text {
-            color: #64748B;
-            font-size: 0.86rem;
-            line-height: 1.45;
-        }
-
-        div[data-testid="stRadio"] {
-            background: rgba(255, 255, 255, 0.75);
+        .review-filter-option {
+            display: inline-flex;
+            align-items: center;
+            text-decoration: none !important;
+            background: #FFFDF8;
+            color: var(--text-main) !important;
             border: 1px solid #EAD7C6;
-            border-radius: 18px;
-            padding: 0.7rem 0.85rem;
-            margin-bottom: 0.8rem;
+            border-radius: 999px;
+            padding: 0.48rem 0.85rem;
+            font-size: 0.86rem;
+            font-weight: 850;
+            box-shadow: 0 5px 14px rgba(74, 55, 40, 0.04);
+            transition: all 0.16s ease;
         }
 
-        div[data-testid="stRadio"] label {
-            font-weight: 800;
-            color: var(--text-main);
+        .review-filter-option:hover {
+            background: #FFF4E8;
+            border-color: var(--brand);
+            transform: translateY(-1px);
+        }
+
+        .review-filter-option.active {
+            background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+            color: white !important;
+            border-color: transparent;
+            box-shadow: 0 10px 22px rgba(155, 67, 37, 0.18);
+        }
+
+        .review-count-note {
+            color: #7C6F64;
+            font-size: 0.86rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
         }
 
         .review-card {
@@ -556,6 +563,17 @@ def get_selected_hotel(hotels, selected_area):
     return selected_hotel
 
 
+def get_selected_review_type():
+    selected_review_type = get_query_value("review_type", "All")
+
+    allowed_types = ["All", "Positive", "Neutral", "Negative"]
+
+    if selected_review_type not in allowed_types:
+        selected_review_type = "All"
+
+    return selected_review_type
+
+
 def render_area_picker(areas, selected_area):
     area_notes = {
         "Bukit Jalil": "Events & stadium area",
@@ -616,6 +634,28 @@ def render_hotel_picker(hotels, selected_area, selected_hotel):
     )
 
     st.markdown(picker_html, unsafe_allow_html=True)
+
+
+def render_review_filter(selected_area, selected_hotel, selected_review_type):
+    filter_options = ["All", "Positive", "Neutral", "Negative"]
+
+    filter_html = '<div class="review-filter-row">'
+
+    for option in filter_options:
+        active_class = "active" if option == selected_review_type else ""
+        area_url = quote(selected_area, safe="")
+        hotel_url = quote(selected_hotel, safe="")
+        review_type_url = quote(option, safe="")
+
+        filter_html += (
+            f'<a class="review-filter-option {active_class}" '
+            f'href="?area={area_url}&hotel={hotel_url}&review_type={review_type_url}" '
+            f'target="_self">{escape(option)}</a>'
+        )
+
+    filter_html += '</div>'
+
+    st.markdown(filter_html, unsafe_allow_html=True)
 
 
 def build_sentiment_bar(label, value, css_class):
@@ -807,25 +847,12 @@ if hotel:
             st.dataframe(complaint_df, use_container_width=True, hide_index=True)
 
     with tab2:
-        st.markdown(
-            '<div class="detail-tabs-note">Choose the type of reviews you want to read. This helps travellers quickly check good points, concerns, or balanced comments.</div>',
-            unsafe_allow_html=True
-        )
+        selected_review_type = get_selected_review_type()
 
-        st.markdown(
-            '<div class="review-filter-card">'
-            '<div class="review-filter-title">Filter sample reviews</div>'
-            '<div class="review-filter-text">Choose whether you want to see all reviews, only positive reviews, neutral reviews, or negative reviews.</div>'
-            '</div>',
-            unsafe_allow_html=True
-        )
-
-        selected_review_type = st.radio(
-            "Filter reviews",
-            ["All", "Positive", "Neutral", "Negative"],
-            horizontal=True,
-            label_visibility="collapsed",
-            key=f"review_filter_{selected_hotel}"
+        render_review_filter(
+            selected_area=selected_area,
+            selected_hotel=selected_hotel,
+            selected_review_type=selected_review_type
         )
 
         reviews_df = get_hotel_reviews(selected_hotel, limit=300)
@@ -851,7 +878,7 @@ if hotel:
                 )
             else:
                 st.markdown(
-                    f'<div class="detail-tabs-note">Showing {min(5, len(filtered_reviews_df))} {selected_review_type.lower()} review(s).</div>',
+                    f'<div class="review-count-note">Showing {min(5, len(filtered_reviews_df))} {selected_review_type.lower()} review(s).</div>',
                     unsafe_allow_html=True
                 )
 

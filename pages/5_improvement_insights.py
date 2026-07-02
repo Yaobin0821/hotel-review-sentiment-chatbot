@@ -14,7 +14,7 @@ from utils import (
 
 
 st.set_page_config(
-    page_title="Booking Insights",
+    page_title="Area Review Insights",
     page_icon="📊",
     layout="wide"
 )
@@ -52,6 +52,10 @@ def safe_number(value, default=0):
         return default
 
 
+def get_review_count(hotel):
+    return hotel.get("review_count", hotel.get("total_reviews", 0))
+
+
 def get_query_value(key, default_value):
     value = st.query_params.get(key, default_value)
 
@@ -70,67 +74,83 @@ def get_selected_area(areas):
     return selected_area
 
 
-def concern_frequency_label(count, max_count):
+def get_signal_label(count, max_count):
     if max_count <= 0:
         return "Review signal"
 
     ratio = count / max_count
 
     if ratio >= 0.7:
-        return "Mentioned often"
+        return "Strong pattern"
 
     if ratio >= 0.35:
-        return "Common concern"
+        return "Common pattern"
 
-    return "Occasional concern"
+    return "Light pattern"
 
 
-def concern_frequency_class(count, max_count):
+def get_signal_class(count, max_count):
     if max_count <= 0:
-        return "concern-low"
+        return "signal-light"
 
     ratio = count / max_count
 
     if ratio >= 0.7:
-        return "concern-high"
+        return "signal-strong"
 
     if ratio >= 0.35:
-        return "concern-medium"
+        return "signal-common"
 
-    return "concern-low"
+    return "signal-light"
 
 
-def get_concern_meaning(concern):
-    concern_lower = str(concern).lower()
+def weighted_average(hotels, key):
+    total_weight = 0
+    total_value = 0
 
-    if "clean" in concern_lower or "hygiene" in concern_lower:
-        return "May affect comfort, room freshness, bathroom condition, or overall stay confidence."
+    for hotel in hotels:
+        review_count = safe_number(get_review_count(hotel), 1)
 
-    if "room" in concern_lower or "noise" in concern_lower or "comfort" in concern_lower:
-        return "May affect sleep quality, room comfort, and how relaxed the stay feels."
+        if review_count <= 0:
+            review_count = 1
 
-    if "breakfast" in concern_lower or "food" in concern_lower:
-        return "May affect morning convenience, food satisfaction, and value for money."
+        value = safe_number(safe_get(hotel, key, 0), 0)
 
-    if "check-in" in concern_lower or "booking" in concern_lower or "payment" in concern_lower:
-        return "May affect arrival experience, waiting time, payment clarity, or booking smoothness."
+        total_value += value * review_count
+        total_weight += review_count
 
-    if "parking" in concern_lower or "access" in concern_lower or "transport" in concern_lower:
-        return "May affect how easy it is to reach the hotel or move around the area."
+    if total_weight == 0:
+        return 0
 
-    if "service" in concern_lower or "staff" in concern_lower:
-        return "May affect how helpful, responsive, and comfortable the guest experience feels."
+    return round(total_value / total_weight, 1)
 
-    if "facility" in concern_lower or "maintenance" in concern_lower:
-        return "May affect convenience if hotel facilities are not working well."
 
-    if "price" in concern_lower or "value" in concern_lower:
-        return "May affect whether the stay feels worth the money paid."
+def get_area_tone(hotels):
+    positive_avg = weighted_average(hotels, "positive_pct")
+    negative_avg = weighted_average(hotels, "negative_pct")
 
-    if "overall" in concern_lower or "experience" in concern_lower:
-        return "Shows that guests mention general stay experience, so recent reviews should be checked carefully."
+    if positive_avg >= 70 and negative_avg <= 15:
+        return {
+            "tone": "Mostly positive",
+            "description": "Reviews in this area generally lean positive across the available hotels.",
+            "positive_avg": positive_avg,
+            "negative_avg": negative_avg
+        }
 
-    return "Check recent reviews to understand how this issue may affect your stay."
+    if negative_avg >= 25:
+        return {
+            "tone": "More mixed",
+            "description": "This area has stronger negative review signals, so hotel choice matters more.",
+            "positive_avg": positive_avg,
+            "negative_avg": negative_avg
+        }
+
+    return {
+        "tone": "Balanced",
+        "description": "Reviews in this area are not one-sided. Users should compare hotel-level patterns.",
+        "positive_avg": positive_avg,
+        "negative_avg": negative_avg
+    }
 
 
 def get_area_complaints(hotels):
@@ -149,7 +169,7 @@ def get_area_complaints(hotels):
                     "Complaint Count": safe_number(row.get("Complaint Count", 0)),
                     "Suggested Improvement Action": row.get(
                         "Suggested Improvement Action",
-                        "Check recent guest reviews for this issue before booking."
+                        "Check recent guest reviews for this issue."
                     )
                 })
         except Exception:
@@ -177,42 +197,89 @@ def get_area_complaints(hotels):
     return grouped_df
 
 
-def get_common_positive_signal(hotels):
-    strengths = []
+def get_common_hotel_field_patterns(hotels, field_name, limit=5):
+    values = []
 
     for hotel in hotels:
-        strength = safe_get(hotel, "main_strength", "")
+        value = safe_get(hotel, field_name, "")
 
-        if strength and strength != "Not stated":
-            strengths.append(strength)
+        if value and value != "Not stated":
+            values.append(value)
 
-    if not strengths:
-        return "No clear positive pattern found"
+    if not values:
+        return []
 
-    counter = Counter(strengths)
-    return counter.most_common(1)[0][0]
+    counter = Counter(values)
+    return counter.most_common(limit)
 
 
-def get_area_warning(complaint_df):
+def get_top_pattern(patterns, default_value):
+    if not patterns:
+        return default_value
+
+    return patterns[0][0]
+
+
+def get_top_concern(complaint_df):
     if complaint_df.empty:
         return "No repeated concern found"
 
     return complaint_df.iloc[0]["Complaint Area"]
 
 
-def get_area_advice(selected_area, complaint_df):
-    if complaint_df.empty:
+def get_area_takeaway(selected_area, hotels, complaint_df):
+    tone_info = get_area_tone(hotels)
+    positive_patterns = get_common_hotel_field_patterns(hotels, "main_strength", 5)
+    traveller_patterns = get_common_hotel_field_patterns(hotels, "best_traveller_type", 5)
+
+    top_positive = get_top_pattern(positive_patterns, "no clear positive pattern")
+    top_traveller = get_top_pattern(traveller_patterns, "general travellers")
+    top_concern = get_top_concern(complaint_df)
+
+    if top_concern == "No repeated concern found":
         return (
-            f"For {selected_area}, no strong repeated concern was found in the available review data. "
-            "Still, travellers should compare several recent reviews before booking."
+            f"In {selected_area}, the available reviews are {tone_info['tone'].lower()} overall. "
+            f"The most visible positive signal is {top_positive}, and the area appears suitable for {top_traveller}."
         )
 
-    top_concern = complaint_df.iloc[0]["Complaint Area"]
-
     return (
-        f"For {selected_area}, travellers should pay extra attention to reviews about "
-        f"{top_concern}. If the same issue appears repeatedly in recent reviews, compare another hotel before booking."
+        f"In {selected_area}, the available reviews are {tone_info['tone'].lower()} overall. "
+        f"Guests often highlight {top_positive}, while the most repeated concern is {top_concern}. "
+        f"This area appears most relevant for {top_traveller}."
     )
+
+
+def get_concern_meaning(concern):
+    concern_lower = str(concern).lower()
+
+    if "clean" in concern_lower or "hygiene" in concern_lower:
+        return "This usually relates to room freshness, bathroom condition, or overall comfort confidence."
+
+    if "room" in concern_lower or "noise" in concern_lower or "comfort" in concern_lower:
+        return "This usually affects sleep quality, room comfort, and how relaxing the stay feels."
+
+    if "breakfast" in concern_lower or "food" in concern_lower:
+        return "This usually affects morning convenience, food satisfaction, and perceived value."
+
+    if "check-in" in concern_lower or "booking" in concern_lower or "payment" in concern_lower:
+        return "This usually affects arrival experience, waiting time, or booking smoothness."
+
+    if "parking" in concern_lower or "transport" in concern_lower or "access" in concern_lower:
+        return "This usually affects convenience when reaching the hotel or moving around the area."
+
+    if "service" in concern_lower or "staff" in concern_lower:
+        return "This usually affects how supported, welcomed, and comfortable guests feel."
+
+    if "facility" in concern_lower or "maintenance" in concern_lower:
+        return "This usually affects convenience when hotel facilities are not working well."
+
+    if "price" in concern_lower or "value" in concern_lower:
+        return "This usually affects whether guests feel the stay was worth the money paid."
+
+    if "overall" in concern_lower or "experience" in concern_lower:
+        return "This is a broad review signal about the general stay experience."
+
+    return "This is a repeated review topic that may affect the stay experience."
 
 
 def load_insights_css():
@@ -306,16 +373,16 @@ def load_insights_css():
             box-shadow: 0 10px 22px rgba(155, 67, 37, 0.18);
         }
 
-        .area-advice-card {
+        .takeaway-card {
             background: linear-gradient(135deg, #FFF8EF, #EEF7F1);
             border: 1px solid #EAD7C6;
-            border-radius: 24px;
+            border-radius: 26px;
             padding: 1rem 1.1rem;
             box-shadow: var(--shadow-card);
             margin-bottom: 0.9rem;
         }
 
-        .area-advice-label {
+        .takeaway-label {
             color: #9B4325;
             font-size: 0.72rem;
             font-weight: 950;
@@ -324,16 +391,16 @@ def load_insights_css():
             margin-bottom: 0.25rem;
         }
 
-        .area-advice-text {
+        .takeaway-text {
             color: var(--text-main);
-            font-size: 0.98rem;
+            font-size: 1rem;
             font-weight: 850;
             line-height: 1.45;
         }
 
         .snapshot-grid {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 0.75rem;
             margin-bottom: 0.9rem;
         }
@@ -348,7 +415,7 @@ def load_insights_css():
 
         .snapshot-label {
             color: #7C6F64;
-            font-size: 0.7rem;
+            font-size: 0.68rem;
             font-weight: 950;
             text-transform: uppercase;
             letter-spacing: 0.07em;
@@ -357,14 +424,14 @@ def load_insights_css():
 
         .snapshot-value {
             color: var(--text-main);
-            font-size: 1.05rem;
+            font-size: 1.02rem;
             font-weight: 950;
             line-height: 1.25;
         }
 
         .snapshot-sub {
             color: #64748B;
-            font-size: 0.78rem;
+            font-size: 0.76rem;
             font-weight: 750;
             margin-top: 0.25rem;
             line-height: 1.35;
@@ -400,82 +467,61 @@ def load_insights_css():
             margin-bottom: 0.85rem;
         }
 
-        .concern-row {
+        .pattern-row {
             display: grid;
-            grid-template-columns: 1fr 150px;
+            grid-template-columns: 1fr 140px;
             gap: 0.65rem;
             align-items: center;
             padding: 0.68rem 0;
             border-top: 1px solid #EFE3D8;
         }
 
-        .concern-row:first-of-type {
+        .pattern-row:first-of-type {
             border-top: none;
         }
 
-        .concern-name {
+        .pattern-name {
             color: var(--text-main);
             font-size: 0.92rem;
             font-weight: 900;
             line-height: 1.35;
         }
 
-        .concern-help {
+        .pattern-help {
             color: #64748B;
             font-size: 0.78rem;
             line-height: 1.35;
             margin-top: 0.15rem;
         }
 
-        .concern-badge {
+        .pattern-badge {
             border-radius: 999px;
             padding: 0.45rem 0.65rem;
-            font-size: 0.76rem;
+            font-size: 0.74rem;
             font-weight: 900;
             text-align: center;
             white-space: nowrap;
         }
 
-        .concern-high {
+        .signal-strong {
             background: #FFF0EE;
             color: #A33A2F;
             border: 1px solid #F4C7BF;
         }
 
-        .concern-medium {
+        .signal-common {
             background: #FFF4D6;
             color: #8A5A12;
             border: 1px solid #E6C879;
         }
 
-        .concern-low {
+        .signal-light {
             background: #EAF7F0;
             color: #216E46;
             border: 1px solid #BFE3CF;
         }
 
-        .meaning-row {
-            background: #FFFDF8;
-            border: 1px solid #EAD7C6;
-            border-radius: 18px;
-            padding: 0.85rem;
-            margin-bottom: 0.55rem;
-        }
-
-        .meaning-title {
-            color: var(--text-main);
-            font-size: 0.92rem;
-            font-weight: 950;
-            margin-bottom: 0.18rem;
-        }
-
-        .meaning-text {
-            color: #64748B;
-            font-size: 0.8rem;
-            line-height: 1.4;
-        }
-
-        .checklist-section {
+        .meaning-section {
             background: rgba(255, 255, 255, 0.94);
             border: 1px solid var(--border);
             border-radius: 26px;
@@ -484,28 +530,28 @@ def load_insights_css():
             margin-bottom: 1rem;
         }
 
-        .checklist-grid {
+        .meaning-grid {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 0.7rem;
             margin-top: 0.75rem;
         }
 
-        .checklist-item {
+        .meaning-card {
             background: #FFFDF8;
             border: 1px solid #EAD7C6;
             border-radius: 18px;
             padding: 0.85rem;
         }
 
-        .checklist-title {
+        .meaning-title {
             color: var(--text-main);
             font-size: 0.92rem;
             font-weight: 950;
             margin-bottom: 0.22rem;
         }
 
-        .checklist-text {
+        .meaning-text {
             color: #64748B;
             font-size: 0.8rem;
             line-height: 1.4;
@@ -514,15 +560,15 @@ def load_insights_css():
         @media (max-width: 1000px) {
             .snapshot-grid,
             .main-layout,
-            .checklist-grid {
+            .meaning-grid {
                 grid-template-columns: 1fr;
             }
 
-            .concern-row {
+            .pattern-row {
                 grid-template-columns: 1fr;
             }
 
-            .concern-badge {
+            .pattern-badge {
                 width: fit-content;
             }
         }
@@ -533,11 +579,10 @@ def load_insights_css():
 def render_header():
     render_html("""
     <div class="insights-header">
-        <div class="insights-badge">Booking insights</div>
-        <div class="insights-title">Booking Insights</div>
+        <div class="insights-badge">Area review patterns</div>
+        <div class="insights-title">Area Review Insights</div>
         <div class="insights-subtitle">
-            See what travellers commonly mention in this area before choosing a hotel.
-            This page helps you know what to check before booking.
+            See what hotel reviews in this area usually talk about. This page shows area-level patterns, not a direct hotel comparison.
         </div>
     </div>
     """)
@@ -563,20 +608,26 @@ def render_area_choices(areas, selected_area):
     """)
 
 
-def render_area_advice(selected_area, complaint_df):
-    advice = get_area_advice(selected_area, complaint_df)
+def render_takeaway(selected_area, hotels, complaint_df):
+    takeaway = get_area_takeaway(selected_area, hotels, complaint_df)
 
     render_html(f"""
-    <div class="area-advice-card">
-        <div class="area-advice-label">Area booking advice</div>
-        <div class="area-advice-text">{escape(advice)}</div>
+    <div class="takeaway-card">
+        <div class="takeaway-label">Area takeaway</div>
+        <div class="takeaway-text">{escape(takeaway)}</div>
     </div>
     """)
 
 
-def render_area_snapshot(selected_area, hotels, complaint_df):
-    common_positive = get_common_positive_signal(hotels)
-    main_warning = get_area_warning(complaint_df)
+def render_snapshot(selected_area, hotels, complaint_df):
+    tone_info = get_area_tone(hotels)
+
+    positive_patterns = get_common_hotel_field_patterns(hotels, "main_strength", 5)
+    traveller_patterns = get_common_hotel_field_patterns(hotels, "best_traveller_type", 5)
+
+    top_positive = get_top_pattern(positive_patterns, "No clear positive pattern")
+    top_traveller = get_top_pattern(traveller_patterns, "General travellers")
+    top_concern = get_top_concern(complaint_df)
 
     render_html(f"""
     <div class="snapshot-grid">
@@ -587,57 +638,142 @@ def render_area_snapshot(selected_area, hotels, complaint_df):
         </div>
 
         <div class="snapshot-card">
-            <div class="snapshot-label">Common positive signal</div>
-            <div class="snapshot-value">{escape(common_positive)}</div>
-            <div class="snapshot-sub">A strength mentioned in available hotel summaries</div>
+            <div class="snapshot-label">Overall review tone</div>
+            <div class="snapshot-value">{escape(tone_info["tone"])}</div>
+            <div class="snapshot-sub">{escape(tone_info["positive_avg"])}% positive · {escape(tone_info["negative_avg"])}% negative</div>
         </div>
 
         <div class="snapshot-card">
-            <div class="snapshot-label">Main thing to check</div>
-            <div class="snapshot-value">{escape(main_warning)}</div>
-            <div class="snapshot-sub">A repeated review topic in this area</div>
+            <div class="snapshot-label">Most praised topic</div>
+            <div class="snapshot-value">{escape(top_positive)}</div>
+            <div class="snapshot-sub">Appears most often in hotel summaries</div>
+        </div>
+
+        <div class="snapshot-card">
+            <div class="snapshot-label">Most repeated concern</div>
+            <div class="snapshot-value">{escape(top_concern)}</div>
+            <div class="snapshot-sub">A repeated topic in review patterns</div>
         </div>
     </div>
     """)
 
 
-def render_common_concerns(complaint_df):
-    if complaint_df.empty:
+def render_positive_patterns(hotels):
+    patterns = get_common_hotel_field_patterns(hotels, "main_strength", 6)
+
+    if not patterns:
         render_html("""
         <div class="insight-card">
-            <div class="card-title">Most repeated concerns in this area</div>
-            <div class="card-desc">No repeated concern pattern was found for this area.</div>
+            <div class="card-title">What guests usually praise</div>
+            <div class="card-desc">No repeated positive pattern was found for this area.</div>
         </div>
         """)
         return
 
+    max_count = max(count for _, count in patterns)
     rows_html = ""
-    top_df = complaint_df.head(6)
-    max_count = safe_number(top_df["Complaint Count"].max(), 0)
 
-    for _, row in top_df.iterrows():
-        concern = row["Complaint Area"]
-        count = safe_number(row["Complaint Count"], 0)
-        label = concern_frequency_label(count, max_count)
-        label_class = concern_frequency_class(count, max_count)
+    for name, count in patterns:
+        label = get_signal_label(count, max_count)
+        label_class = get_signal_class(count, max_count)
 
         rows_html += f"""
-        <div class="concern-row">
+        <div class="pattern-row">
             <div>
-                <div class="concern-name">{escape(concern)}</div>
-                <div class="concern-help">
-                    This is a repeated review topic. Check recent reviews to see whether it still appears.
-                </div>
+                <div class="pattern-name">{escape(name)}</div>
+                <div class="pattern-help">This positive topic appears across hotel summaries in this area.</div>
             </div>
-            <div class="concern-badge {label_class}">{escape(label)}</div>
+            <div class="pattern-badge {label_class}">{escape(label)}</div>
         </div>
         """
 
     render_html(f"""
     <div class="insight-card">
-        <div class="card-title">Most repeated concerns in this area</div>
+        <div class="card-title">What guests usually praise</div>
         <div class="card-desc">
-            These labels show how often each issue appears compared with other concerns in the same area.
+            These are the positive review patterns that appear most often in this area.
+        </div>
+        {rows_html}
+    </div>
+    """)
+
+
+def render_complaint_patterns(complaint_df):
+    if complaint_df.empty:
+        render_html("""
+        <div class="insight-card">
+            <div class="card-title">What guests usually complain about</div>
+            <div class="card-desc">No repeated concern pattern was found for this area.</div>
+        </div>
+        """)
+        return
+
+    top_df = complaint_df.head(6)
+    max_count = safe_number(top_df["Complaint Count"].max(), 0)
+    rows_html = ""
+
+    for _, row in top_df.iterrows():
+        concern = row["Complaint Area"]
+        count = safe_number(row["Complaint Count"], 0)
+
+        label = get_signal_label(count, max_count)
+        label_class = get_signal_class(count, max_count)
+
+        rows_html += f"""
+        <div class="pattern-row">
+            <div>
+                <div class="pattern-name">{escape(concern)}</div>
+                <div class="pattern-help">This concern appears as a repeated topic in the area review data.</div>
+            </div>
+            <div class="pattern-badge {label_class}">{escape(label)}</div>
+        </div>
+        """
+
+    render_html(f"""
+    <div class="insight-card">
+        <div class="card-title">What guests usually complain about</div>
+        <div class="card-desc">
+            These are repeated concern patterns found in reviews for this area.
+        </div>
+        {rows_html}
+    </div>
+    """)
+
+
+def render_traveller_pattern(hotels):
+    patterns = get_common_hotel_field_patterns(hotels, "best_traveller_type", 5)
+
+    if not patterns:
+        render_html("""
+        <div class="insight-card">
+            <div class="card-title">Traveller pattern</div>
+            <div class="card-desc">No clear traveller suitability pattern was found for this area.</div>
+        </div>
+        """)
+        return
+
+    max_count = max(count for _, count in patterns)
+    rows_html = ""
+
+    for name, count in patterns:
+        label = get_signal_label(count, max_count)
+        label_class = get_signal_class(count, max_count)
+
+        rows_html += f"""
+        <div class="pattern-row">
+            <div>
+                <div class="pattern-name">{escape(name)}</div>
+                <div class="pattern-help">This traveller type appears frequently in hotel suitability summaries.</div>
+            </div>
+            <div class="pattern-badge {label_class}">{escape(label)}</div>
+        </div>
+        """
+
+    render_html(f"""
+    <div class="insight-card">
+        <div class="card-title">Who this area seems suitable for</div>
+        <div class="card-desc">
+            This is based on the traveller suitability patterns across hotels in this area.
         </div>
         {rows_html}
     </div>
@@ -646,89 +782,29 @@ def render_common_concerns(complaint_df):
 
 def render_concern_meanings(complaint_df):
     if complaint_df.empty:
-        render_html("""
-        <div class="insight-card">
-            <div class="card-title">What these concerns mean</div>
-            <div class="card-desc">No concern explanation is available because no repeated pattern was found.</div>
-        </div>
-        """)
         return
 
     meaning_html = ""
 
-    for _, row in complaint_df.head(5).iterrows():
+    for _, row in complaint_df.head(4).iterrows():
         concern = row["Complaint Area"]
         meaning = get_concern_meaning(concern)
 
         meaning_html += f"""
-        <div class="meaning-row">
+        <div class="meaning-card">
             <div class="meaning-title">{escape(concern)}</div>
             <div class="meaning-text">{escape(meaning)}</div>
         </div>
         """
 
     render_html(f"""
-    <div class="insight-card">
-        <div class="card-title">What these concerns may mean for your stay</div>
+    <div class="meaning-section">
+        <div class="card-title">What the concern patterns mean</div>
         <div class="card-desc">
-            A simple explanation of why these review topics may matter to travellers.
+            These explanations help users understand how repeated review topics may affect the stay experience.
         </div>
-        {meaning_html}
-    </div>
-    """)
-
-
-def render_booking_checklist(complaint_df):
-    checklist_html = ""
-
-    if complaint_df.empty:
-        checklist_html += """
-        <div class="checklist-item">
-            <div class="checklist-title">Read several recent reviews</div>
-            <div class="checklist-text">
-                No repeated concern was found, but one review should not decide everything.
-            </div>
-        </div>
-        """
-    else:
-        for _, row in complaint_df.head(4).iterrows():
-            concern = row["Complaint Area"]
-
-            checklist_html += f"""
-            <div class="checklist-item">
-                <div class="checklist-title">Check {escape(concern)}</div>
-                <div class="checklist-text">
-                    Look for recent reviews mentioning this topic. If many guests mention the same issue,
-                    compare another hotel before booking.
-                </div>
-            </div>
-            """
-
-    checklist_html += """
-    <div class="checklist-item">
-        <div class="checklist-title">Compare more than one hotel</div>
-        <div class="checklist-text">
-            A hotel can still be suitable even if it has some concerns. Compare repeated issues, positive signals, and suitability.
-        </div>
-    </div>
-
-    <div class="checklist-item">
-        <div class="checklist-title">Focus on repeated patterns</div>
-        <div class="checklist-text">
-            One negative review may not represent the whole hotel. Repeated comments are more useful for booking decisions.
-        </div>
-    </div>
-    """
-
-    render_html(f"""
-    <div class="checklist-section">
-        <div class="card-title">Before booking checklist</div>
-        <div class="card-desc">
-            Use this checklist when reading hotel reviews in this area.
-        </div>
-
-        <div class="checklist-grid">
-            {checklist_html}
+        <div class="meaning-grid">
+            {meaning_html}
         </div>
     </div>
     """)
@@ -757,17 +833,18 @@ if not hotels:
 complaint_df = get_area_complaints(hotels)
 
 render_area_choices(areas, selected_area)
-render_area_advice(selected_area, complaint_df)
-render_area_snapshot(selected_area, hotels, complaint_df)
+render_takeaway(selected_area, hotels, complaint_df)
+render_snapshot(selected_area, hotels, complaint_df)
 
 left_col, right_col = st.columns(2, gap="large")
 
 with left_col:
-    render_common_concerns(complaint_df)
+    render_positive_patterns(hotels)
 
 with right_col:
-    render_concern_meanings(complaint_df)
+    render_complaint_patterns(complaint_df)
 
-render_booking_checklist(complaint_df)
+render_traveller_pattern(hotels)
+render_concern_meanings(complaint_df)
 
 render_footer()

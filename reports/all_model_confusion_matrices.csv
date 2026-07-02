@@ -1,28 +1,28 @@
-﻿model_name,model_display_name,actual_label,predicted_label,count
-logistic_regression,Logistic Regression,negative,negative,28
-logistic_regression,Logistic Regression,negative,neutral,13
-logistic_regression,Logistic Regression,negative,positive,1
-logistic_regression,Logistic Regression,neutral,negative,12
-logistic_regression,Logistic Regression,neutral,neutral,19
-logistic_regression,Logistic Regression,neutral,positive,11
+model_name,model_display_name,actual_label,predicted_label,count
+logistic_regression,Logistic Regression,negative,negative,34
+logistic_regression,Logistic Regression,negative,neutral,8
+logistic_regression,Logistic Regression,negative,positive,0
+logistic_regression,Logistic Regression,neutral,negative,15
+logistic_regression,Logistic Regression,neutral,neutral,18
+logistic_regression,Logistic Regression,neutral,positive,9
 logistic_regression,Logistic Regression,positive,negative,4
-logistic_regression,Logistic Regression,positive,neutral,8
-logistic_regression,Logistic Regression,positive,positive,30
-bilstm,BiLSTM,negative,negative,18
+logistic_regression,Logistic Regression,positive,neutral,3
+logistic_regression,Logistic Regression,positive,positive,35
+bilstm,BiLSTM,negative,negative,22
 bilstm,BiLSTM,negative,neutral,19
-bilstm,BiLSTM,negative,positive,5
-bilstm,BiLSTM,neutral,negative,4
-bilstm,BiLSTM,neutral,neutral,23
-bilstm,BiLSTM,neutral,positive,15
+bilstm,BiLSTM,negative,positive,1
+bilstm,BiLSTM,neutral,negative,5
+bilstm,BiLSTM,neutral,neutral,32
+bilstm,BiLSTM,neutral,positive,5
 bilstm,BiLSTM,positive,negative,3
 bilstm,BiLSTM,positive,neutral,10
 bilstm,BiLSTM,positive,positive,29
-distilbert,DistilBERT,negative,negative,29
-distilbert,DistilBERT,negative,neutral,11
-distilbert,DistilBERT,negative,positive,2
-distilbert,DistilBERT,neutral,negative,11
-distilbert,DistilBERT,neutral,neutral,19
-distilbert,DistilBERT,neutral,positive,12
-distilbert,DistilBERT,positive,negative,1
-distilbert,DistilBERT,positive,neutral,4
-distilbert,DistilBERT,positive,positive,37
+distilbert,DistilBERT,negative,negative,37
+distilbert,DistilBERT,negative,neutral,5
+distilbert,DistilBERT,negative,positive,0
+distilbert,DistilBERT,neutral,negative,9
+distilbert,DistilBERT,neutral,neutral,26
+distilbert,DistilBERT,neutral,positive,7
+distilbert,DistilBERT,positive,negative,3
+distilbert,DistilBERT,positive,neutral,5
+distilbert,DistilBERT,positive,positive,34

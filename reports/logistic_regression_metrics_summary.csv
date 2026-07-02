@@ -1,2 +1,2 @@
-﻿model_name,algorithm,text_column,label_column,train_file,test_file,train_samples,test_samples,accuracy,macro_precision,macro_recall,macro_f1,weighted_precision,weighted_recall,weighted_f1,train_test_duplicate_text_count
-logistic_regression,TF-IDF + Logistic Regression,Cleaned_Text,Sentiment,C:\Users\User\Desktop\New folder\hotel-review-sentiment-chatbot\data\train_dataset.csv,C:\Users\User\Desktop\New folder\hotel-review-sentiment-chatbot\data\test_dataset.csv,501,126,0.6111111111111112,0.6085497835497836,0.6111111111111112,0.6096210463765767,0.6085497835497835,0.6111111111111112,0.6096210463765768,0
+model_name,text_column,label_column,train_samples,test_samples,accuracy,macro_precision,macro_recall,macro_f1,weighted_precision,weighted_recall,weighted_f1
+logistic_regression,Cleaned_Text,Sentiment,501,126,0.6904761904761905,0.6858845448630744,0.6904761904761906,0.6789284051924768,0.6858845448630744,0.6904761904761905,0.6789284051924769

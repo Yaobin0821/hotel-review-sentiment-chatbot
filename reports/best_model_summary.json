@@ -2,12 +2,9 @@
     "best_model_name": "distilbert",
     "best_model_display_name": "DistilBERT",
     "selection_criterion": "Highest Macro F1-score; Accuracy used as tie-breaker",
-    "accuracy": 0.6746031746031746,
-    "macro_precision": 0.6638769328869759,
-    "macro_recall": 0.6746031746031745,
-    "macro_f1": 0.6648313684846915,
-    "weighted_f1": 0.6648313684846915,
-    "reason": "The final model was selected mainly using Macro F1-score because the project needs balanced performance across positive, neutral and negative sentiment classes. Accuracy was used as a secondary criterion.",
-    "algorithm": "DistilBERT Transformer Model",
-    "pretrained_model": "distilbert-base-uncased"
+    "accuracy": 0.7698412698412699,
+    "macro_precision": 0.7688641852404917,
+    "macro_recall": 0.7698412698412698,
+    "macro_f1": 0.7663768627624049,
+    "reason": "The final model was selected mainly using Macro F1-score because the project needs balanced performance across positive, neutral and negative sentiment classes. Accuracy was used as a secondary criterion."
 }

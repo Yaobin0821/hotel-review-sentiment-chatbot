@@ -2,15 +2,14 @@
 Original Rows,711
 Rows After Empty Removal,711
 Rows After Valid Sentiment Filter,711
-Rows After Short Text Filter,666
-Rows After Duplicate Removal,666
+Rows After Short Text Filter,669
+Rows After Duplicate Removal,669
 Rows After Balancing,627
-Rows Removed During Balancing,39
-Translated Reviews,0
-Detected Languages,translation_package_not_installed
+Rows Removed During Balancing,42
+Translated Reviews,93
+Detected Languages,"en, id, da, en_assumed, tl, fr, et, af, de, no, ja, zh-cn, sl, so, th, es, sw"
 Train Rows,501
 Test Rows,126
 Positive Reviews,209
 Neutral Reviews,209
 Negative Reviews,209
-Hotel Column Used For Sorting,location

@@ -16,14 +16,9 @@
         "neutral": 1,
         "positive": 2
     },
-    "id_to_sentiment": {
-        "0": "negative",
-        "1": "neutral",
-        "2": "positive"
-    },
-    "max_length": 128,
-    "batch_size": 8,
-    "epochs": 8,
+    "max_length": 256,
+    "batch_size": 16,
+    "epochs": 10,
     "validation_size": 0.2,
     "learning_rate": 2e-05,
     "weight_decay": 0.01,
@@ -31,6 +26,5 @@
     "patience": 3,
     "max_grad_norm": 1.0,
     "random_state": 42,
-    "train_test_duplicate_text_count": 0,
     "device": "cuda"
 }

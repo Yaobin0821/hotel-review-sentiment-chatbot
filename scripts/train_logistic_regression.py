@@ -260,11 +260,10 @@ def main():
         (
             "classifier",
             LogisticRegression(
-                max_iter=2000,
+                 max_iter=2000,
                 random_state=RANDOM_STATE,
-                solver="lbfgs",
-                multi_class="multinomial"
-            )
+                 solver="lbfgs"
+              )
         )
     ])
 

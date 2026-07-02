@@ -403,10 +403,6 @@ def load_management_css():
             font-size: 0.86rem;
             font-weight: 850;
             margin-bottom: 0.85rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 0.75rem;
         }
 
         .choice-card {
@@ -511,12 +507,15 @@ def load_management_css():
             margin-bottom: 0.9rem;
         }
 
-        .metric-card {
+        .metric-card,
+        .mgmt-card,
+        .table-section {
             background: rgba(255, 255, 255, 0.94);
             border: 1px solid var(--border);
-            border-radius: 22px;
-            padding: 0.95rem;
+            border-radius: 24px;
+            padding: 1rem;
             box-shadow: var(--shadow-card);
+            margin-bottom: 0.85rem;
         }
 
         .metric-label {
@@ -543,15 +542,6 @@ def load_management_css():
             line-height: 1.35;
         }
 
-        .mgmt-card {
-            background: rgba(255, 255, 255, 0.94);
-            border: 1px solid var(--border);
-            border-radius: 26px;
-            padding: 1rem;
-            box-shadow: var(--shadow-card);
-            margin-bottom: 0.85rem;
-        }
-
         .card-title {
             color: var(--text-main);
             font-size: 1.16rem;
@@ -573,11 +563,13 @@ def load_management_css():
             gap: 0.65rem;
         }
 
-        .priority-item {
+        .priority-item,
+        .action-card {
             background: #FFFDF8;
             border: 1px solid #EAD7C6;
             border-radius: 18px;
             padding: 0.85rem;
+            margin-bottom: 0.6rem;
         }
 
         .priority-top {
@@ -588,7 +580,8 @@ def load_management_css():
             margin-bottom: 0.35rem;
         }
 
-        .priority-title {
+        .priority-title,
+        .action-title {
             color: var(--text-main);
             font-size: 0.96rem;
             font-weight: 950;
@@ -635,21 +628,6 @@ def load_management_css():
             border: 1px solid #BFE3CF;
         }
 
-        .action-card {
-            background: #FFFDF8;
-            border: 1px solid #EAD7C6;
-            border-radius: 18px;
-            padding: 0.85rem;
-            margin-bottom: 0.6rem;
-        }
-
-        .action-title {
-            color: var(--text-main);
-            font-size: 0.94rem;
-            font-weight: 950;
-            margin-bottom: 0.45rem;
-        }
-
         .action-list {
             margin: 0;
             padding-left: 1.1rem;
@@ -662,24 +640,13 @@ def load_management_css():
             margin-bottom: 0.25rem;
         }
 
-        .table-section {
-            background: rgba(255, 255, 255, 0.94);
-            border: 1px solid var(--border);
-            border-radius: 26px;
-            padding: 1rem;
-            box-shadow: var(--shadow-card);
-            margin-bottom: 1rem;
-        }
-
         @media (max-width: 1000px) {
             .metric-grid {
                 grid-template-columns: 1fr;
             }
 
-            .priority-top,
-            .management-mode-bar {
+            .priority-top {
                 flex-direction: column;
-                align-items: flex-start;
             }
         }
     </style>
@@ -722,12 +689,7 @@ def require_management_access():
         placeholder="Enter staff access code"
     )
 
-    enter_clicked = st.button(
-        "Enter Management Portal",
-        use_container_width=True
-    )
-
-    if enter_clicked:
+    if st.button("Enter Management Portal", use_container_width=True):
         if entered_code == access_code:
             st.session_state["management_access_granted"] = True
             st.rerun()
@@ -744,7 +706,7 @@ def render_management_mode_bar():
     with col1:
         render_html("""
         <div class="management-mode-bar">
-            <span>Management mode is active. This page is separated from the public traveller pages.</span>
+            Management mode is active. This page is separated from the public traveller pages.
         </div>
         """)
 
@@ -816,7 +778,6 @@ def render_management_summary(hotel, management_df):
 
 def render_metrics(hotel, management_df):
     summary = get_management_summary(hotel, management_df)
-
     risk_level = safe_get(hotel, "risk_level", "Medium")
     risk_class = risk_class_name(risk_level)
 
@@ -939,12 +900,6 @@ def render_action_plan(management_df):
 
 
 def render_review_signal_summary(hotel):
-    positive_pct = safe_get(hotel, "positive_pct", 0)
-    neutral_pct = safe_get(hotel, "neutral_pct", 0)
-    negative_pct = safe_get(hotel, "negative_pct", 0)
-    main_strength = safe_get(hotel, "main_strength")
-    main_risk = safe_get(hotel, "main_risk")
-
     render_html(f"""
     <div class="mgmt-card">
         <div class="card-title">Review signal summary</div>
@@ -955,17 +910,17 @@ def render_review_signal_summary(hotel):
         <div class="action-card">
             <div class="action-title">Sentiment distribution</div>
             <ul class="action-list">
-                <li>Positive reviews: {escape(positive_pct)}%</li>
-                <li>Neutral reviews: {escape(neutral_pct)}%</li>
-                <li>Negative reviews: {escape(negative_pct)}%</li>
+                <li>Positive reviews: {escape(safe_get(hotel, "positive_pct", 0))}%</li>
+                <li>Neutral reviews: {escape(safe_get(hotel, "neutral_pct", 0))}%</li>
+                <li>Negative reviews: {escape(safe_get(hotel, "negative_pct", 0))}%</li>
             </ul>
         </div>
 
         <div class="action-card">
             <div class="action-title">Key review signals</div>
             <ul class="action-list">
-                <li>Main strength: {escape(main_strength)}</li>
-                <li>Main risk: {escape(main_risk)}</li>
+                <li>Main strength: {escape(safe_get(hotel, "main_strength"))}</li>
+                <li>Main risk: {escape(safe_get(hotel, "main_risk"))}</li>
                 <li>Total reviews analysed: {escape(get_review_count(hotel))}</li>
             </ul>
         </div>

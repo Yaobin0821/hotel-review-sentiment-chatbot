@@ -74,34 +74,55 @@ def get_selected_area(areas):
     return selected_area
 
 
-def get_signal_label(count, max_count):
+def get_pattern_level(count, max_count):
     if max_count <= 0:
-        return "Review signal"
+        return "light"
 
     ratio = count / max_count
 
     if ratio >= 0.7:
-        return "Strong pattern"
+        return "strong"
 
     if ratio >= 0.35:
-        return "Common pattern"
+        return "common"
 
-    return "Light pattern"
+    return "light"
 
 
-def get_signal_class(count, max_count):
-    if max_count <= 0:
-        return "signal-light"
+def get_positive_badge(count, max_count):
+    level = get_pattern_level(count, max_count)
 
-    ratio = count / max_count
+    if level == "strong":
+        return "Strong praise", "positive-strong"
 
-    if ratio >= 0.7:
-        return "signal-strong"
+    if level == "common":
+        return "Common praise", "positive-common"
 
-    if ratio >= 0.35:
-        return "signal-common"
+    return "Light praise", "positive-light"
 
-    return "signal-light"
+
+def get_complaint_badge(count, max_count):
+    level = get_pattern_level(count, max_count)
+
+    if level == "strong":
+        return "Strong concern", "complaint-strong"
+
+    if level == "common":
+        return "Common concern", "complaint-common"
+
+    return "Light concern", "complaint-light"
+
+
+def get_match_badge(count, max_count):
+    level = get_pattern_level(count, max_count)
+
+    if level == "strong":
+        return "Strong match", "match-strong"
+
+    if level == "common":
+        return "Common match", "match-common"
+
+    return "Light match", "match-light"
 
 
 def weighted_average(hotels, key):
@@ -130,24 +151,20 @@ def get_area_tone(hotels):
     negative_avg = weighted_average(hotels, "negative_pct")
 
     if positive_avg >= 70 and negative_avg <= 15:
-        return {
-            "tone": "Mostly positive",
-            "description": "Reviews in this area generally lean positive across the available hotels.",
-            "positive_avg": positive_avg,
-            "negative_avg": negative_avg
-        }
+        tone = "Mostly positive"
+        description = "Reviews in this area generally lean positive."
 
-    if negative_avg >= 25:
-        return {
-            "tone": "More mixed",
-            "description": "This area has stronger negative review signals, so hotel choice matters more.",
-            "positive_avg": positive_avg,
-            "negative_avg": negative_avg
-        }
+    elif negative_avg >= 25:
+        tone = "Mixed"
+        description = "This area has stronger negative review signals, so hotel choice matters more."
+
+    else:
+        tone = "Balanced"
+        description = "Reviews in this area are not one-sided."
 
     return {
-        "tone": "Balanced",
-        "description": "Reviews in this area are not one-sided. Users should compare hotel-level patterns.",
+        "tone": tone,
+        "description": description,
         "positive_avg": positive_avg,
         "negative_avg": negative_avg
     }
@@ -172,6 +189,7 @@ def get_area_complaints(hotels):
                         "Check recent guest reviews for this issue."
                     )
                 })
+
         except Exception:
             continue
 
@@ -197,7 +215,7 @@ def get_area_complaints(hotels):
     return grouped_df
 
 
-def get_common_hotel_field_patterns(hotels, field_name, limit=5):
+def get_common_hotel_field_patterns(hotels, field_name, limit=6):
     values = []
 
     for hotel in hotels:
@@ -229,11 +247,29 @@ def get_top_concern(complaint_df):
 
 def get_area_takeaway(selected_area, hotels, complaint_df):
     tone_info = get_area_tone(hotels)
-    positive_patterns = get_common_hotel_field_patterns(hotels, "main_strength", 5)
-    traveller_patterns = get_common_hotel_field_patterns(hotels, "best_traveller_type", 5)
 
-    top_positive = get_top_pattern(positive_patterns, "no clear positive pattern")
-    top_traveller = get_top_pattern(traveller_patterns, "general travellers")
+    positive_patterns = get_common_hotel_field_patterns(
+        hotels,
+        "main_strength",
+        5
+    )
+
+    traveller_patterns = get_common_hotel_field_patterns(
+        hotels,
+        "best_traveller_type",
+        5
+    )
+
+    top_positive = get_top_pattern(
+        positive_patterns,
+        "no clear positive pattern"
+    )
+
+    top_traveller = get_top_pattern(
+        traveller_patterns,
+        "general travellers"
+    )
+
     top_concern = get_top_concern(complaint_df)
 
     if top_concern == "No repeated concern found":
@@ -437,24 +473,18 @@ def load_insights_css():
             line-height: 1.35;
         }
 
-        .main-layout {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.9rem;
-            margin-bottom: 0.9rem;
-        }
-
-        .insight-card {
+        .pattern-card {
             background: rgba(255, 255, 255, 0.94);
             border: 1px solid var(--border);
             border-radius: 26px;
             padding: 1rem;
             box-shadow: var(--shadow-card);
+            margin-bottom: 0.9rem;
         }
 
         .card-title {
             color: var(--text-main);
-            font-size: 1.18rem;
+            font-size: 1.12rem;
             font-weight: 950;
             letter-spacing: -0.04em;
             margin-bottom: 0.2rem;
@@ -462,63 +492,96 @@ def load_insights_css():
 
         .card-desc {
             color: #64748B;
-            font-size: 0.84rem;
+            font-size: 0.8rem;
             line-height: 1.4;
-            margin-bottom: 0.85rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .pattern-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.48rem;
         }
 
         .pattern-row {
             display: grid;
-            grid-template-columns: 1fr 140px;
-            gap: 0.65rem;
+            grid-template-columns: 1fr auto;
+            gap: 0.6rem;
             align-items: center;
-            padding: 0.68rem 0;
-            border-top: 1px solid #EFE3D8;
-        }
-
-        .pattern-row:first-of-type {
-            border-top: none;
+            background: #FFFDF8;
+            border: 1px solid #EAD7C6;
+            border-radius: 16px;
+            padding: 0.68rem 0.72rem;
         }
 
         .pattern-name {
             color: var(--text-main);
-            font-size: 0.92rem;
+            font-size: 0.9rem;
             font-weight: 900;
-            line-height: 1.35;
-        }
-
-        .pattern-help {
-            color: #64748B;
-            font-size: 0.78rem;
-            line-height: 1.35;
-            margin-top: 0.15rem;
+            line-height: 1.28;
         }
 
         .pattern-badge {
             border-radius: 999px;
-            padding: 0.45rem 0.65rem;
-            font-size: 0.74rem;
+            padding: 0.42rem 0.62rem;
+            font-size: 0.7rem;
             font-weight: 900;
             text-align: center;
             white-space: nowrap;
         }
 
-        .signal-strong {
+        .positive-strong {
+            background: #EAF7F0;
+            color: #216E46;
+            border: 1px solid #BFE3CF;
+        }
+
+        .positive-common {
+            background: #F0FAF4;
+            color: #2E7D52;
+            border: 1px solid #CAEAD8;
+        }
+
+        .positive-light {
+            background: #F8F4EE;
+            color: #7C6F64;
+            border: 1px solid #E5D8CA;
+        }
+
+        .complaint-strong {
             background: #FFF0EE;
             color: #A33A2F;
             border: 1px solid #F4C7BF;
         }
 
-        .signal-common {
+        .complaint-common {
             background: #FFF4D6;
             color: #8A5A12;
             border: 1px solid #E6C879;
         }
 
-        .signal-light {
-            background: #EAF7F0;
-            color: #216E46;
-            border: 1px solid #BFE3CF;
+        .complaint-light {
+            background: #F8F4EE;
+            color: #7C6F64;
+            border: 1px solid #E5D8CA;
+        }
+
+        .match-strong {
+            background: #EEF2FF;
+            color: #3B4B9A;
+            border: 1px solid #C7D2FE;
+        }
+
+        .match-common {
+            background: #F5F3FF;
+            color: #5B3A9A;
+            border: 1px solid #DDD6FE;
+        }
+
+        .match-light {
+            background: #F8F4EE;
+            color: #7C6F64;
+            border: 1px solid #E5D8CA;
         }
 
         .meaning-section {
@@ -559,7 +622,6 @@ def load_insights_css():
 
         @media (max-width: 1000px) {
             .snapshot-grid,
-            .main-layout,
             .meaning-grid {
                 grid-template-columns: 1fr;
             }
@@ -622,11 +684,28 @@ def render_takeaway(selected_area, hotels, complaint_df):
 def render_snapshot(selected_area, hotels, complaint_df):
     tone_info = get_area_tone(hotels)
 
-    positive_patterns = get_common_hotel_field_patterns(hotels, "main_strength", 5)
-    traveller_patterns = get_common_hotel_field_patterns(hotels, "best_traveller_type", 5)
+    positive_patterns = get_common_hotel_field_patterns(
+        hotels,
+        "main_strength",
+        5
+    )
 
-    top_positive = get_top_pattern(positive_patterns, "No clear positive pattern")
-    top_traveller = get_top_pattern(traveller_patterns, "General travellers")
+    traveller_patterns = get_common_hotel_field_patterns(
+        hotels,
+        "best_traveller_type",
+        5
+    )
+
+    top_positive = get_top_pattern(
+        positive_patterns,
+        "No clear positive pattern"
+    )
+
+    top_traveller = get_top_pattern(
+        traveller_patterns,
+        "General travellers"
+    )
+
     top_concern = get_top_concern(complaint_df)
 
     render_html(f"""
@@ -659,11 +738,15 @@ def render_snapshot(selected_area, hotels, complaint_df):
 
 
 def render_positive_patterns(hotels):
-    patterns = get_common_hotel_field_patterns(hotels, "main_strength", 6)
+    patterns = get_common_hotel_field_patterns(
+        hotels,
+        "main_strength",
+        6
+    )
 
     if not patterns:
         render_html("""
-        <div class="insight-card">
+        <div class="pattern-card">
             <div class="card-title">What guests usually praise</div>
             <div class="card-desc">No repeated positive pattern was found for this area.</div>
         </div>
@@ -674,26 +757,22 @@ def render_positive_patterns(hotels):
     rows_html = ""
 
     for name, count in patterns:
-        label = get_signal_label(count, max_count)
-        label_class = get_signal_class(count, max_count)
+        label, label_class = get_positive_badge(count, max_count)
 
         rows_html += f"""
         <div class="pattern-row">
-            <div>
-                <div class="pattern-name">{escape(name)}</div>
-                <div class="pattern-help">This positive topic appears across hotel summaries in this area.</div>
-            </div>
+            <div class="pattern-name">{escape(name)}</div>
             <div class="pattern-badge {label_class}">{escape(label)}</div>
         </div>
         """
 
     render_html(f"""
-    <div class="insight-card">
+    <div class="pattern-card">
         <div class="card-title">What guests usually praise</div>
-        <div class="card-desc">
-            These are the positive review patterns that appear most often in this area.
+        <div class="card-desc">Positive topics that appear across hotels in this area.</div>
+        <div class="pattern-list">
+            {rows_html}
         </div>
-        {rows_html}
     </div>
     """)
 
@@ -701,7 +780,7 @@ def render_positive_patterns(hotels):
 def render_complaint_patterns(complaint_df):
     if complaint_df.empty:
         render_html("""
-        <div class="insight-card">
+        <div class="pattern-card">
             <div class="card-title">What guests usually complain about</div>
             <div class="card-desc">No repeated concern pattern was found for this area.</div>
         </div>
@@ -716,37 +795,37 @@ def render_complaint_patterns(complaint_df):
         concern = row["Complaint Area"]
         count = safe_number(row["Complaint Count"], 0)
 
-        label = get_signal_label(count, max_count)
-        label_class = get_signal_class(count, max_count)
+        label, label_class = get_complaint_badge(count, max_count)
 
         rows_html += f"""
         <div class="pattern-row">
-            <div>
-                <div class="pattern-name">{escape(concern)}</div>
-                <div class="pattern-help">This concern appears as a repeated topic in the area review data.</div>
-            </div>
+            <div class="pattern-name">{escape(concern)}</div>
             <div class="pattern-badge {label_class}">{escape(label)}</div>
         </div>
         """
 
     render_html(f"""
-    <div class="insight-card">
-        <div class="card-title">What guests usually complain about</div>
-        <div class="card-desc">
-            These are repeated concern patterns found in reviews for this area.
+    <div class="pattern-card">
+        <div class="card-title">What guests complain about</div>
+        <div class="card-desc">Repeated concern topics found in this area.</div>
+        <div class="pattern-list">
+            {rows_html}
         </div>
-        {rows_html}
     </div>
     """)
 
 
 def render_traveller_pattern(hotels):
-    patterns = get_common_hotel_field_patterns(hotels, "best_traveller_type", 5)
+    patterns = get_common_hotel_field_patterns(
+        hotels,
+        "best_traveller_type",
+        5
+    )
 
     if not patterns:
         render_html("""
-        <div class="insight-card">
-            <div class="card-title">Traveller pattern</div>
+        <div class="pattern-card">
+            <div class="card-title">Who this area suits</div>
             <div class="card-desc">No clear traveller suitability pattern was found for this area.</div>
         </div>
         """)
@@ -756,26 +835,22 @@ def render_traveller_pattern(hotels):
     rows_html = ""
 
     for name, count in patterns:
-        label = get_signal_label(count, max_count)
-        label_class = get_signal_class(count, max_count)
+        label, label_class = get_match_badge(count, max_count)
 
         rows_html += f"""
         <div class="pattern-row">
-            <div>
-                <div class="pattern-name">{escape(name)}</div>
-                <div class="pattern-help">This traveller type appears frequently in hotel suitability summaries.</div>
-            </div>
+            <div class="pattern-name">{escape(name)}</div>
             <div class="pattern-badge {label_class}">{escape(label)}</div>
         </div>
         """
 
     render_html(f"""
-    <div class="insight-card">
-        <div class="card-title">Who this area seems suitable for</div>
-        <div class="card-desc">
-            This is based on the traveller suitability patterns across hotels in this area.
+    <div class="pattern-card">
+        <div class="card-title">Who this area suits</div>
+        <div class="card-desc">Traveller types commonly matched with hotels here.</div>
+        <div class="pattern-list">
+            {rows_html}
         </div>
-        {rows_html}
     </div>
     """)
 
@@ -803,6 +878,7 @@ def render_concern_meanings(complaint_df):
         <div class="card-desc">
             These explanations help users understand how repeated review topics may affect the stay experience.
         </div>
+
         <div class="meaning-grid">
             {meaning_html}
         </div>
@@ -836,15 +912,20 @@ render_area_choices(areas, selected_area)
 render_takeaway(selected_area, hotels, complaint_df)
 render_snapshot(selected_area, hotels, complaint_df)
 
-left_col, right_col = st.columns(2, gap="large")
+pattern_col1, pattern_col2, pattern_col3 = st.columns(
+    [1, 1.15, 0.9],
+    gap="large"
+)
 
-with left_col:
+with pattern_col1:
     render_positive_patterns(hotels)
 
-with right_col:
+with pattern_col2:
     render_complaint_patterns(complaint_df)
 
-render_traveller_pattern(hotels)
+with pattern_col3:
+    render_traveller_pattern(hotels)
+
 render_concern_meanings(complaint_df)
 
 render_footer()

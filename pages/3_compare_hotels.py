@@ -1,8 +1,10 @@
 import html
+from urllib.parse import quote
+
 import pandas as pd
 import streamlit as st
 
-from styles import load_css, render_topbar, render_page_header, render_footer
+from styles import load_css, render_topbar, render_footer
 from utils import (
     get_areas,
     get_hotels_by_area,
@@ -25,256 +27,6 @@ def clean_html(markup):
         for line in str(markup).splitlines()
         if line.strip()
     )
-
-
-def load_compare_css():
-    st.markdown("""
-    <style>
-        .compare-intro-card {
-            background: rgba(255, 255, 255, 0.92);
-            border: 1px solid var(--border);
-            border-radius: 28px;
-            padding: 1.2rem 1.35rem;
-            box-shadow: var(--shadow-card);
-            margin-bottom: 1rem;
-        }
-
-        .compare-intro-title {
-            color: var(--text-main);
-            font-size: 1.35rem;
-            font-weight: 950;
-            letter-spacing: -0.04em;
-            margin-bottom: 0.35rem;
-        }
-
-        .compare-intro-text {
-            color: #64748B;
-            font-size: 0.95rem;
-            line-height: 1.55;
-        }
-
-        .picker-card {
-            background: rgba(255, 255, 255, 0.9);
-            border: 1px solid var(--border);
-            border-radius: 24px;
-            padding: 1rem;
-            box-shadow: 0 8px 20px rgba(74, 55, 40, 0.045);
-            margin-bottom: 1rem;
-        }
-
-        .picker-label {
-            color: #7C6F64;
-            font-size: 0.78rem;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            margin-bottom: 0.5rem;
-        }
-
-        div[data-baseweb="select"] > div {
-            border-radius: 16px !important;
-            border: 1px solid #D8CDBE !important;
-            background: rgba(255, 255, 255, 0.96) !important;
-            min-height: 3rem;
-        }
-
-        .recommendation-card {
-            background: linear-gradient(135deg, #FFF8EF, #EEF7F1);
-            border: 1px solid #EAD7C6;
-            border-radius: 28px;
-            padding: 1.2rem 1.35rem;
-            box-shadow: var(--shadow-card);
-            margin: 1rem 0;
-        }
-
-        .recommendation-label {
-            color: #9B4325;
-            font-size: 0.76rem;
-            font-weight: 950;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            margin-bottom: 0.35rem;
-        }
-
-        .recommendation-text {
-            color: var(--text-main);
-            font-size: 1.15rem;
-            font-weight: 850;
-            line-height: 1.45;
-        }
-
-        .hotel-compare-card {
-            background: rgba(255, 255, 255, 0.94);
-            border: 1px solid var(--border);
-            border-radius: 30px;
-            padding: 1.25rem;
-            box-shadow: var(--shadow-card);
-            margin-bottom: 1rem;
-        }
-
-        .hotel-card-title {
-            color: var(--text-main);
-            font-size: 1.35rem;
-            font-weight: 950;
-            letter-spacing: -0.045em;
-            line-height: 1.15;
-            margin-bottom: 0.35rem;
-        }
-
-        .hotel-card-meta {
-            color: #64748B;
-            font-size: 0.9rem;
-            line-height: 1.45;
-            margin-bottom: 0.85rem;
-        }
-
-        .risk-chip {
-            display: inline-flex;
-            align-items: center;
-            width: fit-content;
-            border-radius: 999px;
-            padding: 0.45rem 0.78rem;
-            font-size: 0.84rem;
-            font-weight: 850;
-            margin-bottom: 0.85rem;
-        }
-
-        .risk-low {
-            background: #EAF7F0;
-            color: #216E46;
-            border: 1px solid #BFE3CF;
-        }
-
-        .risk-medium {
-            background: #FFF4D6;
-            color: #8A5A12;
-            border: 1px solid #E6C879;
-        }
-
-        .risk-high {
-            background: #FFF0EE;
-            color: #A33A2F;
-            border: 1px solid #F4C7BF;
-        }
-
-        .quick-stat-row {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 0.55rem;
-            margin-bottom: 1rem;
-        }
-
-        .quick-stat {
-            background: #FFFDF8;
-            border: 1px solid #EAD7C6;
-            border-radius: 16px;
-            padding: 0.7rem 0.75rem;
-        }
-
-        .quick-stat-label {
-            color: #7C6F64;
-            font-size: 0.72rem;
-            font-weight: 900;
-            margin-bottom: 0.22rem;
-        }
-
-        .quick-stat-value {
-            color: var(--text-main);
-            font-size: 1.05rem;
-            font-weight: 950;
-        }
-
-        .sentiment-row {
-            margin-bottom: 0.62rem;
-        }
-
-        .sentiment-line {
-            display: flex;
-            justify-content: space-between;
-            color: #334155;
-            font-size: 0.84rem;
-            font-weight: 850;
-            margin-bottom: 0.22rem;
-        }
-
-        .bar-track {
-            width: 100%;
-            height: 8px;
-            background: #E8DDD0;
-            border-radius: 999px;
-            overflow: hidden;
-        }
-
-        .bar-positive {
-            height: 8px;
-            background: #2F855A;
-            border-radius: 999px;
-        }
-
-        .bar-neutral {
-            height: 8px;
-            background: #D99A25;
-            border-radius: 999px;
-        }
-
-        .bar-negative {
-            height: 8px;
-            background: #C24136;
-            border-radius: 999px;
-        }
-
-        .compare-info-list {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 0.65rem;
-            margin-top: 1rem;
-        }
-
-        .compare-info-item {
-            border-top: 1px solid #EFE3D8;
-            padding-top: 0.65rem;
-        }
-
-        .compare-info-label {
-            color: #7C6F64;
-            font-size: 0.73rem;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            margin-bottom: 0.16rem;
-        }
-
-        .compare-info-value {
-            color: var(--text-main);
-            font-size: 0.92rem;
-            font-weight: 800;
-            line-height: 1.4;
-        }
-
-        .comparison-table-card {
-            background: rgba(255, 255, 255, 0.92);
-            border: 1px solid var(--border);
-            border-radius: 26px;
-            padding: 1rem;
-            box-shadow: var(--shadow-card);
-            margin-top: 0.6rem;
-        }
-
-        .section-title {
-            color: var(--text-main);
-            font-size: 1.25rem;
-            font-weight: 950;
-            letter-spacing: -0.04em;
-            margin: 1.2rem 0 0.55rem 0;
-        }
-
-        @media (max-width: 900px) {
-            .quick-stat-row {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
-    """, unsafe_allow_html=True)
 
 
 def escape(value):
@@ -313,6 +65,379 @@ def risk_class_name(risk_level):
     return "risk-medium"
 
 
+def get_query_value(key, default_value):
+    value = st.query_params.get(key, default_value)
+
+    if isinstance(value, list):
+        value = value[0]
+
+    return value
+
+
+def get_selected_area(areas):
+    selected_area = get_query_value("area", areas[0])
+
+    if selected_area not in areas:
+        selected_area = areas[0]
+
+    return selected_area
+
+
+def get_selected_hotels(hotel_options):
+    hotel_a = get_query_value("hotel_a", hotel_options[0])
+
+    if hotel_a not in hotel_options:
+        hotel_a = hotel_options[0]
+
+    available_b_options = [hotel for hotel in hotel_options if hotel != hotel_a]
+
+    if not available_b_options:
+        return hotel_a, None
+
+    hotel_b = get_query_value("hotel_b", available_b_options[0])
+
+    if hotel_b not in available_b_options:
+        hotel_b = available_b_options[0]
+
+    return hotel_a, hotel_b
+
+
+def get_other_hotel_choice(hotel_options, selected_hotel):
+    for hotel_name in hotel_options:
+        if hotel_name != selected_hotel:
+            return hotel_name
+
+    return selected_hotel
+
+
+def load_compare_css():
+    st.markdown("""
+    <style>
+        .compare-header {
+            background: rgba(255, 255, 255, 0.94);
+            border: 1px solid var(--border);
+            border-radius: 30px;
+            padding: 1.35rem 1.5rem;
+            box-shadow: var(--shadow-card);
+            margin-bottom: 0.9rem;
+        }
+
+        .compare-badge {
+            display: inline-flex;
+            background: #FFF4E8;
+            color: var(--brand-dark);
+            border: 1px solid #F2CBAE;
+            border-radius: 999px;
+            padding: 0.34rem 0.75rem;
+            font-size: 0.78rem;
+            font-weight: 850;
+            margin-bottom: 0.65rem;
+        }
+
+        .compare-title {
+            color: var(--text-main);
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 950;
+            letter-spacing: -0.07em;
+            line-height: 1.05;
+            margin-bottom: 0.35rem;
+        }
+
+        .compare-subtitle {
+            color: #64748B;
+            font-size: 0.98rem;
+            line-height: 1.55;
+        }
+
+        .selection-panel {
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid var(--border);
+            border-radius: 26px;
+            padding: 1rem;
+            box-shadow: 0 8px 20px rgba(74, 55, 40, 0.045);
+            margin-bottom: 0.9rem;
+        }
+
+        .selection-label {
+            color: #7C6F64;
+            font-size: 0.75rem;
+            font-weight: 950;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            margin-bottom: 0.45rem;
+        }
+
+        .chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .chip-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .choice-chip {
+            display: inline-flex;
+            align-items: center;
+            text-decoration: none !important;
+            background: #FFFDF8;
+            color: var(--text-main) !important;
+            border: 1px solid #EAD7C6;
+            border-radius: 999px;
+            padding: 0.52rem 0.85rem;
+            font-size: 0.86rem;
+            font-weight: 850;
+            box-shadow: 0 5px 14px rgba(74, 55, 40, 0.04);
+            transition: all 0.16s ease;
+        }
+
+        .choice-chip:hover {
+            background: #FFF4E8;
+            border-color: var(--brand);
+            transform: translateY(-1px);
+        }
+
+        .choice-chip.active {
+            background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+            color: white !important;
+            border-color: transparent;
+            box-shadow: 0 10px 22px rgba(155, 67, 37, 0.18);
+        }
+
+        .hotel-chip-row {
+            display: flex;
+            gap: 0.5rem;
+            overflow-x: auto;
+            padding-bottom: 0.2rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .hotel-chip-row::-webkit-scrollbar {
+            height: 7px;
+        }
+
+        .hotel-chip-row::-webkit-scrollbar-track {
+            background: #F1E8DC;
+            border-radius: 999px;
+        }
+
+        .hotel-chip-row::-webkit-scrollbar-thumb {
+            background: #D8C2AD;
+            border-radius: 999px;
+        }
+
+        .hotel-chip {
+            flex: 0 0 auto;
+            display: inline-flex;
+            align-items: center;
+            text-decoration: none !important;
+            background: #FFFDF8;
+            color: var(--text-main) !important;
+            border: 1px solid #EAD7C6;
+            border-radius: 999px;
+            padding: 0.55rem 0.9rem;
+            font-size: 0.85rem;
+            font-weight: 850;
+            max-width: 310px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            box-shadow: 0 5px 14px rgba(74, 55, 40, 0.04);
+        }
+
+        .hotel-chip:hover {
+            background: #FFF4E8;
+            border-color: var(--brand);
+        }
+
+        .hotel-chip.active {
+            background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+            color: white !important;
+            border-color: transparent;
+            box-shadow: 0 10px 22px rgba(155, 67, 37, 0.18);
+        }
+
+        .recommendation-card {
+            background: linear-gradient(135deg, #FFF8EF, #EEF7F1);
+            border: 1px solid #EAD7C6;
+            border-radius: 26px;
+            padding: 1rem 1.15rem;
+            box-shadow: var(--shadow-card);
+            margin: 0.8rem 0 0.9rem 0;
+        }
+
+        .recommendation-label {
+            color: #9B4325;
+            font-size: 0.73rem;
+            font-weight: 950;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.25rem;
+        }
+
+        .recommendation-text {
+            color: var(--text-main);
+            font-size: 1rem;
+            font-weight: 850;
+            line-height: 1.45;
+        }
+
+        .hotel-compare-card {
+            background: rgba(255, 255, 255, 0.94);
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            padding: 1.15rem;
+            box-shadow: var(--shadow-card);
+            margin-bottom: 0.8rem;
+        }
+
+        .hotel-card-title {
+            color: var(--text-main);
+            font-size: 1.22rem;
+            font-weight: 950;
+            letter-spacing: -0.045em;
+            line-height: 1.15;
+            margin-bottom: 0.25rem;
+        }
+
+        .hotel-card-meta {
+            color: #64748B;
+            font-size: 0.86rem;
+            line-height: 1.45;
+            margin-bottom: 0.7rem;
+        }
+
+        .top-line {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+            margin-bottom: 0.85rem;
+        }
+
+        .risk-chip,
+        .stat-chip {
+            display: inline-flex;
+            align-items: center;
+            width: fit-content;
+            border-radius: 999px;
+            padding: 0.42rem 0.72rem;
+            font-size: 0.8rem;
+            font-weight: 850;
+        }
+
+        .stat-chip {
+            background: #FFFDF8;
+            color: #3F342B;
+            border: 1px solid #EAD7C6;
+        }
+
+        .risk-low {
+            background: #EAF7F0;
+            color: #216E46;
+            border: 1px solid #BFE3CF;
+        }
+
+        .risk-medium {
+            background: #FFF4D6;
+            color: #8A5A12;
+            border: 1px solid #E6C879;
+        }
+
+        .risk-high {
+            background: #FFF0EE;
+            color: #A33A2F;
+            border: 1px solid #F4C7BF;
+        }
+
+        .sentiment-row {
+            margin-bottom: 0.52rem;
+        }
+
+        .sentiment-line {
+            display: flex;
+            justify-content: space-between;
+            color: #334155;
+            font-size: 0.82rem;
+            font-weight: 850;
+            margin-bottom: 0.2rem;
+        }
+
+        .bar-track {
+            width: 100%;
+            height: 8px;
+            background: #E8DDD0;
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .bar-positive {
+            height: 8px;
+            background: #2F855A;
+            border-radius: 999px;
+        }
+
+        .bar-neutral {
+            height: 8px;
+            background: #D99A25;
+            border-radius: 999px;
+        }
+
+        .bar-negative {
+            height: 8px;
+            background: #C24136;
+            border-radius: 999px;
+        }
+
+        .compare-info-list {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.55rem;
+            margin-top: 0.8rem;
+        }
+
+        .compare-info-item {
+            background: #FFFDF8;
+            border: 1px solid #EAD7C6;
+            border-radius: 16px;
+            padding: 0.65rem 0.7rem;
+        }
+
+        .compare-info-label {
+            color: #7C6F64;
+            font-size: 0.68rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 0.14rem;
+        }
+
+        .compare-info-value {
+            color: var(--text-main);
+            font-size: 0.86rem;
+            font-weight: 800;
+            line-height: 1.35;
+        }
+
+        .comparison-table-card {
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 0.8rem;
+            box-shadow: var(--shadow-card);
+            margin-top: 0.6rem;
+        }
+
+        @media (max-width: 900px) {
+            .compare-info-list {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
+
 def build_sentiment_bar(label, value, css_class):
     value_number = safe_pct(value)
 
@@ -329,6 +454,102 @@ def build_sentiment_bar(label, value, css_class):
     """)
 
 
+def render_header():
+    st.markdown(
+        clean_html("""
+        <div class="compare-header">
+            <div class="compare-badge">Travel decision support</div>
+            <div class="compare-title">Compare Hotels</div>
+            <div class="compare-subtitle">Choose two hotels and quickly see which one looks safer, stronger, and more suitable.</div>
+        </div>
+        """),
+        unsafe_allow_html=True
+    )
+
+
+def render_area_choices(areas, selected_area):
+    chips_html = ""
+
+    for area in areas:
+        active_class = "active" if area == selected_area else ""
+        area_url = quote(area, safe="")
+        chips_html += (
+            f'<a class="choice-chip {active_class}" '
+            f'href="?area={area_url}" target="_self">{escape(area)}</a>'
+        )
+
+    st.markdown(
+        clean_html(f"""
+        <div class="selection-label">Choose area</div>
+        <div class="chip-row">{chips_html}</div>
+        """),
+        unsafe_allow_html=True
+    )
+
+
+def render_hotel_choices(title, hotel_options, selected_area, selected_hotel, other_hotel, target):
+    chips_html = ""
+
+    for hotel_name in hotel_options:
+        if target == "hotel_b" and hotel_name == other_hotel:
+            continue
+
+        if target == "hotel_a" and hotel_name == other_hotel:
+            continue
+
+        active_class = "active" if hotel_name == selected_hotel else ""
+
+        new_hotel_a = hotel_name if target == "hotel_a" else other_hotel
+        new_hotel_b = hotel_name if target == "hotel_b" else other_hotel
+
+        if new_hotel_a == new_hotel_b:
+            new_hotel_b = get_other_hotel_choice(hotel_options, new_hotel_a)
+
+        area_url = quote(selected_area, safe="")
+        hotel_a_url = quote(new_hotel_a, safe="")
+        hotel_b_url = quote(new_hotel_b, safe="")
+
+        chips_html += (
+            f'<a class="hotel-chip {active_class}" '
+            f'href="?area={area_url}&hotel_a={hotel_a_url}&hotel_b={hotel_b_url}" '
+            f'target="_self">{escape(hotel_name)}</a>'
+        )
+
+    st.markdown(
+        clean_html(f"""
+        <div class="selection-label">{escape(title)}</div>
+        <div class="hotel-chip-row">{chips_html}</div>
+        """),
+        unsafe_allow_html=True
+    )
+
+
+def render_selection_panel(areas, hotel_options, selected_area, hotel_a_name, hotel_b_name):
+    st.markdown('<div class="selection-panel">', unsafe_allow_html=True)
+
+    render_area_choices(areas, selected_area)
+
+    render_hotel_choices(
+        title="Hotel A",
+        hotel_options=hotel_options,
+        selected_area=selected_area,
+        selected_hotel=hotel_a_name,
+        other_hotel=hotel_b_name,
+        target="hotel_a"
+    )
+
+    render_hotel_choices(
+        title="Hotel B",
+        hotel_options=hotel_options,
+        selected_area=selected_area,
+        selected_hotel=hotel_b_name,
+        other_hotel=hotel_a_name,
+        target="hotel_b"
+    )
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
 def render_hotel_compare_card(hotel):
     risk_level = safe_get(hotel, "risk_level", "Medium")
 
@@ -343,35 +564,22 @@ def render_hotel_compare_card(hotel):
         <div class="hotel-card-title">{escape(safe_get(hotel, "hotel"))}</div>
         <div class="hotel-card-meta">{escape(safe_get(hotel, "area"))} · {escape(get_review_count(hotel))} reviews</div>
 
-        <span class="risk-chip {risk_class_name(risk_level)}">{escape(risk_badge(risk_level))}</span>
-
-        <div class="quick-stat-row">
-            <div class="quick-stat">
-                <div class="quick-stat-label">Reviews</div>
-                <div class="quick-stat-value">{escape(get_review_count(hotel))}</div>
-            </div>
-
-            <div class="quick-stat">
-                <div class="quick-stat-label">Positive</div>
-                <div class="quick-stat-value">{escape(safe_get(hotel, "positive_pct", 0))}%</div>
-            </div>
-
-            <div class="quick-stat">
-                <div class="quick-stat-label">Negative</div>
-                <div class="quick-stat-value">{escape(safe_get(hotel, "negative_pct", 0))}%</div>
-            </div>
+        <div class="top-line">
+            <span class="risk-chip {risk_class_name(risk_level)}">{escape(risk_badge(risk_level))}</span>
+            <span class="stat-chip">🟢 {escape(safe_get(hotel, "positive_pct", 0))}% positive</span>
+            <span class="stat-chip">🔴 {escape(safe_get(hotel, "negative_pct", 0))}% negative</span>
         </div>
 
         {sentiment_html}
 
         <div class="compare-info-list">
             <div class="compare-info-item">
-                <div class="compare-info-label">What looks good</div>
+                <div class="compare-info-label">Looks good</div>
                 <div class="compare-info-value">{escape(safe_get(hotel, "main_strength"))}</div>
             </div>
 
             <div class="compare-info-item">
-                <div class="compare-info-label">What to check</div>
+                <div class="compare-info-label">Check first</div>
                 <div class="compare-info-value">{escape(safe_get(hotel, "main_risk"))}</div>
             </div>
 
@@ -381,14 +589,14 @@ def render_hotel_compare_card(hotel):
             </div>
 
             <div class="compare-info-item">
-                <div class="compare-info-label">Suitability score</div>
+                <div class="compare-info-label">Score</div>
                 <div class="compare-info-value">{escape(safe_get(hotel, "suitability_score", 0))}/100</div>
             </div>
         </div>
     </div>
     """)
 
-    st.html(card_html)
+    st.markdown(card_html, unsafe_allow_html=True)
 
 
 def build_comparison_table(hotel_a, hotel_b):
@@ -453,21 +661,7 @@ def get_recommendation_text(hotel_a, hotel_b):
 load_css()
 load_compare_css()
 render_topbar()
-
-render_page_header(
-    "Compare Hotels",
-    "Compare two hotels from the same area before making a booking decision."
-)
-
-st.html(clean_html("""
-<div class="compare-intro-card">
-    <div class="compare-intro-title">Choose two hotels to compare</div>
-    <div class="compare-intro-text">
-        Select an area first, then compare two hotels side by side using review sentiment,
-        booking concern, suitability, and traveller type.
-    </div>
-</div>
-"""))
+render_header()
 
 areas = get_areas()
 
@@ -476,83 +670,54 @@ if not areas:
     render_footer()
     st.stop()
 
-st.html(clean_html("""
-<div class="picker-card">
-    <div class="picker-label">Step 1 · Select area</div>
-"""))
-
-selected_area = st.selectbox(
-    "Select Area",
-    areas,
-    key="compare_area",
-    label_visibility="collapsed"
-)
-
-st.html("</div>")
+selected_area = get_selected_area(areas)
 
 hotels_in_area = get_hotels_by_area(selected_area)
 hotel_options = [hotel["hotel"] for hotel in hotels_in_area]
 
 if len(hotel_options) < 2:
     st.warning("This area does not have enough hotels for comparison.")
+    render_footer()
+    st.stop()
+
+hotel_a_name, hotel_b_name = get_selected_hotels(hotel_options)
+
+render_selection_panel(
+    areas=areas,
+    hotel_options=hotel_options,
+    selected_area=selected_area,
+    hotel_a_name=hotel_a_name,
+    hotel_b_name=hotel_b_name
+)
+
+hotel_a = get_hotel_by_name(hotel_a_name)
+hotel_b = get_hotel_by_name(hotel_b_name)
+
+if hotel_a is None or hotel_b is None:
+    st.error("Hotel data could not be loaded. Please check your dataset.")
 else:
-    st.html(clean_html("""
-    <div class="picker-card">
-        <div class="picker-label">Step 2 · Select two hotels</div>
-    """))
+    recommendation = get_recommendation_text(hotel_a, hotel_b)
 
-    col1, col2 = st.columns(2)
-
-    with col1:
-        hotel_a_name = st.selectbox(
-            "Select Hotel A",
-            hotel_options,
-            key="hotel_a"
-        )
-
-    available_hotel_b_options = [
-        hotel_name for hotel_name in hotel_options
-        if hotel_name != hotel_a_name
-    ]
-
-    with col2:
-        hotel_b_name = st.selectbox(
-            "Select Hotel B",
-            available_hotel_b_options,
-            key="hotel_b"
-        )
-
-    st.html("</div>")
-
-    hotel_a = get_hotel_by_name(hotel_a_name)
-    hotel_b = get_hotel_by_name(hotel_b_name)
-
-    if hotel_a is None or hotel_b is None:
-        st.error("Hotel data could not be loaded. Please check your dataset.")
-    else:
-        recommendation = get_recommendation_text(hotel_a, hotel_b)
-
-        st.html(clean_html(f"""
+    st.markdown(
+        clean_html(f"""
         <div class="recommendation-card">
             <div class="recommendation-label">Quick recommendation</div>
             <div class="recommendation-text">{escape(recommendation)}</div>
         </div>
-        """))
+        """),
+        unsafe_allow_html=True
+    )
 
-        compare_col1, compare_col2 = st.columns(2, gap="large")
+    compare_col1, compare_col2 = st.columns(2, gap="large")
 
-        with compare_col1:
-            render_hotel_compare_card(hotel_a)
+    with compare_col1:
+        render_hotel_compare_card(hotel_a)
 
-        with compare_col2:
-            render_hotel_compare_card(hotel_b)
+    with compare_col2:
+        render_hotel_compare_card(hotel_b)
 
-        st.html('<div class="section-title">Detailed comparison</div>')
-
+    with st.expander("View full comparison table"):
         comparison_df = build_comparison_table(hotel_a, hotel_b)
-
-        st.html('<div class="comparison-table-card">')
         st.dataframe(comparison_df, use_container_width=True, hide_index=True)
-        st.html('</div>')
 
 render_footer()

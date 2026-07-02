@@ -10,9 +10,7 @@ from utils import (
     get_hotels_by_area,
     get_hotel_by_name,
     get_complaint_df,
-    risk_badge
 )
-
 
 st.set_page_config(
     page_title="Management Insights",
@@ -94,10 +92,8 @@ def priority_rank(priority_level):
 
     if priority == "high":
         return 1
-
     if priority == "medium":
         return 2
-
     if priority == "low":
         return 3
 
@@ -112,7 +108,6 @@ def derive_priority(count, max_count):
 
     if ratio >= 0.7:
         return "High"
-
     if ratio >= 0.35:
         return "Medium"
 
@@ -134,7 +129,6 @@ def priority_class(priority_level):
 
     if priority == "high":
         return "priority-high"
-
     if priority == "medium":
         return "priority-medium"
 
@@ -146,41 +140,45 @@ def risk_class_name(risk_level):
 
     if risk == "low":
         return "risk-low"
-
     if risk == "high":
         return "risk-high"
 
     return "risk-medium"
 
 
+def risk_text(risk_level):
+    level = str(risk_level).title()
+    return f"{level} Risk"
+
+
 def get_issue_impact(issue):
     issue_lower = str(issue).lower()
 
     if "clean" in issue_lower or "hygiene" in issue_lower:
-        return "May affect guest comfort, room freshness, bathroom condition, and trust in the hotel."
+        return "May affect room cleanliness, bathroom condition, and guest trust."
 
     if "room" in issue_lower or "noise" in issue_lower or "comfort" in issue_lower:
-        return "May affect sleep quality, rest experience, and overall room satisfaction."
+        return "May affect sleep quality, comfort, and overall room satisfaction."
 
     if "breakfast" in issue_lower or "food" in issue_lower:
-        return "May affect guest value perception, morning convenience, and dining satisfaction."
+        return "May affect value perception and dining satisfaction."
 
     if "check-in" in issue_lower or "booking" in issue_lower or "payment" in issue_lower:
-        return "May affect arrival experience, waiting time, booking confidence, and payment clarity."
+        return "May affect the arrival experience, waiting time, and booking confidence."
 
     if "facility" in issue_lower or "maintenance" in issue_lower:
-        return "May affect guest convenience if room facilities or hotel equipment are not working properly."
+        return "May affect convenience if hotel facilities are not functioning properly."
 
     if "service" in issue_lower or "staff" in issue_lower:
-        return "May affect guest satisfaction, complaint handling, and the feeling of being supported."
+        return "May affect guest satisfaction and complaint handling quality."
 
     if "parking" in issue_lower or "transport" in issue_lower or "access" in issue_lower:
-        return "May affect convenience, especially for guests travelling with cars or luggage."
+        return "May affect convenience, especially for guests travelling with luggage or cars."
 
     if "overall" in issue_lower or "experience" in issue_lower:
-        return "This is a broad signal that guests are commenting on the overall stay experience."
+        return "This is a broad signal that overall guest satisfaction may be affected."
 
-    return "This issue may affect the guest experience and should be reviewed by management."
+    return "This issue may affect the overall guest experience and should be reviewed."
 
 
 def get_action_steps(issue, suggested_action):
@@ -189,27 +187,27 @@ def get_action_steps(issue, suggested_action):
     if "clean" in issue_lower or "hygiene" in issue_lower:
         return [
             "Review housekeeping checklist and room inspection standards.",
-            "Increase bathroom and bedding quality checks before guest check-in.",
-            "Monitor recent cleanliness-related reviews weekly."
+            "Increase checks for bathrooms, bedding, and room cleanliness before check-in.",
+            "Track whether cleanliness complaints continue in recent reviews."
         ]
 
     if "room" in issue_lower or "noise" in issue_lower or "comfort" in issue_lower:
         return [
-            "Inspect air-conditioning, lighting, bedding, and room facilities regularly.",
-            "Identify rooms with repeated noise or comfort complaints.",
-            "Prioritise maintenance for rooms mentioned repeatedly in reviews."
+            "Inspect bedding, air-conditioning, lighting, and room condition regularly.",
+            "Identify rooms with repeated comfort or noise complaints.",
+            "Prioritise maintenance for rooms repeatedly mentioned in reviews."
         ]
 
     if "breakfast" in issue_lower or "food" in issue_lower:
         return [
             "Review breakfast quality, variety, and serving consistency.",
-            "Track repeated food-related complaints from guest reviews.",
-            "Adjust menu or service flow based on recurring feedback."
+            "Track recurring food-related complaints.",
+            "Improve service flow or menu choices based on guest feedback."
         ]
 
     if "check-in" in issue_lower or "booking" in issue_lower or "payment" in issue_lower:
         return [
-            "Review front desk workflow during peak check-in hours.",
+            "Review front desk workflow during busy arrival periods.",
             "Improve booking confirmation and payment communication.",
             "Train staff to handle arrival and payment issues more clearly."
         ]
@@ -217,34 +215,34 @@ def get_action_steps(issue, suggested_action):
     if "facility" in issue_lower or "maintenance" in issue_lower:
         return [
             "Create a recurring facility maintenance checklist.",
-            "Respond faster to repeated room or facility defect reports.",
-            "Track maintenance-related review patterns by room or facility type."
+            "Respond faster to room or facility defect reports.",
+            "Track maintenance-related review trends over time."
         ]
 
     if "service" in issue_lower or "staff" in issue_lower:
         return [
             "Review staff response time and complaint handling process.",
             "Provide refresher training for guest communication.",
-            "Monitor service-related review trends after improvement actions."
+            "Monitor service-related review trends after changes are made."
         ]
 
     if "overall" in issue_lower or "experience" in issue_lower:
         return [
             "Review the full guest journey from booking to check-out.",
-            "Identify which review topics are affecting overall satisfaction.",
-            "Prioritise improvements that appear repeatedly across multiple reviews."
+            "Identify which operational areas most affect satisfaction.",
+            "Prioritise issues that appear repeatedly across reviews."
         ]
 
     if suggested_action and suggested_action != "Not stated":
         return [
             str(suggested_action),
-            "Monitor whether this issue continues to appear in recent reviews.",
-            "Review this area again after implementing improvement actions."
+            "Monitor whether this issue still appears in recent reviews.",
+            "Review again after improvement actions are implemented."
         ]
 
     return [
         "Review recent guest comments related to this issue.",
-        "Identify the operational process connected to the complaint.",
+        "Identify the operational process linked to the complaint.",
         "Track whether the issue improves over time."
     ]
 
@@ -328,7 +326,7 @@ def load_management_css():
             border-radius: 30px;
             padding: 1.25rem 1.45rem;
             box-shadow: var(--shadow-card);
-            margin-bottom: 0.85rem;
+            margin-bottom: 1rem;
         }
 
         .mgmt-badge {
@@ -358,41 +356,79 @@ def load_management_css():
             line-height: 1.5;
         }
 
-        .access-card {
-            max-width: 560px;
-            margin: 0.75rem auto 0.65rem auto;
+        .access-info-card {
             background: rgba(255, 255, 255, 0.96);
             border: 1px solid var(--border);
             border-radius: 28px;
-            padding: 1.15rem;
+            padding: 1.35rem;
             box-shadow: var(--shadow-card);
+            min-height: 100%;
         }
 
         .access-title {
             color: var(--text-main);
-            font-size: 1.45rem;
+            font-size: 1.8rem;
             font-weight: 950;
             letter-spacing: -0.05em;
-            margin-bottom: 0.35rem;
+            margin-bottom: 0.4rem;
+            line-height: 1.15;
         }
 
         .access-desc {
             color: #64748B;
-            font-size: 0.9rem;
-            line-height: 1.45;
+            font-size: 0.98rem;
+            line-height: 1.6;
+            margin-bottom: 1rem;
         }
 
-        .access-small-note {
-            max-width: 560px;
-            margin: 0.65rem auto 0 auto;
+        .access-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+            margin-top: 0.7rem;
+        }
+
+        .access-list-item {
             background: #FFF8EF;
             border: 1px solid #EAD7C6;
             border-radius: 16px;
-            padding: 0.7rem 0.85rem;
+            padding: 0.8rem 0.9rem;
             color: #7C6F64;
-            font-size: 0.8rem;
-            line-height: 1.4;
-            text-align: center;
+            font-size: 0.88rem;
+            line-height: 1.45;
+            font-weight: 700;
+        }
+
+        .login-panel-card {
+            background: linear-gradient(135deg, #FFF8EF, #EEF7F1);
+            border: 1px solid #EAD7C6;
+            border-radius: 28px;
+            padding: 1.35rem;
+            box-shadow: var(--shadow-card);
+            margin-bottom: 0.8rem;
+        }
+
+        .login-panel-title {
+            color: var(--text-main);
+            font-size: 1.35rem;
+            font-weight: 950;
+            letter-spacing: -0.04em;
+            margin-bottom: 0.3rem;
+        }
+
+        .login-panel-desc {
+            color: #64748B;
+            font-size: 0.92rem;
+            line-height: 1.55;
+        }
+
+        .login-panel-label {
+            color: #7C6F64;
+            font-size: 0.72rem;
+            font-weight: 950;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
         }
 
         .management-mode-bar {
@@ -641,6 +677,41 @@ def load_management_css():
             margin-bottom: 0.25rem;
         }
 
+        /* Password input */
+        div[data-testid="stTextInput"] > label {
+            font-weight: 800 !important;
+            color: #4B5563 !important;
+        }
+
+        div[data-testid="stTextInput"] > div > div {
+            background: #FFFFFF !important;
+            border: 1px solid #E2C9B7 !important;
+            border-radius: 16px !important;
+            box-shadow: 0 8px 22px rgba(155, 67, 37, 0.06);
+        }
+
+        div[data-testid="stTextInput"] input {
+            color: #1F2937 !important;
+            font-size: 0.98rem !important;
+        }
+
+        /* Submit button */
+        div[data-testid="stFormSubmitButton"] button {
+            width: 100%;
+            border-radius: 16px !important;
+            border: none !important;
+            color: white !important;
+            background: linear-gradient(135deg, #C7653A, #9B4325) !important;
+            font-weight: 850 !important;
+            min-height: 50px !important;
+            box-shadow: 0 10px 24px rgba(155, 67, 37, 0.20);
+        }
+
+        div[data-testid="stFormSubmitButton"] button:hover {
+            filter: brightness(1.03);
+            transform: translateY(-1px);
+        }
+
         @media (max-width: 1000px) {
             .metric-grid {
                 grid-template-columns: 1fr;
@@ -672,15 +743,31 @@ def require_management_access():
     if st.session_state.get("management_access_granted", False):
         return
 
-    left_space, access_col, right_space = st.columns([0.25, 0.5, 0.25])
+    left_col, right_col = st.columns([1, 1], gap="large")
 
-    with access_col:
+    with left_col:
         render_html("""
-        <div class="access-card">
+        <div class="access-info-card">
             <div class="mgmt-badge">Staff only</div>
             <div class="access-title">Hotel Management Access</div>
             <div class="access-desc">
-                This page is for hotel management users. Enter the access code to view improvement priorities and action plans.
+                This page is for hotel management users only. Use the access code to open the management dashboard and review hotel improvement priorities.
+            </div>
+            <div class="access-list">
+                <div class="access-list-item">Review the most repeated guest complaint areas.</div>
+                <div class="access-list-item">See which issues are highest priority for action.</div>
+                <div class="access-list-item">Get suggested improvement actions for hotel operations.</div>
+            </div>
+        </div>
+        """)
+
+    with right_col:
+        render_html("""
+        <div class="login-panel-card">
+            <div class="login-panel-label">Secure entry</div>
+            <div class="login-panel-title">Enter management access code</div>
+            <div class="login-panel-desc">
+                Only authorised hotel management users should continue beyond this point.
             </div>
         </div>
         """)
@@ -703,12 +790,6 @@ def require_management_access():
                     st.rerun()
                 else:
                     st.error("Incorrect access code. Please try again.")
-
-        render_html("""
-        <div class="access-small-note">
-            Prototype access only. This system uses a simple staff code instead of a full login system.
-        </div>
-        """)
 
     render_footer()
     st.stop()
@@ -800,7 +881,7 @@ def render_metrics(hotel, management_df):
         <div class="metric-card">
             <div class="metric-label">Risk level</div>
             <div class="metric-value">
-                <span class="risk-chip {risk_class}">{escape(risk_badge(risk_level))}</span>
+                <span class="risk-chip {risk_class}">{escape(risk_text(risk_level))}</span>
             </div>
             <div class="metric-sub">Based on aggregated review signals</div>
         </div>
@@ -814,13 +895,13 @@ def render_metrics(hotel, management_df):
         <div class="metric-card">
             <div class="metric-label">Top issue</div>
             <div class="metric-value">{escape(summary["top_issue"])}</div>
-            <div class="metric-sub">Most important repeated complaint area</div>
+            <div class="metric-sub">Most repeated complaint area</div>
         </div>
 
         <div class="metric-card">
             <div class="metric-label">High priority items</div>
             <div class="metric-value">{escape(summary["high_priority_count"])}</div>
-            <div class="metric-sub">Issues requiring stronger management attention</div>
+            <div class="metric-sub">Issues needing stronger attention</div>
         </div>
     </div>
     """)
@@ -854,7 +935,7 @@ def render_priority_areas(management_df):
                 </div>
                 <span class="priority-badge {priority_cls}">{escape(priority)} priority</span>
             </div>
-            <div class="metric-sub">{escape(count)} related complaint signal(s)</div>
+            <div class="metric-sub">{escape(count)} complaint signal(s)</div>
         </div>
         """
 
@@ -918,7 +999,7 @@ def render_review_signal_summary(hotel):
     <div class="mgmt-card">
         <div class="card-title">Review signal summary</div>
         <div class="card-desc">
-            A quick view of the hotel's overall review condition.
+            A quick overview of the hotel's current review condition.
         </div>
 
         <div class="action-card">
@@ -957,7 +1038,7 @@ def render_management_table(management_df, hotel_name):
     <div class="table-section">
         <div class="card-title">Detailed improvement table</div>
         <div class="card-desc">
-            A structured management view of complaint areas, priority levels, and suggested improvement actions.
+            A structured view of complaint areas, priority levels, and suggested actions.
         </div>
     </div>
     """)

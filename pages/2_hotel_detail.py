@@ -1,5 +1,6 @@
 import html
 import streamlit as st
+from urllib.parse import quote
 from styles import load_css, render_topbar, render_footer
 from utils import (
     get_hotel_names,
@@ -56,7 +57,7 @@ def load_hotel_detail_css():
             line-height: 1.55;
         }
 
-        .selector-card {
+        .hotel-picker-card {
             background: rgba(255, 255, 255, 0.88);
             border: 1px solid var(--border);
             border-radius: 22px;
@@ -65,20 +66,70 @@ def load_hotel_detail_css():
             margin-bottom: 0.9rem;
         }
 
-        .selector-label {
+        .hotel-picker-label {
             color: #7C6F64;
             font-size: 0.78rem;
             font-weight: 900;
             text-transform: uppercase;
             letter-spacing: 0.06em;
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.55rem;
         }
 
-        div[data-baseweb="select"] > div {
-            border-radius: 16px !important;
-            border: 1px solid #D8CDBE !important;
-            background: rgba(255, 255, 255, 0.96) !important;
-            min-height: 3rem;
+        .hotel-picker-row {
+            display: flex;
+            gap: 0.55rem;
+            overflow-x: auto;
+            padding-bottom: 0.2rem;
+        }
+
+        .hotel-picker-row::-webkit-scrollbar {
+            height: 7px;
+        }
+
+        .hotel-picker-row::-webkit-scrollbar-track {
+            background: #F1E8DC;
+            border-radius: 999px;
+        }
+
+        .hotel-picker-row::-webkit-scrollbar-thumb {
+            background: #D8C2AD;
+            border-radius: 999px;
+        }
+
+        .hotel-option {
+            flex: 0 0 auto;
+            display: inline-flex;
+            align-items: center;
+            text-decoration: none !important;
+            background: #FFFDF8;
+            color: var(--text-main) !important;
+            border: 1px solid #EAD7C6;
+            border-radius: 999px;
+            padding: 0.58rem 0.85rem;
+            font-size: 0.86rem;
+            font-weight: 800;
+            box-shadow: 0 6px 16px rgba(74, 55, 40, 0.04);
+            transition: all 0.16s ease;
+            max-width: 285px;
+        }
+
+        .hotel-option:hover {
+            background: #FFF4E8;
+            border-color: var(--brand);
+            transform: translateY(-1px);
+        }
+
+        .hotel-option.active {
+            background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+            color: white !important;
+            border-color: transparent;
+            box-shadow: 0 10px 22px rgba(155, 67, 37, 0.20);
+        }
+
+        .hotel-option-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .main-summary-card {
@@ -352,6 +403,43 @@ def risk_class_name(risk_level):
     return "risk-medium"
 
 
+def get_selected_hotel_from_url(hotel_names, default_hotel):
+    selected_hotel = st.query_params.get("hotel", default_hotel)
+
+    if isinstance(selected_hotel, list):
+        selected_hotel = selected_hotel[0]
+
+    if selected_hotel not in hotel_names:
+        selected_hotel = default_hotel
+
+    return selected_hotel
+
+
+def render_hotel_picker(hotel_names, selected_hotel):
+    hotel_options_html = ""
+
+    for hotel in hotel_names:
+        active_class = "active" if hotel == selected_hotel else ""
+        hotel_url = quote(hotel, safe="")
+
+        hotel_options_html += (
+            f'<a class="hotel-option {active_class}" href="?hotel={hotel_url}" target="_self">'
+            f'<span class="hotel-option-name">{escape(hotel)}</span>'
+            f'</a>'
+        )
+
+    picker_html = (
+        '<div class="hotel-picker-card">'
+        '<div class="hotel-picker-label">Choose hotel</div>'
+        '<div class="hotel-picker-row">'
+        f'{hotel_options_html}'
+        '</div>'
+        '</div>'
+    )
+
+    st.markdown(picker_html, unsafe_allow_html=True)
+
+
 def build_sentiment_bar(label, value, css_class):
     return (
         '<div class="sentiment-row">'
@@ -499,19 +587,10 @@ default_hotel = st.session_state.get("selected_hotel", hotel_names[0])
 if default_hotel not in hotel_names:
     default_hotel = hotel_names[0]
 
-st.markdown(
-    '<div class="selector-card">'
-    '<div class="selector-label">Choose hotel</div>'
-    '</div>',
-    unsafe_allow_html=True
-)
+hotel_name = get_selected_hotel_from_url(hotel_names, default_hotel)
+st.session_state.selected_hotel = hotel_name
 
-hotel_name = st.selectbox(
-    "Choose hotel",
-    hotel_names,
-    index=hotel_names.index(default_hotel),
-    label_visibility="collapsed"
-)
+render_hotel_picker(hotel_names, hotel_name)
 
 hotel = get_hotel_by_name(hotel_name)
 

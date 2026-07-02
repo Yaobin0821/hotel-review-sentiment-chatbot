@@ -364,18 +364,16 @@ def render_topbar():
     st.markdown(
         """
         <style>
-            .topbar-shell {
-                position: sticky;
-                top: 0.75rem;
-                z-index: 999;
+            /* Remove the extra Streamlit gap around the topbar */
+            div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) {
                 background: rgba(255, 252, 247, 0.96);
                 backdrop-filter: blur(14px);
                 border: 1px solid var(--border, #E7DDD0);
                 border-radius: 26px;
                 box-shadow: var(--shadow-card, 0 10px 28px rgba(74, 55, 40, 0.07));
-                margin: 0 auto 1rem auto;
                 padding: 0.75rem 1rem;
-                width: 100%;
+                margin: 0 auto 1rem auto;
+                align-items: center;
             }
 
             .topbar-brand-display {
@@ -387,7 +385,7 @@ def render_topbar():
                 font-size: 1.05rem;
                 letter-spacing: -0.04em;
                 white-space: nowrap;
-                padding-top: 0.15rem;
+                min-height: 38px;
             }
 
             .topbar-logo-display {
@@ -403,6 +401,10 @@ def render_topbar():
                 box-shadow: 0 8px 18px rgba(155, 67, 37, 0.18);
             }
 
+            div[data-testid="stPageLink"] {
+                width: fit-content !important;
+            }
+
             div[data-testid="stPageLink"] a {
                 text-decoration: none !important;
                 color: #5F5148 !important;
@@ -416,6 +418,7 @@ def render_topbar():
                 display: flex !important;
                 align-items: center !important;
                 justify-content: center !important;
+                background: transparent !important;
             }
 
             div[data-testid="stPageLink"] a:hover {
@@ -435,18 +438,19 @@ def render_topbar():
                 display: none !important;
             }
 
-            .staff-portal-note {
-                display: flex;
-                align-items: center;
-                justify-content: center;
+            .staff-link-wrap {
                 background: #EAF7F0;
                 border: 1px solid #BFE3CF;
                 border-radius: 999px;
                 min-height: 38px;
                 padding: 0 0.75rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: fit-content;
             }
 
-            .staff-portal-note div[data-testid="stPageLink"] a {
+            .staff-link-wrap div[data-testid="stPageLink"] a {
                 color: #216E46 !important;
                 background: transparent !important;
                 padding: 0 !important;
@@ -454,14 +458,13 @@ def render_topbar():
                 font-weight: 900 !important;
             }
 
-            .staff-portal-note div[data-testid="stPageLink"] a:hover {
-                color: #1D5F3E !important;
+            .staff-link-wrap div[data-testid="stPageLink"] a:hover {
                 background: transparent !important;
+                color: #1D5F3E !important;
             }
 
             @media (max-width: 900px) {
-                .topbar-shell {
-                    top: 0.4rem;
+                div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) {
                     border-radius: 22px;
                     padding: 0.75rem;
                 }
@@ -471,57 +474,52 @@ def render_topbar():
         unsafe_allow_html=True
     )
 
-    with st.container():
-        st.markdown('<div class="topbar-shell">', unsafe_allow_html=True)
+    (
+        brand_col,
+        home_col,
+        find_col,
+        detail_col,
+        compare_col,
+        review_col,
+        insights_col,
+        staff_col
+    ) = st.columns(
+        [1.75, 0.65, 0.95, 1.05, 0.75, 1.25, 1.05, 1.25],
+        gap="small"
+    )
 
-        (
-            brand_col,
-            home_col,
-            find_col,
-            detail_col,
-            compare_col,
-            review_col,
-            insights_col,
-            staff_col
-        ) = st.columns(
-            [1.75, 0.65, 0.95, 1.05, 0.75, 1.25, 1.05, 1.15],
-            gap="small"
+    with brand_col:
+        st.markdown(
+            """
+            <div class="topbar-brand-display">
+                <div class="topbar-logo-display">🏨</div>
+                <span>StayWise KL</span>
+            </div>
+            """,
+            unsafe_allow_html=True
         )
 
-        with brand_col:
-            st.markdown(
-                """
-                <div class="topbar-brand-display">
-                    <div class="topbar-logo-display">🏨</div>
-                    <span>StayWise KL</span>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+    with home_col:
+        st.page_link("app.py", label="Home")
 
-        with home_col:
-            st.page_link("app.py", label="Home")
+    with find_col:
+        st.page_link("pages/1_find_hotels.py", label="Find Hotels")
 
-        with find_col:
-            st.page_link("pages/1_find_hotels.py", label="Find Hotels")
+    with detail_col:
+        st.page_link("pages/2_hotel_detail.py", label="Hotel Detail")
 
-        with detail_col:
-            st.page_link("pages/2_hotel_detail.py", label="Hotel Detail")
+    with compare_col:
+        st.page_link("pages/3_compare_hotels.py", label="Compare")
 
-        with compare_col:
-            st.page_link("pages/3_compare_hotels.py", label="Compare")
+    with review_col:
+        st.page_link("pages/4_review_checker.py", label="Review Checker")
 
-        with review_col:
-            st.page_link("pages/4_review_checker.py", label="Review Checker")
+    with insights_col:
+        st.page_link("pages/5_improvement_insights.py", label="Area Insights")
 
-        with insights_col:
-            st.page_link("pages/5_improvement_insights.py", label="Area Insights")
-
-        with staff_col:
-            st.markdown('<div class="staff-portal-note">', unsafe_allow_html=True)
-            st.page_link("pages/6_management_insights.py", label="Staff Portal 🔒")
-            st.markdown('</div>', unsafe_allow_html=True)
-
+    with staff_col:
+        st.markdown('<div class="staff-link-wrap">', unsafe_allow_html=True)
+        st.page_link("pages/6_management_insights.py", label="Staff Portal 🔒")
         st.markdown('</div>', unsafe_allow_html=True)
 
 

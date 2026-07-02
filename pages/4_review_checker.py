@@ -394,7 +394,7 @@ def get_review_feeling(sentiment):
     if sentiment == "negative":
         return "Negative"
 
-    return "Mixed"
+    return "Neutral"
 
 
 def get_concern_text(risk):

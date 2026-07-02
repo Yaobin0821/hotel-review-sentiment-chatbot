@@ -950,7 +950,7 @@ if hotel:
                     unsafe_allow_html=True
                 )
 
-                for _, row in filtered_reviews_df.head(5).iterrows():
+                for _, row in filtered_reviews_df.head(15).iterrows():
                     render_review_card(
                         sentiment=row.get("sentiment", "neutral"),
                         review=row.get(review_text_column, "")

@@ -1,5 +1,7 @@
 import html
+import pandas as pd
 import streamlit as st
+
 from styles import load_css, render_topbar, render_page_header, render_footer
 from utils import (
     get_areas,
@@ -312,54 +314,61 @@ def build_sentiment_bar(label, value, css_class):
 def render_hotel_compare_card(hotel):
     risk_level = safe_get(hotel, "risk_level", "Medium")
 
-    card_html = (
-        '<div class="hotel-compare-card">'
-        f'<div class="hotel-card-title">{escape(safe_get(hotel, "hotel"))}</div>'
-        f'<div class="hotel-card-meta">{escape(safe_get(hotel, "area"))} · {escape(safe_get(hotel, "price_level"))}</div>'
-        f'<span class="risk-chip {risk_class_name(risk_level)}">{escape(risk_badge(risk_level))}</span>'
-
-        '<div class="quick-stat-row">'
-        '<div class="quick-stat">'
-        '<div class="quick-stat-label">Reviews</div>'
-        f'<div class="quick-stat-value">{escape(get_review_count(hotel))}</div>'
-        '</div>'
-        '<div class="quick-stat">'
-        '<div class="quick-stat-label">Positive</div>'
-        f'<div class="quick-stat-value">{escape(safe_get(hotel, "positive_pct", 0))}%</div>'
-        '</div>'
-        '<div class="quick-stat">'
-        '<div class="quick-stat-label">Negative</div>'
-        f'<div class="quick-stat-value">{escape(safe_get(hotel, "negative_pct", 0))}%</div>'
-        '</div>'
-        '</div>'
-
-        + build_sentiment_bar("Positive", safe_get(hotel, "positive_pct", 0), "bar-positive")
+    sentiment_html = (
+        build_sentiment_bar("Positive", safe_get(hotel, "positive_pct", 0), "bar-positive")
         + build_sentiment_bar("Neutral", safe_get(hotel, "neutral_pct", 0), "bar-neutral")
         + build_sentiment_bar("Negative", safe_get(hotel, "negative_pct", 0), "bar-negative")
-
-        '<div class="compare-info-list">'
-        '<div class="compare-info-item">'
-        '<div class="compare-info-label">What looks good</div>'
-        f'<div class="compare-info-value">{escape(safe_get(hotel, "main_strength"))}</div>'
-        '</div>'
-
-        '<div class="compare-info-item">'
-        '<div class="compare-info-label">What to check</div>'
-        f'<div class="compare-info-value">{escape(safe_get(hotel, "main_risk"))}</div>'
-        '</div>'
-
-        '<div class="compare-info-item">'
-        '<div class="compare-info-label">Best for</div>'
-        f'<div class="compare-info-value">{escape(safe_get(hotel, "best_traveller_type"))}</div>'
-        '</div>'
-
-        '<div class="compare-info-item">'
-        '<div class="compare-info-label">Suitability score</div>'
-        f'<div class="compare-info-value">{escape(safe_get(hotel, "suitability_score", 0))}/100</div>'
-        '</div>'
-        '</div>'
-        '</div>'
     )
+
+    card_html = f"""
+    <div class="hotel-compare-card">
+        <div class="hotel-card-title">{escape(safe_get(hotel, "hotel"))}</div>
+        <div class="hotel-card-meta">{escape(safe_get(hotel, "area"))} · {escape(safe_get(hotel, "price_level"))}</div>
+
+        <span class="risk-chip {risk_class_name(risk_level)}">{escape(risk_badge(risk_level))}</span>
+
+        <div class="quick-stat-row">
+            <div class="quick-stat">
+                <div class="quick-stat-label">Reviews</div>
+                <div class="quick-stat-value">{escape(get_review_count(hotel))}</div>
+            </div>
+
+            <div class="quick-stat">
+                <div class="quick-stat-label">Positive</div>
+                <div class="quick-stat-value">{escape(safe_get(hotel, "positive_pct", 0))}%</div>
+            </div>
+
+            <div class="quick-stat">
+                <div class="quick-stat-label">Negative</div>
+                <div class="quick-stat-value">{escape(safe_get(hotel, "negative_pct", 0))}%</div>
+            </div>
+        </div>
+
+        {sentiment_html}
+
+        <div class="compare-info-list">
+            <div class="compare-info-item">
+                <div class="compare-info-label">What looks good</div>
+                <div class="compare-info-value">{escape(safe_get(hotel, "main_strength"))}</div>
+            </div>
+
+            <div class="compare-info-item">
+                <div class="compare-info-label">What to check</div>
+                <div class="compare-info-value">{escape(safe_get(hotel, "main_risk"))}</div>
+            </div>
+
+            <div class="compare-info-item">
+                <div class="compare-info-label">Best for</div>
+                <div class="compare-info-value">{escape(safe_get(hotel, "best_traveller_type"))}</div>
+            </div>
+
+            <div class="compare-info-item">
+                <div class="compare-info-label">Suitability score</div>
+                <div class="compare-info-value">{escape(safe_get(hotel, "suitability_score", 0))}/100</div>
+            </div>
+        </div>
+    </div>
+    """
 
     st.markdown(card_html, unsafe_allow_html=True)
 
@@ -408,6 +417,21 @@ def build_comparison_table(hotel_a, hotel_b):
     })
 
 
+def get_recommendation_text(hotel_a, hotel_b):
+    try:
+        return recommend_better_hotel(hotel_a, hotel_b)
+    except Exception:
+        a_score = float(safe_get(hotel_a, "suitability_score", 0))
+        b_score = float(safe_get(hotel_b, "suitability_score", 0))
+
+        if a_score > b_score:
+            return f"{safe_get(hotel_a, 'hotel')} looks more suitable based on the current review summary."
+        elif b_score > a_score:
+            return f"{safe_get(hotel_b, 'hotel')} looks more suitable based on the current review summary."
+        else:
+            return "Both hotels look similar. Compare the main risk and sample reviews before deciding."
+
+
 load_css()
 load_compare_css()
 render_topbar()
@@ -432,13 +456,19 @@ if not areas:
     render_footer()
     st.stop()
 
-st.markdown('<div class="picker-card"><div class="picker-label">Step 1 · Select area</div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="picker-card">'
+    '<div class="picker-label">Step 1 · Select area</div>',
+    unsafe_allow_html=True
+)
+
 selected_area = st.selectbox(
     "Select Area",
     areas,
     key="compare_area",
     label_visibility="collapsed"
 )
+
 st.markdown('</div>', unsafe_allow_html=True)
 
 hotels_in_area = get_hotels_by_area(selected_area)
@@ -447,7 +477,11 @@ hotel_options = [hotel["hotel"] for hotel in hotels_in_area]
 if len(hotel_options) < 2:
     st.warning("This area does not have enough hotels for comparison.")
 else:
-    st.markdown('<div class="picker-card"><div class="picker-label">Step 2 · Select two hotels</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="picker-card">'
+        '<div class="picker-label">Step 2 · Select two hotels</div>',
+        unsafe_allow_html=True
+    )
 
     col1, col2 = st.columns(2)
 
@@ -458,7 +492,10 @@ else:
             key="hotel_a"
         )
 
-    available_hotel_b_options = [hotel for hotel in hotel_options if hotel != hotel_a_name]
+    available_hotel_b_options = [
+        hotel_name for hotel_name in hotel_options
+        if hotel_name != hotel_a_name
+    ]
 
     with col2:
         hotel_b_name = st.selectbox(
@@ -475,7 +512,7 @@ else:
     if hotel_a is None or hotel_b is None:
         st.error("Hotel data could not be loaded. Please check your dataset.")
     else:
-        recommendation = recommend_better_hotel(hotel_a, hotel_b)
+        recommendation = get_recommendation_text(hotel_a, hotel_b)
 
         st.markdown(
             '<div class="recommendation-card">'
@@ -493,7 +530,10 @@ else:
         with compare_col2:
             render_hotel_compare_card(hotel_b)
 
-        st.markdown('<div class="section-title">Detailed comparison</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="section-title">Detailed comparison</div>',
+            unsafe_allow_html=True
+        )
 
         comparison_df = build_comparison_table(hotel_a, hotel_b)
 

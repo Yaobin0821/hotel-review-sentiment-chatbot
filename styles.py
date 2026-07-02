@@ -472,11 +472,11 @@ def render_topbar():
 
             <div class="topbar-nav">
                 <a class="topbar-link" href="/" target="_self">Home</a>
-                <a class="topbar-link" href="/Find_Hotels" target="_self">Find Hotels</a>
-                <a class="topbar-link" href="/Hotel_Detail" target="_self">Hotel Detail</a>
-                <a class="topbar-link" href="/Compare_Hotels" target="_self">Compare</a>
-                <a class="topbar-link" href="/Review_Checker" target="_self">Review Checker</a>
-                <a class="topbar-link" href="/Improvement_Insights" target="_self">Area Insights</a>
+                <a class="topbar-link" href="/find_hotels" target="_self">Find Hotels</a>
+                <a class="topbar-link" href="/hotel_detail" target="_self">Hotel Detail</a>
+                <a class="topbar-link" href="/compare_hotels" target="_self">Compare</a>
+                <a class="topbar-link" href="/review_checker" target="_self">Review Checker</a>
+                <a class="topbar-link" href="/improvement_insights" target="_self">Area Insights</a>
                 <a class="topbar-staff-link" href="/management_insights" target="_self">Staff Portal &#128274;</a>
             </div>
         </div>

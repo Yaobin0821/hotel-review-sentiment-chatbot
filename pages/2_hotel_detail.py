@@ -932,28 +932,77 @@ if hotel:
                 unsafe_allow_html=True
             )
         else:
-            filtered_reviews_df = reviews_df.copy()
+            if selected_review_type == "All":
+                positive_reviews_df = reviews_df[
+                    reviews_df["sentiment"].str.lower() == "positive"
+                ].head(5)
 
-            if selected_review_type != "All":
-                filtered_reviews_df = filtered_reviews_df[
-                    filtered_reviews_df["sentiment"].str.lower() == selected_review_type.lower()
+                neutral_reviews_df = reviews_df[
+                    reviews_df["sentiment"].str.lower() == "neutral"
+                ].head(5)
+
+                negative_reviews_df = reviews_df[
+                    reviews_df["sentiment"].str.lower() == "negative"
+                ].head(5)
+
+                total_shown = (
+                    len(positive_reviews_df)
+                    + len(neutral_reviews_df)
+                    + len(negative_reviews_df)
+                )
+
+                if total_shown == 0:
+                    st.markdown(
+                        '<div class="empty-note">No sample review is available for this hotel.</div>',
+                        unsafe_allow_html=True
+                    )
+                else:
+                    st.markdown(
+                        f'<div class="review-count-note">Showing {total_shown} mixed review(s): '
+                        f'{len(positive_reviews_df)} positive, '
+                        f'{len(neutral_reviews_df)} neutral, '
+                        f'{len(negative_reviews_df)} negative.</div>',
+                        unsafe_allow_html=True
+                    )
+
+                    for _, row in positive_reviews_df.iterrows():
+                        render_review_card(
+                            sentiment=row.get("sentiment", "positive"),
+                            review=row.get(review_text_column, "")
+                        )
+
+                    for _, row in neutral_reviews_df.iterrows():
+                        render_review_card(
+                            sentiment=row.get("sentiment", "neutral"),
+                            review=row.get(review_text_column, "")
+                        )
+
+                    for _, row in negative_reviews_df.iterrows():
+                        render_review_card(
+                            sentiment=row.get("sentiment", "negative"),
+                            review=row.get(review_text_column, "")
+                        )
+
+            else:
+                filtered_reviews_df = reviews_df[
+                    reviews_df["sentiment"].str.lower() == selected_review_type.lower()
                 ]
 
-            if filtered_reviews_df.empty:
-                st.markdown(
-                    f'<div class="empty-note">No {selected_review_type.lower()} review is available for this hotel.</div>',
-                    unsafe_allow_html=True
-                )
-            else:
-                st.markdown(
-                    f'<div class="review-count-note">Showing {min(15, len(filtered_reviews_df))} {selected_review_type.lower()} review(s).</div>',
-                    unsafe_allow_html=True
-                )
-
-                for _, row in filtered_reviews_df.head(15).iterrows():
-                    render_review_card(
-                        sentiment=row.get("sentiment", "neutral"),
-                        review=row.get(review_text_column, "")
+                if filtered_reviews_df.empty:
+                    st.markdown(
+                        f'<div class="empty-note">No {selected_review_type.lower()} review is available for this hotel.</div>',
+                        unsafe_allow_html=True
                     )
+                else:
+                    st.markdown(
+                        f'<div class="review-count-note">Showing {min(15, len(filtered_reviews_df))} {selected_review_type.lower()} review(s).</div>',
+                        unsafe_allow_html=True
+                    )
+
+                    for _, row in filtered_reviews_df.head(15).iterrows():
+                        render_review_card(
+                            sentiment=row.get("sentiment", "neutral"),
+                            review=row.get(review_text_column, "")
+                        )
 
 render_footer()

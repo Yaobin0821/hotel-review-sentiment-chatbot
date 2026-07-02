@@ -10,13 +10,8 @@ from utils import (
     get_hotels_by_area,
     get_hotel_by_name,
     get_complaint_df,
+    get_hotel_reviews,
 )
-
-try:
-    from utils import get_hotel_reviews
-except ImportError:
-    def get_hotel_reviews(hotel_name, limit=300):
-        return []
 
 
 st.set_page_config(
@@ -213,6 +208,9 @@ def get_issue_impact(issue):
     if "parking" in issue_lower or "transport" in issue_lower or "access" in issue_lower:
         return "May affect convenience, especially for guests travelling with luggage or cars."
 
+    if "price" in issue_lower or "value" in issue_lower:
+        return "May affect whether guests feel the hotel stay was worth the price."
+
     if "overall" in issue_lower or "experience" in issue_lower:
         return "This is a broad signal that overall guest satisfaction may be affected."
 
@@ -262,6 +260,20 @@ def get_action_steps(issue, suggested_action):
             "Review staff response time and complaint handling process.",
             "Provide refresher training for guest communication.",
             "Monitor service-related review trends after changes are made."
+        ]
+
+    if "parking" in issue_lower or "transport" in issue_lower or "access" in issue_lower:
+        return [
+            "Provide clearer parking and transport information before arrival.",
+            "Monitor repeated access-related complaints.",
+            "Improve guidance for guests travelling by car or ride-hailing service."
+        ]
+
+    if "price" in issue_lower or "value" in issue_lower:
+        return [
+            "Review whether room condition and service quality match the price point.",
+            "Highlight value-added services more clearly.",
+            "Monitor value-for-money complaints after pricing or service changes."
         ]
 
     if "overall" in issue_lower or "experience" in issue_lower:
@@ -398,8 +410,11 @@ def get_review_text(review):
             "review",
             "Review Text",
             "review_text",
+            "Original_Review",
+            "Translated_Review",
             "Translated Sentence",
             "Translated_Review",
+            "BERT_Text",
             "Text",
             "text"
         ],
@@ -438,122 +453,289 @@ def get_review_source_label(review):
     return "Guest review"
 
 
-def get_review_search_blob(review):
-    fields = [
-        get_review_text(review),
-        get_review_sentiment(review),
-        get_review_field(review, ["Aspect(s)", "Aspects", "aspect", "aspects"], ""),
-        get_review_field(review, ["Risk Type(s)", "Risk Type", "risk_type", "risk_types"], ""),
-        get_review_field(review, ["Reason / Notes", "Reason", "Notes", "notes"], ""),
-    ]
-
-    return " ".join(fields).lower()
+def normalize_text(value):
+    return str(value).lower().replace("/", " ").replace("&", " and ").strip()
 
 
-def get_issue_keywords(issue):
-    issue_lower = str(issue).lower()
+def get_issue_aliases(issue):
+    issue_lower = normalize_text(issue)
 
     if "clean" in issue_lower or "hygiene" in issue_lower:
         return [
-            "clean", "cleanliness", "hygiene", "dirty", "bathroom", "toilet",
-            "smell", "stain", "dust", "housekeeping", "mould", "mold"
+            "cleanliness",
+            "hygiene",
+            "cleanliness hygiene",
+            "cleanliness hygiene risk",
+            "clean",
+            "dirty",
+            "unclean",
+            "bathroom",
+            "toilet",
+            "housekeeping",
+            "smell",
+            "stain"
         ]
 
-    if "room" in issue_lower or "noise" in issue_lower or "comfort" in issue_lower:
+    if "room comfort" in issue_lower or "noise" in issue_lower:
         return [
-            "room", "noise", "noisy", "quiet", "bed", "pillow", "comfort",
-            "aircon", "air conditioning", "soundproof", "sleep", "small room"
+            "room comfort",
+            "noise",
+            "noise control",
+            "room comfort noise control",
+            "noisy",
+            "soundproof",
+            "sleep",
+            "bed",
+            "pillow",
+            "air conditioning",
+            "aircon",
+            "room condition"
+        ]
+
+    if "room" in issue_lower and "facility" in issue_lower:
+        return [
+            "room facility",
+            "facility maintenance",
+            "room maintenance",
+            "maintenance",
+            "broken",
+            "not working",
+            "lift",
+            "elevator",
+            "wifi",
+            "repair"
         ]
 
     if "breakfast" in issue_lower or "food" in issue_lower:
         return [
-            "breakfast", "food", "restaurant", "buffet", "meal", "dining",
-            "coffee", "taste", "menu"
+            "food",
+            "breakfast",
+            "food breakfast",
+            "restaurant",
+            "buffet",
+            "meal",
+            "dining",
+            "menu"
         ]
 
-    if "check-in" in issue_lower or "booking" in issue_lower or "payment" in issue_lower:
+    if "check" in issue_lower or "booking" in issue_lower or "payment" in issue_lower:
         return [
-            "check in", "check-in", "checkout", "check out", "booking",
-            "payment", "deposit", "front desk", "reception", "waiting", "queue"
+            "check in",
+            "check-in",
+            "check out",
+            "checkout",
+            "booking",
+            "payment",
+            "deposit",
+            "front desk",
+            "reception",
+            "waiting",
+            "queue"
         ]
 
-    if "facility" in issue_lower or "maintenance" in issue_lower:
+    if "parking" in issue_lower or "access" in issue_lower or "transport" in issue_lower:
         return [
-            "facility", "facilities", "maintenance", "broken", "not working",
-            "lift", "elevator", "wifi", "pool", "gym", "repair"
-        ]
-
-    if "parking" in issue_lower or "transport" in issue_lower or "access" in issue_lower:
-        return [
-            "parking", "transport", "access", "car park", "grab", "taxi",
-            "walk", "location", "traffic"
+            "parking",
+            "accessibility",
+            "access",
+            "transport",
+            "car park",
+            "location",
+            "traffic",
+            "grab",
+            "taxi"
         ]
 
     if "service" in issue_lower or "staff" in issue_lower:
         return [
-            "staff", "service", "friendly", "rude", "helpful", "reception",
-            "support", "manager", "attitude"
+            "service",
+            "staff",
+            "front desk",
+            "reception",
+            "rude",
+            "helpful",
+            "friendly",
+            "attitude"
+        ]
+
+    if "price" in issue_lower or "value" in issue_lower:
+        return [
+            "price",
+            "value",
+            "worth",
+            "money",
+            "expensive",
+            "overpriced",
+            "value for money"
         ]
 
     if "overall" in issue_lower or "experience" in issue_lower:
         return [
-            "overall", "experience", "stay", "satisfied", "disappointed",
-            "worth", "value", "good", "bad", "poor", "excellent", "terrible"
+            "overall experience",
+            "overall stay experience",
+            "overall stay",
+            "stay experience",
+            "general experience",
+            "experience",
+            "disappointed",
+            "not satisfied",
+            "poor experience",
+            "bad experience",
+            "terrible experience"
         ]
 
     return [word for word in issue_lower.split() if len(word) > 2]
 
 
-def issue_matches_review(issue, review):
-    blob = get_review_search_blob(review)
-    keywords = get_issue_keywords(issue)
-
-    return any(keyword in blob for keyword in keywords)
-
-
-def is_negative_or_neutral_review(review):
-    sentiment = get_review_sentiment(review).lower()
-
-    if "negative" in sentiment or "neutral" in sentiment:
-        return True
-
-    blob = get_review_search_blob(review)
-
-    negative_words = [
-        "bad", "poor", "dirty", "noisy", "disappointed", "problem",
-        "issue", "complaint", "slow", "rude", "broken", "not working",
-        "uncomfortable", "smell", "worst", "terrible"
+def get_review_metadata_blob(review):
+    metadata_fields = [
+        get_review_field(review, ["Complaint Area", "complaint_area"], ""),
+        get_review_field(review, ["Improvement Area", "improvement_area"], ""),
+        get_review_field(review, ["Hotel Improvement Insight", "hotel_improvement_insight"], ""),
+        get_review_field(review, ["Risk Type(s)", "Risk Type", "risk_type", "risk_types"], ""),
+        get_review_field(review, ["Aspect(s)", "Aspects", "aspect", "aspects"], ""),
+        get_review_field(review, ["Reason / Notes", "Reason", "Notes", "notes"], ""),
     ]
 
-    return any(word in blob for word in negative_words)
+    return normalize_text(" ".join(metadata_fields))
+
+
+def get_review_text_blob(review):
+    text_fields = [
+        get_review_text(review),
+        get_review_field(review, ["Reason / Notes", "Reason", "Notes", "notes"], ""),
+    ]
+
+    return normalize_text(" ".join(text_fields))
+
+
+def contains_alias(blob, aliases):
+    return any(normalize_text(alias) in blob for alias in aliases)
+
+
+def review_matches_issue_by_metadata(issue, review):
+    metadata_blob = get_review_metadata_blob(review)
+    aliases = get_issue_aliases(issue)
+
+    if not metadata_blob:
+        return False
+
+    return contains_alias(metadata_blob, aliases)
+
+
+def review_matches_issue_by_text(issue, review):
+    text_blob = get_review_text_blob(review)
+    aliases = get_issue_aliases(issue)
+
+    if not text_blob:
+        return False
+
+    return contains_alias(text_blob, aliases)
+
+
+def get_sentiment_group(review):
+    sentiment = normalize_text(get_review_sentiment(review))
+
+    if "negative" in sentiment:
+        return "negative"
+
+    if "neutral" in sentiment:
+        return "neutral"
+
+    if "positive" in sentiment:
+        return "positive"
+
+    text_blob = get_review_text_blob(review)
+
+    negative_words = [
+        "bad",
+        "poor",
+        "dirty",
+        "noisy",
+        "disappointed",
+        "problem",
+        "issue",
+        "complaint",
+        "slow",
+        "rude",
+        "broken",
+        "not working",
+        "uncomfortable",
+        "smell",
+        "worst",
+        "terrible",
+        "not worth",
+        "overpriced"
+    ]
+
+    if any(word in text_blob for word in negative_words):
+        return "negative"
+
+    return "unknown"
+
+
+def dedupe_reviews(reviews):
+    seen = set()
+    unique_reviews = []
+
+    for review in reviews:
+        text = get_review_text(review).strip().lower()
+
+        if not text:
+            continue
+
+        if text in seen:
+            continue
+
+        seen.add(text)
+        unique_reviews.append(review)
+
+    return unique_reviews
 
 
 def get_issue_review_evidence(hotel_name, issue, expected_count=0):
     try:
-        reviews = get_hotel_reviews(hotel_name, limit=500)
+        reviews = get_hotel_reviews(hotel_name, limit=800)
     except TypeError:
         reviews = get_hotel_reviews(hotel_name)
     except Exception:
-        reviews = []
+        reviews = pd.DataFrame()
 
     records = normalize_review_records(reviews)
 
-    matched_reviews = []
-    fallback_reviews = []
+    metadata_negative = []
+    metadata_neutral = []
+    text_negative = []
+    text_neutral = []
+    hotel_negative_fallback = []
 
     for review in records:
-        if issue_matches_review(issue, review):
-            if is_negative_or_neutral_review(review):
-                matched_reviews.append(review)
-            else:
-                fallback_reviews.append(review)
+        sentiment_group = get_sentiment_group(review)
+        metadata_match = review_matches_issue_by_metadata(issue, review)
+        text_match = review_matches_issue_by_text(issue, review)
 
-    combined_reviews = matched_reviews + fallback_reviews
+        if metadata_match and sentiment_group == "negative":
+            metadata_negative.append(review)
+        elif metadata_match and sentiment_group == "neutral":
+            metadata_neutral.append(review)
+        elif text_match and sentiment_group == "negative":
+            text_negative.append(review)
+        elif text_match and sentiment_group == "neutral":
+            text_neutral.append(review)
+        elif sentiment_group == "negative":
+            hotel_negative_fallback.append(review)
+
+    combined_reviews = (
+        metadata_negative
+        + metadata_neutral
+        + text_negative
+        + text_neutral
+    )
 
     if not combined_reviews:
-        for review in records:
-            if is_negative_or_neutral_review(review):
-                combined_reviews.append(review)
+        combined_reviews = hotel_negative_fallback
+
+    combined_reviews = dedupe_reviews(combined_reviews)
 
     limit = int(expected_count) if expected_count and expected_count > 0 else 12
     limit = min(max(limit, 8), 35)
@@ -561,7 +743,7 @@ def get_issue_review_evidence(hotel_name, issue, expected_count=0):
     return combined_reviews[:limit]
 
 
-def truncate_text(text, max_chars=360):
+def truncate_text(text, max_chars=430):
     text = str(text).strip()
 
     if len(text) <= max_chars:
@@ -1301,7 +1483,7 @@ def render_priority_areas(management_df, selected_area, selected_hotel_name, sel
             </div>
 
             <a class="signal-link"
-               href="?mgmt_access=1&area={area_url}&hotel={hotel_url}&issue={issue_url}"
+               href="?mgmt_access=1&area={area_url}&hotel={hotel_url}&issue={issue_url}#review-evidence"
                target="_self">
                View {escape(count)} signal(s)
             </a>
@@ -1312,7 +1494,7 @@ def render_priority_areas(management_df, selected_area, selected_hotel_name, sel
     <div class="priority-section">
         <div class="card-title">Priority improvement areas</div>
         <div class="card-desc">
-            Click a complaint signal to view the review evidence behind that improvement area.
+            Click a complaint signal to view the negative review evidence behind that improvement area.
         </div>
         {rows_html}
     </div>
@@ -1349,10 +1531,10 @@ def render_review_evidence(hotel_name, selected_issue, expected_count):
     )
 
     render_html(f"""
-    <div class="evidence-section">
+    <div id="review-evidence" class="evidence-section">
         <div class="evidence-header-row">
             <div>
-                <div class="card-title">Review evidence for {escape(selected_issue)}</div>
+                <div class="card-title">Negative review evidence for {escape(selected_issue)}</div>
                 <div class="card-desc">
                     These review snippets help management understand what guests were actually saying about this complaint area.
                 </div>
@@ -1365,7 +1547,7 @@ def render_review_evidence(hotel_name, selected_issue, expected_count):
     """)
 
     if not evidence_reviews:
-        st.info("No matching review evidence was found for this complaint area.")
+        st.info("No matching negative review evidence was found for this complaint area.")
         return
 
     preview_limit = min(len(evidence_reviews), 8)

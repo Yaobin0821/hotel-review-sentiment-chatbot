@@ -359,19 +359,20 @@ def load_css():
 
 
 def render_topbar():
-    import streamlit as st
-
     html_code = """
     <style>
     .custom-topbar {
         position: sticky;
-        top: 0;
+        top: 0.75rem;
         z-index: 999;
         background: rgba(255, 252, 247, 0.96);
         backdrop-filter: blur(14px);
-        border-bottom: 1px solid rgba(234, 215, 198, 0.9);
-        margin: -1rem -1rem 1rem -1rem;
-        padding: 0.65rem 1.1rem;
+        border: 1px solid var(--border, #E7DDD0);
+        border-radius: 26px;
+        box-shadow: var(--shadow-card, 0 10px 28px rgba(74, 55, 40, 0.07));
+        margin: 0 auto 1rem auto;
+        padding: 0.75rem 1rem;
+        width: 100%;
     }
 
     .topbar-inner {
@@ -379,7 +380,7 @@ def render_topbar():
         align-items: center;
         justify-content: space-between;
         gap: 1rem;
-        max-width: 1280px;
+        max-width: 100%;
         margin: 0 auto;
     }
 
@@ -388,7 +389,7 @@ def render_topbar():
         align-items: center;
         gap: 0.55rem;
         text-decoration: none !important;
-        color: var(--text-main, #2F241D) !important;
+        color: var(--text-main, #172033) !important;
         font-weight: 950;
         font-size: 1.05rem;
         letter-spacing: -0.04em;
@@ -396,15 +397,15 @@ def render_topbar():
     }
 
     .topbar-logo {
-        width: 34px;
-        height: 34px;
-        border-radius: 12px;
-        background: linear-gradient(135deg, var(--brand, #C46A3A), var(--brand-dark, #9B4325));
+        width: 38px;
+        height: 38px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, var(--brand, #C7653A), var(--brand-dark, #9B4325));
         display: flex;
         align-items: center;
         justify-content: center;
         color: white;
-        font-size: 1rem;
+        font-size: 1.05rem;
         box-shadow: 0 8px 18px rgba(155, 67, 37, 0.18);
     }
 
@@ -412,7 +413,7 @@ def render_topbar():
         display: flex;
         align-items: center;
         justify-content: flex-end;
-        gap: 0.3rem;
+        gap: 0.32rem;
         flex-wrap: wrap;
     }
 
@@ -421,7 +422,7 @@ def render_topbar():
         color: #5F5148 !important;
         font-size: 0.82rem;
         font-weight: 850;
-        padding: 0.48rem 0.68rem;
+        padding: 0.5rem 0.7rem;
         border-radius: 999px;
         transition: all 0.16s ease;
         white-space: nowrap;
@@ -439,7 +440,7 @@ def render_topbar():
         border: 1px solid #BFE3CF;
         font-size: 0.82rem;
         font-weight: 900;
-        padding: 0.48rem 0.72rem;
+        padding: 0.5rem 0.78rem;
         border-radius: 999px;
         transition: all 0.16s ease;
         white-space: nowrap;
@@ -452,6 +453,12 @@ def render_topbar():
     }
 
     @media (max-width: 900px) {
+        .custom-topbar {
+            top: 0.4rem;
+            border-radius: 22px;
+            padding: 0.75rem;
+        }
+
         .topbar-inner {
             align-items: flex-start;
             flex-direction: column;

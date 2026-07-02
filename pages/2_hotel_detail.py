@@ -389,6 +389,41 @@ def load_hotel_detail_css():
             margin-bottom: 0.75rem;
         }
 
+        .review-filter-card {
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 0.85rem 0.95rem;
+            margin-bottom: 0.85rem;
+            box-shadow: 0 6px 14px rgba(74, 55, 40, 0.035);
+        }
+
+        .review-filter-title {
+            color: var(--text-main);
+            font-size: 0.95rem;
+            font-weight: 900;
+            margin-bottom: 0.3rem;
+        }
+
+        .review-filter-text {
+            color: #64748B;
+            font-size: 0.86rem;
+            line-height: 1.45;
+        }
+
+        div[data-testid="stRadio"] {
+            background: rgba(255, 255, 255, 0.75);
+            border: 1px solid #EAD7C6;
+            border-radius: 18px;
+            padding: 0.7rem 0.85rem;
+            margin-bottom: 0.8rem;
+        }
+
+        div[data-testid="stRadio"] label {
+            font-weight: 800;
+            color: var(--text-main);
+        }
+
         .review-card {
             background: rgba(255, 255, 255, 0.92);
             border: 1px solid var(--border);
@@ -773,11 +808,27 @@ if hotel:
 
     with tab2:
         st.markdown(
-            '<div class="detail-tabs-note">Sample reviews are shown for quick understanding. Travellers should compare more than one review.</div>',
+            '<div class="detail-tabs-note">Choose the type of reviews you want to read. This helps travellers quickly check good points, concerns, or balanced comments.</div>',
             unsafe_allow_html=True
         )
 
-        reviews_df = get_hotel_reviews(selected_hotel, limit=5)
+        st.markdown(
+            '<div class="review-filter-card">'
+            '<div class="review-filter-title">Filter sample reviews</div>'
+            '<div class="review-filter-text">Choose whether you want to see all reviews, only positive reviews, neutral reviews, or negative reviews.</div>'
+            '</div>',
+            unsafe_allow_html=True
+        )
+
+        selected_review_type = st.radio(
+            "Filter reviews",
+            ["All", "Positive", "Neutral", "Negative"],
+            horizontal=True,
+            label_visibility="collapsed",
+            key=f"review_filter_{selected_hotel}"
+        )
+
+        reviews_df = get_hotel_reviews(selected_hotel, limit=300)
         review_text_column = get_review_text_column(reviews_df)
 
         if reviews_df.empty or review_text_column is None:
@@ -786,10 +837,28 @@ if hotel:
                 unsafe_allow_html=True
             )
         else:
-            for _, row in reviews_df.iterrows():
-                render_review_card(
-                    sentiment=row.get("sentiment", "neutral"),
-                    review=row.get(review_text_column, "")
+            filtered_reviews_df = reviews_df.copy()
+
+            if selected_review_type != "All":
+                filtered_reviews_df = filtered_reviews_df[
+                    filtered_reviews_df["sentiment"].str.lower() == selected_review_type.lower()
+                ]
+
+            if filtered_reviews_df.empty:
+                st.markdown(
+                    f'<div class="empty-note">No {selected_review_type.lower()} review is available for this hotel.</div>',
+                    unsafe_allow_html=True
                 )
+            else:
+                st.markdown(
+                    f'<div class="detail-tabs-note">Showing {min(5, len(filtered_reviews_df))} {selected_review_type.lower()} review(s).</div>',
+                    unsafe_allow_html=True
+                )
+
+                for _, row in filtered_reviews_df.head(5).iterrows():
+                    render_review_card(
+                        sentiment=row.get("sentiment", "neutral"),
+                        review=row.get(review_text_column, "")
+                    )
 
 render_footer()

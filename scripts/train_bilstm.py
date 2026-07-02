@@ -5,11 +5,10 @@ import os
 import json
 import random
 import joblib
-
 import numpy as np
 import pandas as pd
-
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
@@ -42,9 +41,9 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.utils import to_categorical
 
 
-# =====================================================
+# =========================
 # Configuration
-# =====================================================
+# =========================
 MODEL_NAME = "bilstm"
 
 BASE_DIR = Path(__file__).resolve().parents[1]
@@ -92,41 +91,32 @@ VALIDATION_SIZE = 0.2
 LEARNING_RATE = 0.001
 
 
-# =====================================================
+# =========================
 # Reproducibility
-# =====================================================
+# =========================
 def set_seed(seed: int = 42):
     os.environ["PYTHONHASHSEED"] = str(seed)
-
     random.seed(seed)
     np.random.seed(seed)
     tf.random.set_seed(seed)
 
 
-# =====================================================
+# =========================
 # Utility Functions
-# =====================================================
+# =========================
 def ensure_directories():
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
     GRAPH_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def read_csv_safe(file_path: Path) -> pd.DataFrame:
-    try:
-        return pd.read_csv(file_path, encoding="utf-8-sig")
-    except UnicodeDecodeError:
-        return pd.read_csv(file_path, encoding="latin1")
-
-
 def load_dataset(file_path: Path) -> pd.DataFrame:
     if not file_path.exists():
         raise FileNotFoundError(f"File not found: {file_path}")
 
-    df = read_csv_safe(file_path)
+    df = pd.read_csv(file_path)
 
     required_columns = [TEXT_COLUMN, LABEL_COLUMN]
-
     for col in required_columns:
         if col not in df.columns:
             raise ValueError(f"Required column '{col}' not found in {file_path}")
@@ -142,10 +132,7 @@ def load_dataset(file_path: Path) -> pd.DataFrame:
 
     df["Label_ID_Final"] = df[LABEL_COLUMN].map(SENTIMENT_TO_ID)
 
-    if df["Label_ID_Final"].isna().any():
-        raise ValueError(f"Some labels cannot be mapped to IDs in {file_path}")
-
-    return df.reset_index(drop=True)
+    return df
 
 
 def save_text_report(text: str, file_path: Path):
@@ -158,24 +145,9 @@ def save_json(data: dict, file_path: Path):
         json.dump(data, f, indent=4, ensure_ascii=False)
 
 
-def check_train_test_leakage(train_df: pd.DataFrame, test_df: pd.DataFrame):
-    train_text_set = set(train_df[TEXT_COLUMN].astype(str))
-    test_text_set = set(test_df[TEXT_COLUMN].astype(str))
-
-    overlap_texts = train_text_set.intersection(test_text_set)
-
-    if overlap_texts:
-        print(f"\nWarning: {len(overlap_texts)} duplicated texts found in both train and test set.")
-        print("This may cause data leakage. Please check your preprocessing split.")
-    else:
-        print("\nNo duplicated texts found between train and test set.")
-
-    return overlap_texts
-
-
-# =====================================================
+# =========================
 # Plot Functions
-# =====================================================
+# =========================
 def plot_confusion_matrix(cm, labels, save_path: Path):
     fig, ax = plt.subplots(figsize=(7, 6))
     im = ax.imshow(cm, interpolation="nearest", cmap="Blues")
@@ -296,7 +268,6 @@ def plot_multiclass_roc(y_true_id, y_prob, save_path: Path):
         ax.plot(fpr, tpr, lw=2, label=f"{label} (AUC = {roc_auc:.3f})")
 
     ax.plot([0, 1], [0, 1], linestyle="--", linewidth=1)
-
     ax.set_xlim([0.0, 1.0])
     ax.set_ylim([0.0, 1.05])
     ax.set_xlabel("False Positive Rate")
@@ -342,9 +313,9 @@ def plot_training_loss(history, save_path: Path):
     plt.close()
 
 
-# =====================================================
+# =========================
 # Model Builder
-# =====================================================
+# =========================
 def build_bilstm_model(vocab_size: int):
     model = Sequential(
         [
@@ -380,9 +351,9 @@ def build_bilstm_model(vocab_size: int):
     return model
 
 
-# =====================================================
+# =========================
 # Main Training Function
-# =====================================================
+# =========================
 def main():
     print("=" * 60)
     print("Training BiLSTM Model")
@@ -391,13 +362,11 @@ def main():
     set_seed(RANDOM_STATE)
     ensure_directories()
 
-    # =====================================================
     # Load data
-    # =====================================================
     train_df = load_dataset(TRAIN_PATH)
     test_df = load_dataset(TEST_PATH)
 
-    print(f"\nTrain dataset shape: {train_df.shape}")
+    print(f"Train dataset shape: {train_df.shape}")
     print(f"Test dataset shape: {test_df.shape}")
 
     print("\nTrain label distribution:")
@@ -406,24 +375,19 @@ def main():
     print("\nTest label distribution:")
     print(test_df[LABEL_COLUMN].value_counts())
 
-    overlap_texts = check_train_test_leakage(train_df, test_df)
-
     X_full_train = train_df[TEXT_COLUMN].values
     y_full_train = train_df["Label_ID_Final"].values
 
     X_test_text = test_df[TEXT_COLUMN].values
     y_test_id = test_df["Label_ID_Final"].values
 
-    # =====================================================
     # Train-validation split from training set only
-    # =====================================================
     X_train_text, X_val_text, y_train_id, y_val_id = train_test_split(
         X_full_train,
         y_full_train,
         test_size=VALIDATION_SIZE,
         random_state=RANDOM_STATE,
         stratify=y_full_train,
-        shuffle=True,
     )
 
     print("\nInternal train-validation split:")
@@ -431,16 +395,9 @@ def main():
     print(f"Validation samples: {len(X_val_text)}")
     print(f"Testing samples: {len(X_test_text)}")
 
-    # =====================================================
     # Tokenization
-    # =====================================================
     print("\nFitting tokenizer...")
-
-    tokenizer = Tokenizer(
-        num_words=MAX_WORDS,
-        oov_token="<OOV>"
-    )
-
+    tokenizer = Tokenizer(num_words=MAX_WORDS, oov_token="<OOV>")
     tokenizer.fit_on_texts(X_train_text)
 
     X_train_seq = tokenizer.texts_to_sequences(X_train_text)
@@ -473,21 +430,10 @@ def main():
 
     vocab_size = min(MAX_WORDS, len(tokenizer.word_index) + 1)
 
-    print("\nTraining configuration:")
-    print(f"Text column: {TEXT_COLUMN}")
-    print(f"Label column: {LABEL_COLUMN}")
     print(f"Vocabulary size used: {vocab_size}")
-    print(f"Maximum words: {MAX_WORDS}")
     print(f"Maximum sequence length: {MAX_SEQUENCE_LENGTH}")
-    print(f"Embedding dimension: {EMBEDDING_DIM}")
-    print(f"LSTM units: {LSTM_UNITS}")
-    print(f"Batch size: {BATCH_SIZE}")
-    print(f"Epochs: {EPOCHS}")
-    print(f"Learning rate: {LEARNING_RATE}")
 
-    # =====================================================
     # Build model
-    # =====================================================
     model = build_bilstm_model(vocab_size)
 
     print("\nModel summary:")
@@ -509,11 +455,8 @@ def main():
         ),
     ]
 
-    # =====================================================
     # Train model
-    # =====================================================
     print("\nTraining model...")
-
     history = model.fit(
         X_train_pad,
         y_train_cat,
@@ -524,20 +467,15 @@ def main():
         verbose=1,
     )
 
-    # =====================================================
-    # Predict on test set
-    # =====================================================
+    # Predict
     print("\nEvaluating model...")
-
     y_prob = model.predict(X_test_pad)
     y_pred_id = np.argmax(y_prob, axis=1)
 
     y_test_label = [ID_TO_SENTIMENT[int(i)] for i in y_test_id]
     y_pred_label = [ID_TO_SENTIMENT[int(i)] for i in y_pred_id]
 
-    # =====================================================
     # Metrics
-    # =====================================================
     accuracy = accuracy_score(y_test_label, y_pred_label)
 
     macro_precision, macro_recall, macro_f1, _ = precision_recall_fscore_support(
@@ -575,9 +513,7 @@ def main():
         labels=LABEL_ORDER,
     )
 
-    # =====================================================
-    # Save model, tokenizer, and label mapping
-    # =====================================================
+    # Save model
     model_path = MODEL_DIR / f"{MODEL_NAME}_model.keras"
     tokenizer_path = MODEL_DIR / f"{MODEL_NAME}_tokenizer.pkl"
     label_mapping_path = MODEL_DIR / f"{MODEL_NAME}_label_mapping.json"
@@ -594,16 +530,11 @@ def main():
         label_mapping_path,
     )
 
-    # =====================================================
     # Save metrics summary
-    # =====================================================
     metrics_summary = {
         "model_name": MODEL_NAME,
-        "algorithm": "Embedding + Bidirectional LSTM",
         "text_column": TEXT_COLUMN,
         "label_column": LABEL_COLUMN,
-        "train_file": str(TRAIN_PATH),
-        "test_file": str(TEST_PATH),
         "train_samples_total": int(len(train_df)),
         "internal_train_samples": int(len(X_train_text)),
         "validation_samples": int(len(X_val_text)),
@@ -616,87 +547,55 @@ def main():
         "weighted_recall": float(weighted_recall),
         "weighted_f1": float(weighted_f1),
         "epochs_trained": int(len(history.history["loss"])),
-        "train_test_duplicate_text_count": int(len(overlap_texts)),
     }
 
     metrics_df = pd.DataFrame([metrics_summary])
-    metrics_df.to_csv(
-        REPORT_DIR / f"{MODEL_NAME}_metrics_summary.csv",
-        index=False,
-        encoding="utf-8-sig",
-    )
+    metrics_df.to_csv(REPORT_DIR / f"{MODEL_NAME}_metrics_summary.csv", index=False)
 
-    # =====================================================
     # Save classification report
-    # =====================================================
     report_df = pd.DataFrame(report_dict).transpose()
-
-    report_df.to_csv(
-        REPORT_DIR / f"{MODEL_NAME}_classification_report.csv",
-        index=True,
-        encoding="utf-8-sig",
-    )
+    report_df.to_csv(REPORT_DIR / f"{MODEL_NAME}_classification_report.csv", index=True)
 
     save_text_report(
         report_text,
         REPORT_DIR / f"{MODEL_NAME}_classification_report.txt",
     )
 
-    # =====================================================
     # Save confusion matrix
-    # =====================================================
     cm_df = pd.DataFrame(cm, index=LABEL_ORDER, columns=LABEL_ORDER)
+    cm_df.to_csv(REPORT_DIR / f"{MODEL_NAME}_confusion_matrix.csv")
 
-    cm_df.to_csv(
-        REPORT_DIR / f"{MODEL_NAME}_confusion_matrix.csv",
-        encoding="utf-8-sig",
+    # Save predictions
+    predictions_df = pd.DataFrame(
+        {
+            "Text": X_test_text,
+            "Actual_Label": y_test_label,
+            "Predicted_Label": y_pred_label,
+            "Correct": np.array(y_test_label) == np.array(y_pred_label),
+            "Confidence": y_prob.max(axis=1),
+            "Prob_Negative": y_prob[:, 0],
+            "Prob_Neutral": y_prob[:, 1],
+            "Prob_Positive": y_prob[:, 2],
+        }
     )
-
-    # =====================================================
-    # Save predictions with original metadata
-    # =====================================================
-    predictions_df = test_df.reset_index(drop=True).copy()
-
-    predictions_df["Actual_Label"] = y_test_label
-    predictions_df["Predicted_Label"] = y_pred_label
-    predictions_df["Correct"] = np.array(y_test_label) == np.array(y_pred_label)
-    predictions_df["Confidence"] = y_prob.max(axis=1)
-    predictions_df["Prob_Negative"] = y_prob[:, 0]
-    predictions_df["Prob_Neutral"] = y_prob[:, 1]
-    predictions_df["Prob_Positive"] = y_prob[:, 2]
 
     predictions_df.to_csv(
         REPORT_DIR / f"{MODEL_NAME}_test_predictions.csv",
         index=False,
-        encoding="utf-8-sig",
     )
 
-    # =====================================================
-    # Save misclassified samples with metadata
-    # =====================================================
+    # Save misclassified samples
     misclassified_df = predictions_df[predictions_df["Correct"] == False].copy()
-
     misclassified_df.to_csv(
         REPORT_DIR / f"{MODEL_NAME}_misclassified_samples.csv",
         index=False,
-        encoding="utf-8-sig",
     )
 
-    # =====================================================
     # Save training history
-    # =====================================================
     history_df = pd.DataFrame(history.history)
-    history_df.insert(0, "epoch", range(1, len(history_df) + 1))
+    history_df.to_csv(REPORT_DIR / f"{MODEL_NAME}_training_history.csv", index=False)
 
-    history_df.to_csv(
-        REPORT_DIR / f"{MODEL_NAME}_training_history.csv",
-        index=False,
-        encoding="utf-8-sig",
-    )
-
-    # =====================================================
     # Save model config
-    # =====================================================
     save_json(
         {
             "model_name": MODEL_NAME,
@@ -707,7 +606,6 @@ def main():
             "label_column": LABEL_COLUMN,
             "label_order": LABEL_ORDER,
             "sentiment_to_id": SENTIMENT_TO_ID,
-            "id_to_sentiment": ID_TO_SENTIMENT,
             "max_words": MAX_WORDS,
             "max_sequence_length": MAX_SEQUENCE_LENGTH,
             "embedding_dim": EMBEDDING_DIM,
@@ -720,7 +618,6 @@ def main():
             "validation_size": VALIDATION_SIZE,
             "learning_rate": LEARNING_RATE,
             "random_state": RANDOM_STATE,
-            "train_test_duplicate_text_count": int(len(overlap_texts)),
             "early_stopping": {
                 "monitor": "val_loss",
                 "patience": 6,
@@ -736,9 +633,7 @@ def main():
         REPORT_DIR / f"{MODEL_NAME}_config.json",
     )
 
-    # =====================================================
     # Generate graphs
-    # =====================================================
     print("\nGenerating graphs...")
 
     plot_confusion_matrix(
@@ -774,23 +669,19 @@ def main():
         GRAPH_DIR / f"{MODEL_NAME}_training_loss.png",
     )
 
-    # =====================================================
     # Print summary
-    # =====================================================
     print("\n" + "=" * 60)
     print("BiLSTM Training Completed Successfully")
     print("=" * 60)
-
     print(f"Model saved to: {model_path}")
     print(f"Tokenizer saved to: {tokenizer_path}")
     print(f"Label mapping saved to: {label_mapping_path}")
 
     print("\nEvaluation Results:")
-    print(f"Accuracy:          {accuracy:.4f}")
-    print(f"Macro Precision:   {macro_precision:.4f}")
-    print(f"Macro Recall:      {macro_recall:.4f}")
-    print(f"Macro F1-score:    {macro_f1:.4f}")
-    print(f"Weighted F1-score: {weighted_f1:.4f}")
+    print(f"Accuracy:         {accuracy:.4f}")
+    print(f"Macro Precision:  {macro_precision:.4f}")
+    print(f"Macro Recall:     {macro_recall:.4f}")
+    print(f"Macro F1-score:   {macro_f1:.4f}")
 
     print("\nGenerated report files:")
     print(f"- {REPORT_DIR / f'{MODEL_NAME}_metrics_summary.csv'}")

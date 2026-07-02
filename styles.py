@@ -470,15 +470,15 @@ def render_topbar():
     }
     </style>
 
-    <div class="custom-topbar">
+        <div class="custom-topbar">
         <div class="topbar-inner">
-            <a class="topbar-brand" href="/" target="_self">
+            <a class="topbar-brand" href="/?home=1" target="_self">
                 <div class="topbar-logo">🏨</div>
                 <span>StayWise KL</span>
             </a>
 
             <div class="topbar-nav">
-                <a class="topbar-link" href="/" target="_self">Home</a>
+                <a class="topbar-link" href="/?home=1" target="_self">Home</a>
                 <a class="topbar-link" href="/find_hotels" target="_self">Find Hotels</a>
                 <a class="topbar-link" href="/hotel_detail" target="_self">Hotel Detail</a>
                 <a class="topbar-link" href="/compare_hotels" target="_self">Compare</a>

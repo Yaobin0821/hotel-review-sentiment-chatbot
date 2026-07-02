@@ -1,8 +1,8 @@
 {
     "model_name": "logistic_regression",
     "algorithm": "TF-IDF + Logistic Regression",
-    "train_file": "data\\train_dataset.csv",
-    "test_file": "data\\test_dataset.csv",
+    "train_file": "C:\\Users\\User\\Desktop\\New folder\\hotel-review-sentiment-chatbot\\data\\train_dataset.csv",
+    "test_file": "C:\\Users\\User\\Desktop\\New folder\\hotel-review-sentiment-chatbot\\data\\test_dataset.csv",
     "text_column": "Cleaned_Text",
     "label_column": "Sentiment",
     "label_order": [
@@ -10,6 +10,8 @@
         "neutral",
         "positive"
     ],
+    "random_state": 42,
+    "train_test_duplicate_text_count": 0,
     "tfidf_params": {
         "ngram_range": [
             1,
@@ -23,7 +25,6 @@
     "logistic_regression_params": {
         "max_iter": 2000,
         "random_state": 42,
-        "solver": "lbfgs",
-        "multi_class": "multinomial"
+        "solver": "lbfgs"
     }
 }

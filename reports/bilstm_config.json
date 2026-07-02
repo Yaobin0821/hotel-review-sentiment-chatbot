@@ -15,6 +15,11 @@
         "neutral": 1,
         "positive": 2
     },
+    "id_to_sentiment": {
+        "0": "negative",
+        "1": "neutral",
+        "2": "positive"
+    },
     "max_words": 10000,
     "max_sequence_length": 80,
     "embedding_dim": 100,
@@ -27,6 +32,7 @@
     "validation_size": 0.2,
     "learning_rate": 0.001,
     "random_state": 42,
+    "train_test_duplicate_text_count": 0,
     "early_stopping": {
         "monitor": "val_loss",
         "patience": 6,

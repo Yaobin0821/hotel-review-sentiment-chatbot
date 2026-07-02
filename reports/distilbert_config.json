@@ -2,8 +2,8 @@
     "model_name": "distilbert",
     "algorithm": "DistilBERT Transformer Model",
     "pretrained_model": "distilbert-base-uncased",
-    "train_file": "C:\\Users\\User\\Desktop\\New folder\\hotel-review-sentiment-chatbot\\data\\combined_final_balanced_analysis_sorted_confidence_label.csv",
-    "test_file": "C:\\Users\\User\\Desktop\\New folder\\hotel-review-sentiment-chatbot\\data\\combined_final_balanced_analysis_sorted_confidence_label.csv",
+    "train_file": "C:\\Users\\User\\Desktop\\New folder\\hotel-review-sentiment-chatbot\\data\\train_dataset.csv",
+    "test_file": "C:\\Users\\User\\Desktop\\New folder\\hotel-review-sentiment-chatbot\\data\\test_dataset.csv",
     "text_column": "BERT_Text",
     "label_column": "Sentiment",
     "label_order": [
@@ -16,6 +16,11 @@
         "neutral": 1,
         "positive": 2
     },
+    "id_to_sentiment": {
+        "0": "negative",
+        "1": "neutral",
+        "2": "positive"
+    },
     "max_length": 128,
     "batch_size": 8,
     "epochs": 8,
@@ -26,5 +31,6 @@
     "patience": 3,
     "max_grad_norm": 1.0,
     "random_state": 42,
+    "train_test_duplicate_text_count": 0,
     "device": "cuda"
 }

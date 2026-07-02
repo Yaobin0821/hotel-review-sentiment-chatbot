@@ -479,7 +479,7 @@ def load_insights_css():
             border-radius: 26px;
             padding: 1rem;
             box-shadow: var(--shadow-card);
-            margin-bottom: 0.9rem;
+            margin-bottom: 0.75rem;
         }
 
         .card-title {
@@ -506,12 +506,12 @@ def load_insights_css():
         .pattern-row {
             display: grid;
             grid-template-columns: 1fr auto;
-            gap: 0.6rem;
+            gap: 0.5rem;
             align-items: center;
             background: #FFFDF8;
             border: 1px solid #EAD7C6;
             border-radius: 16px;
-            padding: 0.68rem 0.72rem;
+            padding: 0.62rem 0.68rem;
         }
 
         .pattern-name {
@@ -523,8 +523,8 @@ def load_insights_css():
 
         .pattern-badge {
             border-radius: 999px;
-            padding: 0.42rem 0.62rem;
-            font-size: 0.7rem;
+            padding: 0.38rem 0.55rem;
+            font-size: 0.68rem;
             font-weight: 900;
             text-align: center;
             white-space: nowrap;
@@ -781,7 +781,7 @@ def render_complaint_patterns(complaint_df):
     if complaint_df.empty:
         render_html("""
         <div class="pattern-card">
-            <div class="card-title">What guests usually complain about</div>
+            <div class="card-title">What guests complain about</div>
             <div class="card-desc">No repeated concern pattern was found for this area.</div>
         </div>
         """)
@@ -912,18 +912,16 @@ render_area_choices(areas, selected_area)
 render_takeaway(selected_area, hotels, complaint_df)
 render_snapshot(selected_area, hotels, complaint_df)
 
-pattern_col1, pattern_col2, pattern_col3 = st.columns(
-    [1, 1.15, 0.9],
+main_pattern_col, side_pattern_col = st.columns(
+    [1.35, 0.85],
     gap="large"
 )
 
-with pattern_col1:
-    render_positive_patterns(hotels)
-
-with pattern_col2:
+with main_pattern_col:
     render_complaint_patterns(complaint_df)
 
-with pattern_col3:
+with side_pattern_col:
+    render_positive_patterns(hotels)
     render_traveller_pattern(hotels)
 
 render_concern_meanings(complaint_df)

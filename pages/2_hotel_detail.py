@@ -378,6 +378,32 @@ def load_hotel_detail_css():
             border-radius: 999px;
         }
 
+        .custom-tab-row {
+            display: flex;
+            gap: 0.45rem;
+            border-bottom: 1px solid #D8CDBE;
+            margin-top: 0.8rem;
+            margin-bottom: 1rem;
+        }
+
+        .custom-tab {
+            text-decoration: none !important;
+            color: #64748B !important;
+            padding: 0.7rem 0.95rem;
+            font-size: 0.92rem;
+            font-weight: 800;
+            border-bottom: 2px solid transparent;
+        }
+
+        .custom-tab:hover {
+            color: var(--brand-dark) !important;
+        }
+
+        .custom-tab.active {
+            color: var(--brand-dark) !important;
+            border-bottom: 2px solid var(--brand);
+        }
+
         .detail-tabs-note {
             background: rgba(255, 255, 255, 0.82);
             border: 1px dashed #D8CDBE;
@@ -563,6 +589,17 @@ def get_selected_hotel(hotels, selected_area):
     return selected_hotel
 
 
+def get_selected_section():
+    selected_section = get_query_value("section", "improvements")
+
+    allowed_sections = ["improvements", "reviews"]
+
+    if selected_section not in allowed_sections:
+        selected_section = "improvements"
+
+    return selected_section
+
+
 def get_selected_review_type():
     selected_review_type = get_query_value("review_type", "All")
 
@@ -636,6 +673,31 @@ def render_hotel_picker(hotels, selected_area, selected_hotel):
     st.markdown(picker_html, unsafe_allow_html=True)
 
 
+def render_detail_section_tabs(selected_area, selected_hotel, selected_section, selected_review_type):
+    area_url = quote(selected_area, safe="")
+    hotel_url = quote(selected_hotel, safe="")
+    review_type_url = quote(selected_review_type, safe="")
+
+    improvements_active = "active" if selected_section == "improvements" else ""
+    reviews_active = "active" if selected_section == "reviews" else ""
+
+    tabs_html = (
+        '<div id="detail-section"></div>'
+        '<div class="custom-tab-row">'
+        f'<a class="custom-tab {improvements_active}" '
+        f'href="?area={area_url}&hotel={hotel_url}&section=improvements#detail-section" target="_self">'
+        'Common improvement areas'
+        '</a>'
+        f'<a class="custom-tab {reviews_active}" '
+        f'href="?area={area_url}&hotel={hotel_url}&section=reviews&review_type={review_type_url}#detail-section" target="_self">'
+        'Sample reviews'
+        '</a>'
+        '</div>'
+    )
+
+    st.markdown(tabs_html, unsafe_allow_html=True)
+
+
 def render_review_filter(selected_area, selected_hotel, selected_review_type):
     filter_options = ["All", "Positive", "Neutral", "Negative"]
 
@@ -649,7 +711,7 @@ def render_review_filter(selected_area, selected_hotel, selected_review_type):
 
         filter_html += (
             f'<a class="review-filter-option {active_class}" '
-            f'href="?area={area_url}&hotel={hotel_url}&review_type={review_type_url}" '
+            f'href="?area={area_url}&hotel={hotel_url}&section=reviews&review_type={review_type_url}#detail-section" '
             f'target="_self">{escape(option)}</a>'
         )
 
@@ -828,9 +890,17 @@ if hotel:
     with right_col:
         render_booking_snapshot(hotel)
 
-    tab1, tab2 = st.tabs(["Common improvement areas", "Sample reviews"])
+    selected_section = get_selected_section()
+    selected_review_type = get_selected_review_type()
 
-    with tab1:
+    render_detail_section_tabs(
+        selected_area=selected_area,
+        selected_hotel=selected_hotel,
+        selected_section=selected_section,
+        selected_review_type=selected_review_type
+    )
+
+    if selected_section == "improvements":
         st.markdown(
             '<div class="detail-tabs-note">These are the most repeated improvement areas found from the hotel reviews.</div>',
             unsafe_allow_html=True
@@ -846,9 +916,7 @@ if hotel:
         else:
             st.dataframe(complaint_df, use_container_width=True, hide_index=True)
 
-    with tab2:
-        selected_review_type = get_selected_review_type()
-
+    else:
         render_review_filter(
             selected_area=selected_area,
             selected_hotel=selected_hotel,

@@ -20,9 +20,9 @@ bilstm,BiLSTM,positive,positive,29
 distilbert,DistilBERT,negative,negative,37
 distilbert,DistilBERT,negative,neutral,5
 distilbert,DistilBERT,negative,positive,0
-distilbert,DistilBERT,neutral,negative,9
+distilbert,DistilBERT,neutral,negative,10
 distilbert,DistilBERT,neutral,neutral,26
-distilbert,DistilBERT,neutral,positive,7
+distilbert,DistilBERT,neutral,positive,6
 distilbert,DistilBERT,positive,negative,3
-distilbert,DistilBERT,positive,neutral,5
-distilbert,DistilBERT,positive,positive,34
+distilbert,DistilBERT,positive,neutral,4
+distilbert,DistilBERT,positive,positive,35

@@ -2,12 +2,12 @@ Model Comparison Summary
 ============================================================
 
 Models compared:
-- DistilBERT: Accuracy = 0.7698, Macro F1-score = 0.7664
+- DistilBERT: Accuracy = 0.7778, Macro F1-score = 0.7743
 - Logistic Regression: Accuracy = 0.6905, Macro F1-score = 0.6789
 - BiLSTM: Accuracy = 0.6587, Macro F1-score = 0.6619
 
 Best model selection:
-The best-performing model is DistilBERT, with Accuracy = 0.7698 and Macro F1-score = 0.7664.
+The best-performing model is DistilBERT, with Accuracy = 0.7778 and Macro F1-score = 0.7743.
 
 Macro F1-score was used as the main model selection criterion because the project compares performance across positive, neutral and negative sentiment classes. Macro F1-score treats each class equally and is more suitable than accuracy alone when the objective is to maintain balanced performance across all sentiment categories.
 

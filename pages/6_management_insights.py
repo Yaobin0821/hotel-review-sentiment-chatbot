@@ -12,6 +12,13 @@ from utils import (
     get_complaint_df,
 )
 
+try:
+    from utils import get_hotel_reviews
+except ImportError:
+    def get_hotel_reviews(hotel_name, limit=300):
+        return []
+
+
 st.set_page_config(
     page_title="Management Insights",
     page_icon="🛠️",
@@ -36,7 +43,13 @@ def escape(value):
 
 
 def safe_get(data, key, default="Not stated"):
-    value = data.get(key, default)
+    if data is None:
+        return default
+
+    if isinstance(data, dict):
+        value = data.get(key, default)
+    else:
+        value = getattr(data, key, default)
 
     if value is None or value == "":
         return default
@@ -97,6 +110,19 @@ def get_selected_hotel(hotels):
         selected_hotel = hotel_names[0]
 
     return selected_hotel
+
+
+def get_selected_issue(management_df):
+    if management_df is None or management_df.empty:
+        return ""
+
+    issues = management_df["Complaint Area"].astype(str).tolist()
+    selected_issue = get_query_value("issue", issues[0])
+
+    if selected_issue not in issues:
+        selected_issue = issues[0]
+
+    return selected_issue
 
 
 def priority_rank(priority_level):
@@ -329,6 +355,221 @@ def get_management_summary(hotel, management_df):
     }
 
 
+def get_review_field(review, possible_keys, default=""):
+    if review is None:
+        return default
+
+    if isinstance(review, dict):
+        for key in possible_keys:
+            if key in review and review[key] not in [None, ""]:
+                return str(review[key])
+    else:
+        for key in possible_keys:
+            try:
+                value = getattr(review, key)
+                if value not in [None, ""]:
+                    return str(value)
+            except Exception:
+                pass
+
+    return default
+
+
+def normalize_review_records(reviews):
+    if reviews is None:
+        return []
+
+    if isinstance(reviews, pd.DataFrame):
+        return reviews.to_dict("records")
+
+    if isinstance(reviews, list):
+        return reviews
+
+    return []
+
+
+def get_review_text(review):
+    return get_review_field(
+        review,
+        [
+            "Sentence",
+            "sentence",
+            "Review",
+            "review",
+            "Review Text",
+            "review_text",
+            "Translated Sentence",
+            "Translated_Review",
+            "Text",
+            "text"
+        ],
+        "No review text available."
+    )
+
+
+def get_review_sentiment(review):
+    return get_review_field(
+        review,
+        [
+            "Sentiment",
+            "sentiment",
+            "Predicted Sentiment",
+            "predicted_sentiment"
+        ],
+        "Unknown"
+    )
+
+
+def get_review_source_label(review):
+    source = get_review_field(
+        review,
+        [
+            "Source",
+            "source",
+            "Platform",
+            "platform"
+        ],
+        ""
+    )
+
+    if source:
+        return source
+
+    return "Guest review"
+
+
+def get_review_search_blob(review):
+    fields = [
+        get_review_text(review),
+        get_review_sentiment(review),
+        get_review_field(review, ["Aspect(s)", "Aspects", "aspect", "aspects"], ""),
+        get_review_field(review, ["Risk Type(s)", "Risk Type", "risk_type", "risk_types"], ""),
+        get_review_field(review, ["Reason / Notes", "Reason", "Notes", "notes"], ""),
+    ]
+
+    return " ".join(fields).lower()
+
+
+def get_issue_keywords(issue):
+    issue_lower = str(issue).lower()
+
+    if "clean" in issue_lower or "hygiene" in issue_lower:
+        return [
+            "clean", "cleanliness", "hygiene", "dirty", "bathroom", "toilet",
+            "smell", "stain", "dust", "housekeeping", "mould", "mold"
+        ]
+
+    if "room" in issue_lower or "noise" in issue_lower or "comfort" in issue_lower:
+        return [
+            "room", "noise", "noisy", "quiet", "bed", "pillow", "comfort",
+            "aircon", "air conditioning", "soundproof", "sleep", "small room"
+        ]
+
+    if "breakfast" in issue_lower or "food" in issue_lower:
+        return [
+            "breakfast", "food", "restaurant", "buffet", "meal", "dining",
+            "coffee", "taste", "menu"
+        ]
+
+    if "check-in" in issue_lower or "booking" in issue_lower or "payment" in issue_lower:
+        return [
+            "check in", "check-in", "checkout", "check out", "booking",
+            "payment", "deposit", "front desk", "reception", "waiting", "queue"
+        ]
+
+    if "facility" in issue_lower or "maintenance" in issue_lower:
+        return [
+            "facility", "facilities", "maintenance", "broken", "not working",
+            "lift", "elevator", "wifi", "pool", "gym", "repair"
+        ]
+
+    if "parking" in issue_lower or "transport" in issue_lower or "access" in issue_lower:
+        return [
+            "parking", "transport", "access", "car park", "grab", "taxi",
+            "walk", "location", "traffic"
+        ]
+
+    if "service" in issue_lower or "staff" in issue_lower:
+        return [
+            "staff", "service", "friendly", "rude", "helpful", "reception",
+            "support", "manager", "attitude"
+        ]
+
+    if "overall" in issue_lower or "experience" in issue_lower:
+        return [
+            "overall", "experience", "stay", "satisfied", "disappointed",
+            "worth", "value", "good", "bad", "poor", "excellent", "terrible"
+        ]
+
+    return [word for word in issue_lower.split() if len(word) > 2]
+
+
+def issue_matches_review(issue, review):
+    blob = get_review_search_blob(review)
+    keywords = get_issue_keywords(issue)
+
+    return any(keyword in blob for keyword in keywords)
+
+
+def is_negative_or_neutral_review(review):
+    sentiment = get_review_sentiment(review).lower()
+
+    if "negative" in sentiment or "neutral" in sentiment:
+        return True
+
+    blob = get_review_search_blob(review)
+
+    negative_words = [
+        "bad", "poor", "dirty", "noisy", "disappointed", "problem",
+        "issue", "complaint", "slow", "rude", "broken", "not working",
+        "uncomfortable", "smell", "worst", "terrible"
+    ]
+
+    return any(word in blob for word in negative_words)
+
+
+def get_issue_review_evidence(hotel_name, issue, expected_count=0):
+    try:
+        reviews = get_hotel_reviews(hotel_name, limit=500)
+    except TypeError:
+        reviews = get_hotel_reviews(hotel_name)
+    except Exception:
+        reviews = []
+
+    records = normalize_review_records(reviews)
+
+    matched_reviews = []
+    fallback_reviews = []
+
+    for review in records:
+        if issue_matches_review(issue, review):
+            if is_negative_or_neutral_review(review):
+                matched_reviews.append(review)
+            else:
+                fallback_reviews.append(review)
+
+    combined_reviews = matched_reviews + fallback_reviews
+
+    if not combined_reviews:
+        for review in records:
+            if is_negative_or_neutral_review(review):
+                combined_reviews.append(review)
+
+    limit = int(expected_count) if expected_count and expected_count > 0 else 12
+    limit = min(max(limit, 8), 35)
+
+    return combined_reviews[:limit]
+
+
+def truncate_text(text, max_chars=360):
+    text = str(text).strip()
+
+    if len(text) <= max_chars:
+        return text
+
+    return text[:max_chars].rstrip() + "..."
+
+
 def load_management_css():
     st.markdown("""
     <style>
@@ -558,7 +799,10 @@ def load_management_css():
 
         .metric-card,
         .mgmt-card,
-        .table-section {
+        .table-section,
+        .priority-section,
+        .evidence-section,
+        .action-section {
             background: rgba(255, 255, 255, 0.94);
             border: 1px solid var(--border);
             border-radius: 24px;
@@ -606,52 +850,47 @@ def load_management_css():
             margin-bottom: 0.85rem;
         }
 
-        .priority-list {
-            display: flex;
-            flex-direction: column;
-            gap: 0.65rem;
-        }
-
-        .priority-item,
-        .action-card {
+        .priority-row {
+            display: grid;
+            grid-template-columns: 1.2fr 150px 210px;
+            gap: 0.75rem;
+            align-items: center;
             background: #FFFDF8;
             border: 1px solid #EAD7C6;
             border-radius: 18px;
             padding: 0.85rem;
-            margin-bottom: 0.6rem;
+            margin-bottom: 0.55rem;
         }
 
-        .priority-top {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 0.65rem;
-            margin-bottom: 0.35rem;
+        .priority-row.active {
+            background: linear-gradient(135deg, #FFF8EF, #EEF7F1);
+            border-color: #C7653A;
+            box-shadow: 0 8px 22px rgba(155, 67, 37, 0.10);
         }
 
-        .priority-title,
-        .action-title {
+        .priority-title {
             color: var(--text-main);
-            font-size: 0.96rem;
+            font-size: 0.98rem;
             font-weight: 950;
-            line-height: 1.3;
+            line-height: 1.25;
         }
 
         .priority-impact {
             color: #64748B;
-            font-size: 0.8rem;
-            line-height: 1.4;
-            margin-top: 0.2rem;
+            font-size: 0.78rem;
+            line-height: 1.35;
+            margin-top: 0.18rem;
         }
 
         .priority-badge,
         .risk-chip {
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             width: fit-content;
             border-radius: 999px;
             padding: 0.38rem 0.68rem;
-            font-size: 0.74rem;
+            font-size: 0.72rem;
             font-weight: 900;
             white-space: nowrap;
         }
@@ -677,16 +916,118 @@ def load_management_css():
             border: 1px solid #BFE3CF;
         }
 
-        .action-list {
-            margin: 0;
-            padding-left: 1.1rem;
-            color: #64748B;
-            font-size: 0.8rem;
-            line-height: 1.45;
+        .signal-link {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            text-decoration: none !important;
+            color: white !important;
+            background: linear-gradient(135deg, #C7653A, #9B4325);
+            border-radius: 999px;
+            padding: 0.48rem 0.75rem;
+            font-size: 0.76rem;
+            font-weight: 900;
+            box-shadow: 0 8px 18px rgba(155, 67, 37, 0.16);
+            white-space: nowrap;
         }
 
-        .action-list li {
-            margin-bottom: 0.25rem;
+        .signal-link:hover {
+            filter: brightness(1.04);
+            transform: translateY(-1px);
+        }
+
+        .evidence-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 0.8rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .evidence-pill {
+            display: inline-flex;
+            background: #EEF7F1;
+            color: #216E46;
+            border: 1px solid #BFE3CF;
+            border-radius: 999px;
+            padding: 0.38rem 0.72rem;
+            font-size: 0.74rem;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .evidence-card {
+            background: #FFFDF8;
+            border: 1px solid #EAD7C6;
+            border-radius: 18px;
+            padding: 0.82rem;
+            margin-bottom: 0.55rem;
+        }
+
+        .evidence-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.65rem;
+            margin-bottom: 0.35rem;
+            align-items: center;
+        }
+
+        .evidence-title {
+            color: var(--text-main);
+            font-size: 0.86rem;
+            font-weight: 950;
+        }
+
+        .sentiment-chip {
+            display: inline-flex;
+            border-radius: 999px;
+            padding: 0.28rem 0.58rem;
+            font-size: 0.68rem;
+            font-weight: 900;
+            color: #7C6F64;
+            background: #F8F4EE;
+            border: 1px solid #E5D8CA;
+        }
+
+        .evidence-text {
+            color: #475569;
+            font-size: 0.82rem;
+            line-height: 1.5;
+        }
+
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.65rem;
+        }
+
+        .action-card {
+            background: #FFFDF8;
+            border: 1px solid #EAD7C6;
+            border-radius: 18px;
+            padding: 0.85rem;
+        }
+
+        .action-number {
+            display: inline-flex;
+            width: 28px;
+            height: 28px;
+            border-radius: 999px;
+            align-items: center;
+            justify-content: center;
+            background: #FFF4E8;
+            color: #9B4325;
+            border: 1px solid #F2CBAE;
+            font-size: 0.75rem;
+            font-weight: 950;
+            margin-bottom: 0.45rem;
+        }
+
+        .action-text {
+            color: #475569;
+            font-size: 0.82rem;
+            line-height: 1.45;
+            font-weight: 750;
         }
 
         div[data-testid="stTextInput"] > label {
@@ -723,11 +1064,16 @@ def load_management_css():
         }
 
         @media (max-width: 1000px) {
-            .metric-grid {
+            .metric-grid,
+            .action-grid {
                 grid-template-columns: 1fr;
             }
 
-            .priority-top {
+            .priority-row {
+                grid-template-columns: 1fr;
+            }
+
+            .evidence-header-row {
                 flex-direction: column;
             }
         }
@@ -741,7 +1087,7 @@ def render_header():
         <div class="mgmt-badge">For hotel management</div>
         <div class="mgmt-title">Management Insights</div>
         <div class="mgmt-subtitle">
-            Convert aggregated guest review complaints into improvement priorities and suggested management actions.
+            Convert aggregated guest review complaints into improvement priorities, review evidence, and suggested management actions.
         </div>
     </div>
     """)
@@ -765,7 +1111,7 @@ def require_management_access():
             </div>
             <div class="access-list">
                 <div class="access-list-item">Review the most repeated guest complaint areas.</div>
-                <div class="access-list-item">See which issues are highest priority for action.</div>
+                <div class="access-list-item">Click complaint signals to view supporting reviews.</div>
                 <div class="access-list-item">Get suggested improvement actions for hotel operations.</div>
             </div>
         </div>
@@ -919,10 +1265,10 @@ def render_metrics(hotel, management_df):
     """)
 
 
-def render_priority_areas(management_df):
+def render_priority_areas(management_df, selected_area, selected_hotel_name, selected_issue):
     if management_df.empty:
         render_html("""
-        <div class="mgmt-card">
+        <div class="priority-section">
             <div class="card-title">Priority improvement areas</div>
             <div class="card-desc">No repeated complaint pattern was found for this hotel.</div>
         </div>
@@ -931,105 +1277,155 @@ def render_priority_areas(management_df):
 
     rows_html = ""
 
-    for _, row in management_df.head(6).iterrows():
-        issue = row["Complaint Area"]
+    area_url = quote(selected_area, safe="")
+    hotel_url = quote(selected_hotel_name, safe="")
+
+    for _, row in management_df.head(8).iterrows():
+        issue = str(row["Complaint Area"])
         priority = row["Priority Level"]
-        count = row["Complaint Count"]
+        count = int(safe_number(row["Complaint Count"], 0))
         priority_cls = priority_class(priority)
         impact = get_issue_impact(issue)
+        issue_url = quote(issue, safe="")
+        active_class = "active" if issue == selected_issue else ""
 
         rows_html += f"""
-        <div class="priority-item">
-            <div class="priority-top">
-                <div>
-                    <div class="priority-title">{escape(issue)}</div>
-                    <div class="priority-impact">{escape(impact)}</div>
-                </div>
+        <div class="priority-row {active_class}">
+            <div>
+                <div class="priority-title">{escape(issue)}</div>
+                <div class="priority-impact">{escape(impact)}</div>
+            </div>
+
+            <div>
                 <span class="priority-badge {priority_cls}">{escape(priority)} priority</span>
             </div>
-            <div class="metric-sub">{escape(count)} complaint signal(s)</div>
+
+            <a class="signal-link"
+               href="?mgmt_access=1&area={area_url}&hotel={hotel_url}&issue={issue_url}"
+               target="_self">
+               View {escape(count)} signal(s)
+            </a>
         </div>
         """
 
     render_html(f"""
-    <div class="mgmt-card">
+    <div class="priority-section">
         <div class="card-title">Priority improvement areas</div>
         <div class="card-desc">
-            These are the main complaint areas management should review first.
+            Click a complaint signal to view the review evidence behind that improvement area.
         </div>
-        <div class="priority-list">
-            {rows_html}
-        </div>
+        {rows_html}
     </div>
     """)
 
 
-def render_action_plan(management_df):
+def render_review_card(review, index):
+    review_text = truncate_text(get_review_text(review))
+    sentiment = get_review_sentiment(review)
+    source = get_review_source_label(review)
+
+    render_html(f"""
+    <div class="evidence-card">
+        <div class="evidence-top">
+            <div class="evidence-title">Review evidence {escape(index)}</div>
+            <span class="sentiment-chip">{escape(sentiment)}</span>
+        </div>
+        <div class="evidence-text">
+            {escape(review_text)}
+        </div>
+        <div class="metric-sub">{escape(source)}</div>
+    </div>
+    """)
+
+
+def render_review_evidence(hotel_name, selected_issue, expected_count):
+    if not selected_issue:
+        return
+
+    evidence_reviews = get_issue_review_evidence(
+        hotel_name,
+        selected_issue,
+        expected_count
+    )
+
+    render_html(f"""
+    <div class="evidence-section">
+        <div class="evidence-header-row">
+            <div>
+                <div class="card-title">Review evidence for {escape(selected_issue)}</div>
+                <div class="card-desc">
+                    These review snippets help management understand what guests were actually saying about this complaint area.
+                </div>
+            </div>
+            <span class="evidence-pill">
+                {escape(len(evidence_reviews))} review evidence shown
+            </span>
+        </div>
+    </div>
+    """)
+
+    if not evidence_reviews:
+        st.info("No matching review evidence was found for this complaint area.")
+        return
+
+    preview_limit = min(len(evidence_reviews), 8)
+
+    for index, review in enumerate(evidence_reviews[:preview_limit], start=1):
+        render_review_card(review, index)
+
+    remaining_reviews = evidence_reviews[preview_limit:]
+
+    if remaining_reviews:
+        with st.expander(f"Show {len(remaining_reviews)} more review evidence"):
+            for index, review in enumerate(
+                remaining_reviews,
+                start=preview_limit + 1
+            ):
+                render_review_card(review, index)
+
+
+def render_action_plan(management_df, selected_issue):
     if management_df.empty:
         render_html("""
-        <div class="mgmt-card">
+        <div class="action-section">
             <div class="card-title">Recommended action plan</div>
             <div class="card-desc">No action plan is available because no repeated complaint pattern was found.</div>
         </div>
         """)
         return
 
-    action_html = ""
+    selected_row = None
 
-    for _, row in management_df.head(3).iterrows():
-        issue = row["Complaint Area"]
-        suggested_action = row.get("Suggested Improvement Action", "Not stated")
-        steps = get_action_steps(issue, suggested_action)
+    for _, row in management_df.iterrows():
+        if str(row["Complaint Area"]) == str(selected_issue):
+            selected_row = row
+            break
 
-        steps_html = ""
+    if selected_row is None:
+        selected_row = management_df.iloc[0]
 
-        for step in steps:
-            steps_html += f"<li>{escape(step)}</li>"
+    issue = selected_row["Complaint Area"]
+    suggested_action = selected_row.get("Suggested Improvement Action", "Not stated")
+    steps = get_action_steps(issue, suggested_action)
 
-        action_html += f"""
+    action_cards = ""
+
+    for index, step in enumerate(steps[:3], start=1):
+        action_cards += f"""
         <div class="action-card">
-            <div class="action-title">{escape(issue)}</div>
-            <ul class="action-list">
-                {steps_html}
-            </ul>
+            <div class="action-number">{escape(index)}</div>
+            <div class="action-text">{escape(step)}</div>
         </div>
         """
 
     render_html(f"""
-    <div class="mgmt-card">
-        <div class="card-title">Recommended action plan</div>
+    <div class="action-section">
+        <div class="card-title">Recommended action plan for {escape(issue)}</div>
         <div class="card-desc">
-            Suggested operational actions based on the highest priority complaint areas.
+            Suggested operational actions based on the selected complaint evidence.
         </div>
-        {action_html}
-    </div>
-    """)
-
-
-def render_review_signal_summary(hotel):
-    render_html(f"""
-    <div class="mgmt-card">
-        <div class="card-title">Review signal summary</div>
-        <div class="card-desc">
-            A quick overview of the hotel's current review condition.
-        </div>
-
-        <div class="action-card">
-            <div class="action-title">Sentiment distribution</div>
-            <ul class="action-list">
-                <li>Positive reviews: {escape(safe_get(hotel, "positive_pct", 0))}%</li>
-                <li>Neutral reviews: {escape(safe_get(hotel, "neutral_pct", 0))}%</li>
-                <li>Negative reviews: {escape(safe_get(hotel, "negative_pct", 0))}%</li>
-            </ul>
-        </div>
-
-        <div class="action-card">
-            <div class="action-title">Key review signals</div>
-            <ul class="action-list">
-                <li>Main strength: {escape(safe_get(hotel, "main_strength"))}</li>
-                <li>Main risk: {escape(safe_get(hotel, "main_risk"))}</li>
-                <li>Total reviews analysed: {escape(get_review_count(hotel))}</li>
-            </ul>
+        <div class="action-grid">
+            {action_cards}
         </div>
     </div>
     """)
@@ -1117,19 +1513,42 @@ if hotel is None:
 
 complaint_df = get_complaint_df(hotel)
 management_df = prepare_management_df(complaint_df)
+selected_issue = get_selected_issue(management_df)
+
+expected_count = 0
+
+if not management_df.empty and selected_issue:
+    issue_rows = management_df[
+        management_df["Complaint Area"].astype(str) == str(selected_issue)
+    ]
+
+    if not issue_rows.empty:
+        expected_count = int(safe_number(issue_rows.iloc[0]["Complaint Count"], 0))
 
 render_management_summary(hotel, management_df)
 render_metrics(hotel, management_df)
 
-main_col, side_col = st.columns([1.25, 0.85], gap="large")
+render_priority_areas(
+    management_df,
+    selected_area,
+    selected_hotel_name,
+    selected_issue
+)
 
-with main_col:
-    render_priority_areas(management_df)
+render_review_evidence(
+    selected_hotel_name,
+    selected_issue,
+    expected_count
+)
 
-with side_col:
-    render_action_plan(management_df)
-    render_review_signal_summary(hotel)
+render_action_plan(
+    management_df,
+    selected_issue
+)
 
-render_management_table(management_df, selected_hotel_name)
+render_management_table(
+    management_df,
+    selected_hotel_name
+)
 
 render_footer()

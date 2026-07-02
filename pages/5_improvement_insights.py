@@ -8,7 +8,6 @@ from styles import load_css, render_topbar, render_footer
 from utils import (
     get_areas,
     get_hotels_by_area,
-    get_hotel_by_name,
     get_complaint_df,
     risk_badge
 )
@@ -53,6 +52,10 @@ def safe_number(value, default=0):
         return default
 
 
+def get_review_count(hotel):
+    return hotel.get("review_count", hotel.get("total_reviews", 0))
+
+
 def get_query_value(key, default_value):
     value = st.query_params.get(key, default_value)
 
@@ -69,20 +72,6 @@ def get_selected_area(areas):
         selected_area = areas[0]
 
     return selected_area
-
-
-def get_selected_hotel(hotels, selected_area):
-    hotel_names = [hotel["hotel"] for hotel in hotels]
-
-    if not hotel_names:
-        return None
-
-    selected_hotel = get_query_value("hotel", hotel_names[0])
-
-    if selected_hotel not in hotel_names:
-        selected_hotel = hotel_names[0]
-
-    return selected_hotel
 
 
 def risk_score(risk_level):
@@ -112,8 +101,34 @@ def risk_class_name(risk_level):
     return "risk-medium"
 
 
-def get_review_count(hotel):
-    return hotel.get("review_count", hotel.get("total_reviews", 0))
+def concern_frequency_label(count, max_count):
+    if max_count <= 0:
+        return "Review signal"
+
+    percentage = count / max_count
+
+    if percentage >= 0.7:
+        return "Mentioned often"
+
+    if percentage >= 0.35:
+        return "Common concern"
+
+    return "Occasional concern"
+
+
+def concern_frequency_class(count, max_count):
+    if max_count <= 0:
+        return "concern-low"
+
+    percentage = count / max_count
+
+    if percentage >= 0.7:
+        return "concern-high"
+
+    if percentage >= 0.35:
+        return "concern-medium"
+
+    return "concern-low"
 
 
 def load_insights_css():
@@ -207,61 +222,32 @@ def load_insights_css():
             box-shadow: 0 10px 22px rgba(155, 67, 37, 0.18);
         }
 
-        .hotel-chip-row {
-            display: flex;
-            gap: 0.45rem;
-            overflow-x: auto;
-            padding-bottom: 0.2rem;
-        }
-
-        .hotel-chip-row::-webkit-scrollbar {
-            height: 6px;
-        }
-
-        .hotel-chip-row::-webkit-scrollbar-track {
-            background: #F1E8DC;
-            border-radius: 999px;
-        }
-
-        .hotel-chip-row::-webkit-scrollbar-thumb {
-            background: #D8C2AD;
-            border-radius: 999px;
-        }
-
-        .hotel-chip {
-            flex: 0 0 auto;
-            display: inline-flex;
-            align-items: center;
-            text-decoration: none !important;
-            background: white;
-            color: var(--text-main) !important;
+        .area-note {
+            background: linear-gradient(135deg, #FFF8EF, #EEF7F1);
             border: 1px solid #EAD7C6;
-            border-radius: 999px;
-            padding: 0.52rem 0.82rem;
-            font-size: 0.82rem;
-            font-weight: 850;
-            max-width: 310px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            box-shadow: 0 4px 12px rgba(74, 55, 40, 0.035);
+            border-radius: 24px;
+            padding: 0.95rem 1.05rem;
+            box-shadow: var(--shadow-card);
+            margin-bottom: 0.85rem;
         }
 
-        .hotel-chip:hover {
-            background: #FFF4E8;
-            border-color: var(--brand);
+        .area-note-title {
+            color: var(--text-main);
+            font-size: 1.08rem;
+            font-weight: 950;
+            letter-spacing: -0.035em;
+            margin-bottom: 0.22rem;
         }
 
-        .hotel-chip.active {
-            background: linear-gradient(135deg, var(--brand), var(--brand-dark));
-            color: white !important;
-            border-color: transparent;
-            box-shadow: 0 10px 22px rgba(155, 67, 37, 0.18);
+        .area-note-text {
+            color: #64748B;
+            font-size: 0.88rem;
+            line-height: 1.45;
         }
 
         .snapshot-grid {
             display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 0.75rem;
             margin-bottom: 0.9rem;
         }
@@ -300,7 +286,7 @@ def load_insights_css():
 
         .main-layout {
             display: grid;
-            grid-template-columns: 1fr 0.95fr;
+            grid-template-columns: 1.05fr 0.95fr;
             gap: 0.9rem;
             margin-bottom: 0.9rem;
         }
@@ -330,7 +316,7 @@ def load_insights_css():
 
         .concern-row {
             display: grid;
-            grid-template-columns: 1fr 85px;
+            grid-template-columns: 1fr 150px;
             gap: 0.65rem;
             align-items: center;
             padding: 0.68rem 0;
@@ -355,15 +341,31 @@ def load_insights_css():
             margin-top: 0.15rem;
         }
 
-        .concern-count {
-            background: #FFF4E8;
-            color: var(--brand-dark);
-            border: 1px solid #F2CBAE;
+        .concern-badge {
             border-radius: 999px;
-            padding: 0.45rem 0.6rem;
-            font-size: 0.78rem;
+            padding: 0.45rem 0.65rem;
+            font-size: 0.76rem;
             font-weight: 900;
             text-align: center;
+            white-space: nowrap;
+        }
+
+        .concern-high {
+            background: #FFF0EE;
+            color: #A33A2F;
+            border: 1px solid #F4C7BF;
+        }
+
+        .concern-medium {
+            background: #FFF4D6;
+            color: #8A5A12;
+            border: 1px solid #E6C879;
+        }
+
+        .concern-low {
+            background: #EAF7F0;
+            color: #216E46;
+            border: 1px solid #BFE3CF;
         }
 
         .hotel-rank-card {
@@ -437,77 +439,55 @@ def load_insights_css():
             margin-bottom: 0.85rem;
         }
 
-        .hotel-detail-grid {
-            display: grid;
-            grid-template-columns: 1.1fr 0.9fr;
-            gap: 0.9rem;
-            margin-top: 0.9rem;
+        .checklist-section {
+            background: rgba(255, 255, 255, 0.94);
+            border: 1px solid var(--border);
+            border-radius: 26px;
+            padding: 1rem;
+            box-shadow: var(--shadow-card);
+            margin-bottom: 1rem;
         }
 
-        .mini-stat-grid {
+        .checklist-grid {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 0.55rem;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.7rem;
             margin-top: 0.75rem;
         }
 
-        .mini-stat {
+        .checklist-item {
             background: #FFFDF8;
             border: 1px solid #EAD7C6;
-            border-radius: 16px;
-            padding: 0.65rem;
+            border-radius: 18px;
+            padding: 0.85rem;
         }
 
-        .mini-stat-label {
-            color: #7C6F64;
-            font-size: 0.68rem;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            margin-bottom: 0.2rem;
-        }
-
-        .mini-stat-value {
+        .checklist-title {
             color: var(--text-main);
-            font-size: 0.95rem;
+            font-size: 0.92rem;
             font-weight: 950;
+            margin-bottom: 0.22rem;
         }
 
-        .advice-list {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 0.55rem;
-        }
-
-        .advice-item {
-            background: #FFFDF8;
-            border: 1px solid #EAD7C6;
-            border-radius: 16px;
-            padding: 0.75rem;
-        }
-
-        .advice-title {
-            color: var(--text-main);
-            font-size: 0.9rem;
-            font-weight: 950;
-            margin-bottom: 0.18rem;
-        }
-
-        .advice-text {
+        .checklist-text {
             color: #64748B;
             font-size: 0.8rem;
-            line-height: 1.38;
+            line-height: 1.4;
         }
 
         @media (max-width: 1000px) {
             .snapshot-grid,
             .main-layout,
-            .hotel-detail-grid {
+            .checklist-grid {
                 grid-template-columns: 1fr;
             }
 
-            .mini-stat-grid {
+            .concern-row {
                 grid-template-columns: 1fr;
+            }
+
+            .concern-badge {
+                width: fit-content;
             }
         }
     </style>
@@ -520,7 +500,7 @@ def render_header():
         <div class="insights-badge">Traveller insights</div>
         <div class="insights-title">Travel Insights</div>
         <div class="insights-subtitle">
-            See common hotel review patterns, repeated concerns, and useful things to check before booking.
+            Understand common hotel review patterns before booking. This page focuses on what travellers should check, not hotel management reports.
         </div>
     </div>
     """)
@@ -532,6 +512,7 @@ def render_area_choices(areas, selected_area):
     for area in areas:
         active_class = "active" if area == selected_area else ""
         area_url = quote(area, safe="")
+
         chips_html += (
             f'<a class="choice-chip {active_class}" '
             f'href="?area={area_url}" target="_self">{escape(area)}</a>'
@@ -541,30 +522,6 @@ def render_area_choices(areas, selected_area):
     <div class="choice-card">
         <div class="section-label">Choose area</div>
         <div class="chip-row">{chips_html}</div>
-    </div>
-    """)
-
-
-def render_hotel_choices(hotels, selected_area, selected_hotel):
-    chips_html = ""
-
-    for hotel in hotels:
-        hotel_name = safe_get(hotel, "hotel")
-        active_class = "active" if hotel_name == selected_hotel else ""
-
-        area_url = quote(selected_area, safe="")
-        hotel_url = quote(hotel_name, safe="")
-
-        chips_html += (
-            f'<a class="hotel-chip {active_class}" '
-            f'href="?area={area_url}&hotel={hotel_url}" '
-            f'target="_self">{escape(hotel_name)}</a>'
-        )
-
-    render_html(f"""
-    <div class="choice-card">
-        <div class="section-label">Hotel quick view</div>
-        <div class="hotel-chip-row">{chips_html}</div>
     </div>
     """)
 
@@ -635,17 +592,23 @@ def get_area_snapshot(hotels, complaint_df):
     return safest_hotel, most_positive_hotel, top_concern
 
 
+def render_area_note(selected_area, hotels):
+    render_html(f"""
+    <div class="area-note">
+        <div class="area-note-title">{escape(selected_area)} travel review overview</div>
+        <div class="area-note-text">
+            Based on the available hotel reviews, this area has {len(hotels)} hotel option(s) in the dataset.
+            Use the summary below to quickly understand which hotel looks safer and what issues travellers should check before booking.
+        </div>
+    </div>
+    """)
+
+
 def render_snapshot(selected_area, hotels, complaint_df):
     safest_hotel, most_positive_hotel, top_concern = get_area_snapshot(hotels, complaint_df)
 
     render_html(f"""
     <div class="snapshot-grid">
-        <div class="snapshot-card">
-            <div class="snapshot-label">Selected area</div>
-            <div class="snapshot-value">{escape(selected_area)}</div>
-            <div class="snapshot-sub">{len(hotels)} hotel option(s) found</div>
-        </div>
-
         <div class="snapshot-card">
             <div class="snapshot-label">Safest-looking option</div>
             <div class="snapshot-value">{escape(safe_get(safest_hotel, "hotel"))}</div>
@@ -659,9 +622,9 @@ def render_snapshot(selected_area, hotels, complaint_df):
         </div>
 
         <div class="snapshot-card">
-            <div class="snapshot-label">Common thing to check</div>
+            <div class="snapshot-label">Main thing to check</div>
             <div class="snapshot-value">{escape(top_concern)}</div>
-            <div class="snapshot-sub">Appears in repeated review signals</div>
+            <div class="snapshot-sub">A repeated topic found in guest reviews</div>
         </div>
     </div>
     """)
@@ -671,35 +634,39 @@ def render_common_concerns(complaint_df):
     if complaint_df.empty:
         render_html("""
         <div class="insight-card">
-            <div class="card-title">Common things to check</div>
+            <div class="card-title">Most repeated concerns in this area</div>
             <div class="card-desc">No repeated complaint pattern was found for this area.</div>
         </div>
         """)
         return
 
     rows_html = ""
-
     top_df = complaint_df.head(6)
+    max_count = safe_number(top_df["Complaint Count"].max(), 0)
 
     for _, row in top_df.iterrows():
         concern = row["Complaint Area"]
-        count = int(row["Complaint Count"])
+        count = safe_number(row["Complaint Count"], 0)
+        label = concern_frequency_label(count, max_count)
+        label_class = concern_frequency_class(count, max_count)
 
         rows_html += f"""
         <div class="concern-row">
             <div>
                 <div class="concern-name">{escape(concern)}</div>
-                <div class="concern-help">Check recent reviews to see whether this issue still appears.</div>
+                <div class="concern-help">
+                    This issue appears in guest review patterns. Check recent reviews before booking.
+                </div>
             </div>
-            <div class="concern-count">{count}</div>
+            <div class="concern-badge {label_class}">{escape(label)}</div>
         </div>
         """
 
     render_html(f"""
     <div class="insight-card">
-        <div class="card-title">Common things travellers should check</div>
+        <div class="card-title">Most repeated concerns in this area</div>
         <div class="card-desc">
-            These are the most repeated concern areas found in reviews for this area.
+            These are common issues mentioned by guests. The labels show how often the issue appears compared with other concerns in this area.
         </div>
         {rows_html}
     </div>
@@ -745,84 +712,62 @@ def render_hotels_to_consider(hotels):
     <div class="insight-card">
         <div class="card-title">Hotels worth checking first</div>
         <div class="card-desc">
-            Ranked by lower booking concern and stronger positive review signals.
+            These hotels are ranked by lower booking concern and stronger positive review signals.
         </div>
         {cards_html}
     </div>
     """)
 
 
-def render_hotel_detail(hotel):
-    risk_level = safe_get(hotel, "risk_level")
-    risk_class = risk_class_name(risk_level)
-
-    render_html(f"""
-    <div class="insight-card">
-        <div class="card-title">{escape(safe_get(hotel, "hotel"))}</div>
-        <div class="card-desc">
-            A quick traveller-focused view of this hotel's review signals.
-        </div>
-
-        <span class="risk-chip {risk_class}">{escape(risk_badge(risk_level))}</span>
-
-        <div class="mini-stat-grid">
-            <div class="mini-stat">
-                <div class="mini-stat-label">Positive</div>
-                <div class="mini-stat-value">{escape(safe_get(hotel, "positive_pct", 0))}%</div>
-            </div>
-
-            <div class="mini-stat">
-                <div class="mini-stat-label">Negative</div>
-                <div class="mini-stat-value">{escape(safe_get(hotel, "negative_pct", 0))}%</div>
-            </div>
-
-            <div class="mini-stat">
-                <div class="mini-stat-label">Best for</div>
-                <div class="mini-stat-value">{escape(safe_get(hotel, "best_traveller_type"))}</div>
-            </div>
-        </div>
-
-        <div class="quick-note" style="margin-top: 0.85rem;">
-            This hotel looks strongest for <b>{escape(safe_get(hotel, "main_strength"))}</b>.
-            Before booking, travellers should check comments about
-            <b>{escape(safe_get(hotel, "main_risk"))}</b>.
-        </div>
-    </div>
-    """)
-
-
-def render_booking_advice(complaint_df):
+def render_booking_checklist(complaint_df):
     if complaint_df.empty:
-        advice_html = """
-        <div class="advice-item">
-            <div class="advice-title">Compare more than one review</div>
-            <div class="advice-text">No clear repeated concern was found, but travellers should still read recent reviews before booking.</div>
+        checklist_html = """
+        <div class="checklist-item">
+            <div class="checklist-title">Compare more than one review</div>
+            <div class="checklist-text">
+                No repeated concern was found, but one review should not decide everything. Read a few recent reviews before booking.
+            </div>
         </div>
         """
     else:
-        advice_html = ""
+        checklist_html = ""
 
         for _, row in complaint_df.head(4).iterrows():
             concern = row["Complaint Area"]
 
-            advice_html += f"""
-            <div class="advice-item">
-                <div class="advice-title">Check {escape(concern)}</div>
-                <div class="advice-text">
-                    Look for recent reviews mentioning this area. If the same issue appears repeatedly,
+            checklist_html += f"""
+            <div class="checklist-item">
+                <div class="checklist-title">Check {escape(concern)}</div>
+                <div class="checklist-text">
+                    Look for recent reviews mentioning this issue. If many guests mention the same thing,
                     compare another hotel before deciding.
                 </div>
             </div>
             """
 
     render_html(f"""
-    <div class="insight-card">
-        <div class="card-title">Before booking, check this</div>
+    <div class="checklist-section">
+        <div class="card-title">Before booking checklist</div>
         <div class="card-desc">
-            Simple advice based on repeated review patterns.
+            Use this as a quick reminder when reading hotel reviews.
         </div>
-        <div class="advice-list">
-            {advice_html}
+
+        <div class="checklist-grid">
+            {checklist_html}
+
+            <div class="checklist-item">
+                <div class="checklist-title">Compare at least two hotels</div>
+                <div class="checklist-text">
+                    A hotel can still be suitable even if it has some concerns. Compare risk level, positive reviews, and repeated complaint areas.
+                </div>
+            </div>
+
+            <div class="checklist-item">
+                <div class="checklist-title">Focus on repeated patterns</div>
+                <div class="checklist-text">
+                    One bad comment may not represent the whole hotel. Repeated concerns are more useful for booking decisions.
+                </div>
+            </div>
         </div>
     </div>
     """)
@@ -848,12 +793,10 @@ if not hotels:
     render_footer()
     st.stop()
 
-selected_hotel_name = get_selected_hotel(hotels, selected_area)
-selected_hotel = get_hotel_by_name(selected_hotel_name)
-
 complaint_df = get_area_complaints(hotels)
 
 render_area_choices(areas, selected_area)
+render_area_note(selected_area, hotels)
 render_snapshot(selected_area, hotels, complaint_df)
 
 left_col, right_col = st.columns([1.05, 0.95], gap="large")
@@ -864,15 +807,6 @@ with left_col:
 with right_col:
     render_hotels_to_consider(hotels)
 
-render_hotel_choices(hotels, selected_area, selected_hotel_name)
-
-detail_col, advice_col = st.columns([1.05, 0.95], gap="large")
-
-with detail_col:
-    if selected_hotel:
-        render_hotel_detail(selected_hotel)
-
-with advice_col:
-    render_booking_advice(complaint_df)
+render_booking_checklist(complaint_df)
 
 render_footer()

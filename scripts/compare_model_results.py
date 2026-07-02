@@ -2,18 +2,17 @@
 
 from pathlib import Path
 import json
-
 import numpy as np
 import pandas as pd
-
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 
-# =====================================================
+# =========================
 # Configuration
-# =====================================================
+# =========================
 BASE_DIR = Path(__file__).resolve().parents[1]
 
 REPORT_DIR = BASE_DIR / "reports"
@@ -44,9 +43,9 @@ OVERALL_METRICS = [
 ]
 
 
-# =====================================================
+# =========================
 # Utility Functions
-# =====================================================
+# =========================
 def ensure_directories():
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
     GRAPH_DIR.mkdir(parents=True, exist_ok=True)
@@ -58,13 +57,7 @@ def safe_read_csv(file_path: Path, index_col=None):
         return None
 
     try:
-        return pd.read_csv(file_path, index_col=index_col, encoding="utf-8-sig")
-    except UnicodeDecodeError:
-        try:
-            return pd.read_csv(file_path, index_col=index_col, encoding="latin1")
-        except Exception as e:
-            print(f"[WARNING] Failed to read {file_path}: {e}")
-            return None
+        return pd.read_csv(file_path, index_col=index_col)
     except Exception as e:
         print(f"[WARNING] Failed to read {file_path}: {e}")
         return None
@@ -78,13 +71,6 @@ def save_json(data: dict, file_path: Path):
 def save_text(text: str, file_path: Path):
     with open(file_path, "w", encoding="utf-8") as f:
         f.write(text)
-
-
-def to_float(value, default=np.nan):
-    try:
-        return float(value)
-    except Exception:
-        return default
 
 
 def get_existing_models():
@@ -101,25 +87,19 @@ def get_existing_models():
     return existing_models
 
 
-# =====================================================
+# =========================
 # Data Loading Functions
-# =====================================================
+# =========================
 def load_metrics_summary(model_name: str):
     metrics_path = REPORT_DIR / f"{model_name}_metrics_summary.csv"
     df = safe_read_csv(metrics_path)
 
     if df is None or df.empty:
-        print(f"[WARNING] Empty or unreadable metrics file for {model_name}.")
         return None
 
     row = df.iloc[0].to_dict()
-
     row["model_name"] = model_name
     row["model_display_name"] = MODEL_DISPLAY_NAMES.get(model_name, model_name)
-
-    for metric in OVERALL_METRICS:
-        if metric in row:
-            row[metric] = to_float(row[metric])
 
     return row
 
@@ -129,34 +109,23 @@ def load_classification_report(model_name: str):
     df = safe_read_csv(report_path, index_col=0)
 
     if df is None or df.empty:
-        print(f"[WARNING] Empty or unreadable classification report for {model_name}.")
         return None
 
     records = []
 
     for class_name in LABEL_ORDER:
         if class_name in df.index:
-            precision = to_float(df.loc[class_name, "precision"])
-            recall = to_float(df.loc[class_name, "recall"])
-            f1_score = to_float(df.loc[class_name, "f1-score"])
-            support = to_float(df.loc[class_name, "support"], default=0)
-
             records.append(
                 {
                     "model_name": model_name,
                     "model_display_name": MODEL_DISPLAY_NAMES.get(model_name, model_name),
                     "class": class_name,
-                    "precision": precision,
-                    "recall": recall,
-                    "f1_score": f1_score,
-                    "support": int(round(support)),
+                    "precision": float(df.loc[class_name, "precision"]),
+                    "recall": float(df.loc[class_name, "recall"]),
+                    "f1_score": float(df.loc[class_name, "f1-score"]),
+                    "support": int(df.loc[class_name, "support"]),
                 }
             )
-        else:
-            print(f"[WARNING] Class '{class_name}' not found in {report_path}")
-
-    if not records:
-        return None
 
     return pd.DataFrame(records)
 
@@ -166,38 +135,37 @@ def load_confusion_matrix(model_name: str):
     df = safe_read_csv(cm_path, index_col=0)
 
     if df is None or df.empty:
-        print(f"[WARNING] Empty or unreadable confusion matrix for {model_name}.")
         return None
 
+    # Ensure row and column order
     try:
         df = df.loc[LABEL_ORDER, LABEL_ORDER]
     except Exception:
-        print(f"[WARNING] Could not reorder confusion matrix labels for {model_name}. Using original order.")
+        pass
 
     records = []
 
     for actual_label in df.index:
         for predicted_label in df.columns:
-            count = to_float(df.loc[actual_label, predicted_label], default=0)
-
             records.append(
                 {
                     "model_name": model_name,
                     "model_display_name": MODEL_DISPLAY_NAMES.get(model_name, model_name),
                     "actual_label": actual_label,
                     "predicted_label": predicted_label,
-                    "count": int(round(count)),
+                    "count": int(df.loc[actual_label, predicted_label]),
                 }
             )
 
     return pd.DataFrame(records)
 
 
-# =====================================================
+# =========================
 # Plot Functions
-# =====================================================
+# =========================
 def plot_overall_metrics_comparison(metrics_df: pd.DataFrame, save_path: Path):
     plot_metrics = ["accuracy", "macro_precision", "macro_recall", "macro_f1"]
+
     available_metrics = [m for m in plot_metrics if m in metrics_df.columns]
 
     if not available_metrics:
@@ -223,17 +191,15 @@ def plot_overall_metrics_comparison(metrics_df: pd.DataFrame, save_path: Path):
 
         for bar in bars:
             height = bar.get_height()
-
-            if not np.isnan(height):
-                ax.annotate(
-                    f"{height:.3f}",
-                    xy=(bar.get_x() + bar.get_width() / 2, height),
-                    xytext=(0, 3),
-                    textcoords="offset points",
-                    ha="center",
-                    va="bottom",
-                    fontsize=8,
-                )
+            ax.annotate(
+                f"{height:.3f}",
+                xy=(bar.get_x() + bar.get_width() / 2, height),
+                xytext=(0, 3),
+                textcoords="offset points",
+                ha="center",
+                va="bottom",
+                fontsize=8,
+            )
 
     ax.set_title("Overall Model Performance Comparison")
     ax.set_xlabel("Model")
@@ -279,42 +245,30 @@ def plot_accuracy_macro_f1_comparison(metrics_df: pd.DataFrame, save_path: Path)
     for bars in [bars1, bars2]:
         for bar in bars:
             height = bar.get_height()
-
-            if not np.isnan(height):
-                ax.annotate(
-                    f"{height:.3f}",
-                    xy=(bar.get_x() + bar.get_width() / 2, height),
-                    xytext=(0, 3),
-                    textcoords="offset points",
-                    ha="center",
-                    va="bottom",
-                    fontsize=9,
-                )
+            ax.annotate(
+                f"{height:.3f}",
+                xy=(bar.get_x() + bar.get_width() / 2, height),
+                xytext=(0, 3),
+                textcoords="offset points",
+                ha="center",
+                va="bottom",
+                fontsize=9,
+            )
 
     fig.tight_layout()
     plt.savefig(save_path, dpi=300, bbox_inches="tight")
     plt.close()
 
 
-def plot_per_class_metric_comparison(
-    class_report_df: pd.DataFrame,
-    metric_column: str,
-    chart_title: str,
-    y_label: str,
-    save_path: Path,
-):
+def plot_per_class_f1_comparison(class_report_df: pd.DataFrame, save_path: Path):
     if class_report_df.empty:
-        print(f"[WARNING] Class report dataframe is empty. Cannot plot {metric_column}.")
-        return
-
-    if metric_column not in class_report_df.columns:
-        print(f"[WARNING] Missing {metric_column}. Cannot plot.")
+        print("[WARNING] Class report dataframe is empty.")
         return
 
     pivot_df = class_report_df.pivot(
         index="class",
         columns="model_display_name",
-        values=metric_column,
+        values="f1_score",
     )
 
     pivot_df = pivot_df.reindex(LABEL_ORDER)
@@ -338,21 +292,129 @@ def plot_per_class_metric_comparison(
 
         for bar in bars:
             height = bar.get_height()
+            ax.annotate(
+                f"{height:.2f}",
+                xy=(bar.get_x() + bar.get_width() / 2, height),
+                xytext=(0, 3),
+                textcoords="offset points",
+                ha="center",
+                va="bottom",
+                fontsize=8,
+            )
 
-            if not np.isnan(height):
-                ax.annotate(
-                    f"{height:.2f}",
-                    xy=(bar.get_x() + bar.get_width() / 2, height),
-                    xytext=(0, 3),
-                    textcoords="offset points",
-                    ha="center",
-                    va="bottom",
-                    fontsize=8,
-                )
-
-    ax.set_title(chart_title)
+    ax.set_title("Per-Class F1-score Comparison")
     ax.set_xlabel("Sentiment Class")
-    ax.set_ylabel(y_label)
+    ax.set_ylabel("F1-score")
+    ax.set_xticks(x)
+    ax.set_xticklabels(pivot_df.index)
+    ax.set_ylim(0, 1.05)
+    ax.legend()
+
+    fig.tight_layout()
+    plt.savefig(save_path, dpi=300, bbox_inches="tight")
+    plt.close()
+
+
+def plot_per_class_precision_comparison(class_report_df: pd.DataFrame, save_path: Path):
+    if class_report_df.empty:
+        print("[WARNING] Class report dataframe is empty.")
+        return
+
+    pivot_df = class_report_df.pivot(
+        index="class",
+        columns="model_display_name",
+        values="precision",
+    )
+
+    pivot_df = pivot_df.reindex(LABEL_ORDER)
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    x = np.arange(len(pivot_df.index))
+    model_names = list(pivot_df.columns)
+    width = 0.8 / max(len(model_names), 1)
+
+    for i, model_name in enumerate(model_names):
+        values = pivot_df[model_name].astype(float).values
+        offset = (i - (len(model_names) - 1) / 2) * width
+
+        bars = ax.bar(
+            x + offset,
+            values,
+            width,
+            label=model_name,
+        )
+
+        for bar in bars:
+            height = bar.get_height()
+            ax.annotate(
+                f"{height:.2f}",
+                xy=(bar.get_x() + bar.get_width() / 2, height),
+                xytext=(0, 3),
+                textcoords="offset points",
+                ha="center",
+                va="bottom",
+                fontsize=8,
+            )
+
+    ax.set_title("Per-Class Precision Comparison")
+    ax.set_xlabel("Sentiment Class")
+    ax.set_ylabel("Precision")
+    ax.set_xticks(x)
+    ax.set_xticklabels(pivot_df.index)
+    ax.set_ylim(0, 1.05)
+    ax.legend()
+
+    fig.tight_layout()
+    plt.savefig(save_path, dpi=300, bbox_inches="tight")
+    plt.close()
+
+
+def plot_per_class_recall_comparison(class_report_df: pd.DataFrame, save_path: Path):
+    if class_report_df.empty:
+        print("[WARNING] Class report dataframe is empty.")
+        return
+
+    pivot_df = class_report_df.pivot(
+        index="class",
+        columns="model_display_name",
+        values="recall",
+    )
+
+    pivot_df = pivot_df.reindex(LABEL_ORDER)
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    x = np.arange(len(pivot_df.index))
+    model_names = list(pivot_df.columns)
+    width = 0.8 / max(len(model_names), 1)
+
+    for i, model_name in enumerate(model_names):
+        values = pivot_df[model_name].astype(float).values
+        offset = (i - (len(model_names) - 1) / 2) * width
+
+        bars = ax.bar(
+            x + offset,
+            values,
+            width,
+            label=model_name,
+        )
+
+        for bar in bars:
+            height = bar.get_height()
+            ax.annotate(
+                f"{height:.2f}",
+                xy=(bar.get_x() + bar.get_width() / 2, height),
+                xytext=(0, 3),
+                textcoords="offset points",
+                ha="center",
+                va="bottom",
+                fontsize=8,
+            )
+
+    ax.set_title("Per-Class Recall Comparison")
+    ax.set_xlabel("Sentiment Class")
+    ax.set_ylabel("Recall")
     ax.set_xticks(x)
     ax.set_xticklabels(pivot_df.index)
     ax.set_ylim(0, 1.05)
@@ -387,45 +449,40 @@ def plot_macro_f1_ranking(metrics_df: pd.DataFrame, save_path: Path):
 
     for bar in bars:
         height = bar.get_height()
-
-        if not np.isnan(height):
-            ax.annotate(
-                f"{height:.3f}",
-                xy=(bar.get_x() + bar.get_width() / 2, height),
-                xytext=(0, 3),
-                textcoords="offset points",
-                ha="center",
-                va="bottom",
-                fontsize=10,
-            )
+        ax.annotate(
+            f"{height:.3f}",
+            xy=(bar.get_x() + bar.get_width() / 2, height),
+            xytext=(0, 3),
+            textcoords="offset points",
+            ha="center",
+            va="bottom",
+            fontsize=10,
+        )
 
     fig.tight_layout()
     plt.savefig(save_path, dpi=300, bbox_inches="tight")
     plt.close()
 
 
-# =====================================================
+# =========================
 # Summary / Explanation
-# =====================================================
+# =========================
 def generate_comparison_summary(metrics_df: pd.DataFrame, best_model_row: pd.Series):
     best_model_display = best_model_row["model_display_name"]
-    best_macro_f1 = float(best_model_row["macro_f1"])
-    best_accuracy = float(best_model_row["accuracy"])
+    best_macro_f1 = best_model_row["macro_f1"]
+    best_accuracy = best_model_row["accuracy"]
 
     summary = []
-
     summary.append("Model Comparison Summary")
     summary.append("=" * 60)
     summary.append("")
     summary.append("Models compared:")
 
     for _, row in metrics_df.iterrows():
-        model_name = row["model_display_name"]
-        accuracy = float(row["accuracy"])
-        macro_f1 = float(row["macro_f1"])
-
         summary.append(
-            f"- {model_name}: Accuracy = {accuracy:.4f}, Macro F1-score = {macro_f1:.4f}"
+            f"- {row['model_display_name']}: "
+            f"Accuracy = {row['accuracy']:.4f}, "
+            f"Macro F1-score = {row['macro_f1']:.4f}"
         )
 
     summary.append("")
@@ -434,34 +491,25 @@ def generate_comparison_summary(metrics_df: pd.DataFrame, best_model_row: pd.Ser
         f"The best-performing model is {best_model_display}, "
         f"with Accuracy = {best_accuracy:.4f} and Macro F1-score = {best_macro_f1:.4f}."
     )
-
     summary.append("")
     summary.append(
         "Macro F1-score was used as the main model selection criterion because "
-        "this sentiment analysis project evaluates three sentiment classes: positive, neutral and negative. "
-        "Macro F1-score treats each class equally, making it more suitable than accuracy alone for checking "
-        "whether the model performs consistently across all sentiment categories."
+        "the project compares performance across positive, neutral and negative sentiment classes. "
+        "Macro F1-score treats each class equally and is more suitable than accuracy alone when "
+        "the objective is to maintain balanced performance across all sentiment categories."
     )
-
     summary.append("")
     summary.append(
-        "Accuracy was used as a secondary comparison metric. If two models have a similar Macro F1-score, "
-        "the model with higher accuracy and better deployment suitability can be preferred."
-    )
-
-    summary.append("")
-    summary.append(
-        "For this project, deployment suitability is also important because the final model is used inside "
-        "the StayWise KL Streamlit web application. Therefore, the selected model should balance predictive "
-        "performance, stability, and ease of deployment."
+        "The final deployed model should be selected based on both model performance and deployment suitability. "
+        "If two models have similar Macro F1-score, the simpler and more stable model may be preferred for Streamlit deployment."
     )
 
     return "\n".join(summary)
 
 
-# =====================================================
+# =========================
 # Main Function
-# =====================================================
+# =========================
 def main():
     print("=" * 60)
     print("Comparing Model Results")
@@ -477,13 +525,10 @@ def main():
         )
 
     print("\nModels found:")
-
     for model in existing_models:
         print(f"- {MODEL_DISPLAY_NAMES.get(model, model)}")
 
-    # =====================================================
     # Load metrics summaries
-    # =====================================================
     metrics_records = []
 
     for model_name in existing_models:
@@ -497,14 +542,10 @@ def main():
 
     metrics_df = pd.DataFrame(metrics_records)
 
-    # =====================================================
-    # Keep useful columns first
-    # =====================================================
+    # Keep only useful columns if they exist
     preferred_columns = [
         "model_name",
         "model_display_name",
-        "algorithm",
-        "pretrained_model",
         "accuracy",
         "macro_precision",
         "macro_recall",
@@ -518,9 +559,9 @@ def main():
         "validation_samples",
         "test_samples",
         "epochs_trained",
-        "train_test_duplicate_text_count",
         "text_column",
         "label_column",
+        "pretrained_model",
         "device",
     ]
 
@@ -529,46 +570,22 @@ def main():
 
     metrics_df = metrics_df[existing_columns + remaining_columns].copy()
 
-    # =====================================================
-    # Convert metrics to numeric
-    # =====================================================
+    # Convert numeric metrics safely
     for metric in OVERALL_METRICS:
         if metric in metrics_df.columns:
             metrics_df[metric] = pd.to_numeric(metrics_df[metric], errors="coerce")
 
-    required_sort_columns = ["macro_f1", "accuracy"]
-
-    for col in required_sort_columns:
-        if col not in metrics_df.columns:
-            raise ValueError(f"Required metric column missing: {col}")
-
-    metrics_df = metrics_df.dropna(subset=required_sort_columns).copy()
-
-    if metrics_df.empty:
-        raise ValueError("No valid model metrics available after removing missing values.")
-
-    # =====================================================
     # Sort by Macro F1 first, then Accuracy
-    # =====================================================
     metrics_df = metrics_df.sort_values(
         by=["macro_f1", "accuracy"],
         ascending=False,
     ).reset_index(drop=True)
 
-    # =====================================================
     # Save overall model evaluation result
-    # =====================================================
     model_evaluation_path = REPORT_DIR / "model_evaluation_results.csv"
+    metrics_df.to_csv(model_evaluation_path, index=False)
 
-    metrics_df.to_csv(
-        model_evaluation_path,
-        index=False,
-        encoding="utf-8-sig",
-    )
-
-    # =====================================================
     # Load classification reports
-    # =====================================================
     class_report_frames = []
 
     for model_name in existing_models:
@@ -583,16 +600,9 @@ def main():
         all_class_reports_df = pd.DataFrame()
 
     all_class_reports_path = REPORT_DIR / "all_model_classification_reports.csv"
+    all_class_reports_df.to_csv(all_class_reports_path, index=False)
 
-    all_class_reports_df.to_csv(
-        all_class_reports_path,
-        index=False,
-        encoding="utf-8-sig",
-    )
-
-    # =====================================================
     # Load confusion matrices
-    # =====================================================
     confusion_frames = []
 
     for model_name in existing_models:
@@ -607,16 +617,9 @@ def main():
         all_confusion_df = pd.DataFrame()
 
     all_confusion_path = REPORT_DIR / "all_model_confusion_matrices.csv"
+    all_confusion_df.to_csv(all_confusion_path, index=False)
 
-    all_confusion_df.to_csv(
-        all_confusion_path,
-        index=False,
-        encoding="utf-8-sig",
-    )
-
-    # =====================================================
     # Best model summary
-    # =====================================================
     best_model_row = metrics_df.iloc[0]
 
     best_model_summary = {
@@ -624,10 +627,9 @@ def main():
         "best_model_display_name": best_model_row["model_display_name"],
         "selection_criterion": "Highest Macro F1-score; Accuracy used as tie-breaker",
         "accuracy": float(best_model_row["accuracy"]),
-        "macro_precision": float(best_model_row.get("macro_precision", np.nan)),
-        "macro_recall": float(best_model_row.get("macro_recall", np.nan)),
+        "macro_precision": float(best_model_row["macro_precision"]),
+        "macro_recall": float(best_model_row["macro_recall"]),
         "macro_f1": float(best_model_row["macro_f1"]),
-        "weighted_f1": float(best_model_row.get("weighted_f1", np.nan)),
         "reason": (
             "The final model was selected mainly using Macro F1-score because "
             "the project needs balanced performance across positive, neutral and negative sentiment classes. "
@@ -635,34 +637,18 @@ def main():
         ),
     }
 
-    if "algorithm" in best_model_row.index:
-        best_model_summary["algorithm"] = str(best_model_row["algorithm"])
-
-    if "pretrained_model" in best_model_row.index:
-        best_model_summary["pretrained_model"] = str(best_model_row["pretrained_model"])
-
     best_model_summary_path = REPORT_DIR / "best_model_summary.json"
     save_json(best_model_summary, best_model_summary_path)
 
     best_model_summary_csv_path = REPORT_DIR / "best_model_summary.csv"
+    pd.DataFrame([best_model_summary]).to_csv(best_model_summary_csv_path, index=False)
 
-    pd.DataFrame([best_model_summary]).to_csv(
-        best_model_summary_csv_path,
-        index=False,
-        encoding="utf-8-sig",
-    )
-
-    # =====================================================
     # Text summary for report writing
-    # =====================================================
     comparison_text = generate_comparison_summary(metrics_df, best_model_row)
-
     comparison_text_path = REPORT_DIR / "model_comparison_summary.txt"
     save_text(comparison_text, comparison_text_path)
 
-    # =====================================================
     # Generate comparison graphs
-    # =====================================================
     print("\nGenerating comparison graphs...")
 
     plot_overall_metrics_comparison(
@@ -681,41 +667,29 @@ def main():
     )
 
     if not all_class_reports_df.empty:
-        plot_per_class_metric_comparison(
+        plot_per_class_f1_comparison(
             all_class_reports_df,
-            "f1_score",
-            "Per-Class F1-score Comparison",
-            "F1-score",
             GRAPH_DIR / "model_comparison_per_class_f1.png",
         )
 
-        plot_per_class_metric_comparison(
+        plot_per_class_precision_comparison(
             all_class_reports_df,
-            "precision",
-            "Per-Class Precision Comparison",
-            "Precision",
             GRAPH_DIR / "model_comparison_per_class_precision.png",
         )
 
-        plot_per_class_metric_comparison(
+        plot_per_class_recall_comparison(
             all_class_reports_df,
-            "recall",
-            "Per-Class Recall Comparison",
-            "Recall",
             GRAPH_DIR / "model_comparison_per_class_recall.png",
         )
     else:
         print("[WARNING] No classification reports found. Skipping per-class comparison graphs.")
 
-    # =====================================================
     # Print final summary
-    # =====================================================
     print("\n" + "=" * 60)
     print("Model Comparison Completed Successfully")
     print("=" * 60)
 
     print("\nOverall ranking:")
-
     for index, row in metrics_df.iterrows():
         print(
             f"{index + 1}. {row['model_display_name']} | "

@@ -57,12 +57,6 @@ LABEL_ID_MAPPING = {
     "positive": 2,
 }
 
-SENTIMENT_SORT_ORDER = {
-    "positive": 0,
-    "neutral": 1,
-    "negative": 2,
-}
-
 
 # =====================================================
 # Emoji and Emoticon Mapping
@@ -231,74 +225,6 @@ def load_input_dataset() -> pd.DataFrame:
         "No dataset file found. Please place either training_dataset.csv "
         "or training_dataset.xlsx inside the data folder."
     )
-
-
-# =====================================================
-# Column Detection
-# =====================================================
-def detect_text_column(df: pd.DataFrame) -> str:
-    possible_text_columns = [
-        "Sentence",
-        "sentence",
-        "Review_Text",
-        "Review Text",
-        "review_text",
-        "Text",
-        "text",
-        "Review",
-        "review",
-    ]
-
-    for col in possible_text_columns:
-        if col in df.columns:
-            return col
-
-    raise ValueError(
-        "No valid review text column found. Please make sure your dataset has "
-        "a column named 'Sentence', 'sentence', or 'Review_Text'."
-    )
-
-
-def detect_sentiment_column(df: pd.DataFrame) -> str:
-    possible_sentiment_columns = [
-        "Sentiment",
-        "sentiment",
-        "Label",
-        "label",
-        "Class",
-        "class",
-    ]
-
-    for col in possible_sentiment_columns:
-        if col in df.columns:
-            return col
-
-    raise ValueError(
-        "No valid sentiment column found. Please make sure your dataset has "
-        "a column named 'Sentiment' or 'sentiment'."
-    )
-
-
-def detect_hotel_column(df: pd.DataFrame) -> str | None:
-    possible_hotel_columns = [
-        "Hotel",
-        "hotel",
-        "Hotel_Name",
-        "hotel_name",
-        "Hotel Name",
-        "Location",
-        "location",
-        "Property",
-        "property",
-        "Property_Name",
-        "property_name",
-    ]
-
-    for col in possible_hotel_columns:
-        if col in df.columns:
-            return col
-
-    return None
 
 
 # =====================================================
@@ -527,33 +453,46 @@ def normalize_sentiment(label: str) -> str:
     return SENTIMENT_MAPPING.get(label, label)
 
 
-# =====================================================
-# Dataset Sorting Helper
-# =====================================================
-def sort_by_sentiment_and_hotel(df: pd.DataFrame, hotel_col: str | None) -> pd.DataFrame:
-    df = df.copy()
-    df["_Sentiment_Order"] = df["Sentiment"].map(SENTIMENT_SORT_ORDER)
+def detect_text_column(df: pd.DataFrame) -> str:
+    possible_text_columns = [
+        "Sentence",
+        "Review_Text",
+        "Review Text",
+        "review_text",
+        "Text",
+        "text",
+        "Review",
+        "review",
+    ]
 
-    if hotel_col is not None and hotel_col in df.columns:
-        df[hotel_col] = df[hotel_col].astype(str).str.strip()
+    for col in possible_text_columns:
+        if col in df.columns:
+            return col
 
-        df = df.sort_values(
-            by=["_Sentiment_Order", hotel_col, "Review_Text"],
-            ascending=[True, True, True]
-        ).reset_index(drop=True)
+    raise ValueError(
+        "No valid review text column found. Please make sure your dataset has "
+        "a column named 'Sentence' or 'Review_Text'."
+    )
 
-        print(f"\nFinal dataset sorted by Sentiment order and hotel column: {hotel_col}")
-    else:
-        df = df.sort_values(
-            by=["_Sentiment_Order", "Review_Text"],
-            ascending=[True, True]
-        ).reset_index(drop=True)
 
-        print("\nNo hotel column detected. Final dataset sorted by Sentiment order and Review_Text.")
+def detect_sentiment_column(df: pd.DataFrame) -> str:
+    possible_sentiment_columns = [
+        "Sentiment",
+        "sentiment",
+        "Label",
+        "label",
+        "Class",
+        "class",
+    ]
 
-    df = df.drop(columns=["_Sentiment_Order"])
+    for col in possible_sentiment_columns:
+        if col in df.columns:
+            return col
 
-    return df
+    raise ValueError(
+        "No valid sentiment column found. Please make sure your dataset has "
+        "a column named 'Sentiment'."
+    )
 
 
 # =====================================================
@@ -576,26 +515,11 @@ def main():
 
     text_col = detect_text_column(df)
     sentiment_col = detect_sentiment_column(df)
-    hotel_col = detect_hotel_column(df)
 
     print("\nDetected text column:", text_col)
     print("Detected sentiment column:", sentiment_col)
 
-    if hotel_col is not None:
-        print("Detected hotel column:", hotel_col)
-    else:
-        print("Detected hotel column: None")
-
     df = df.copy()
-
-    # =====================================================
-    # Standardise source column
-    # =====================================================
-    if "source" in df.columns:
-        df["source"] = "Agoda"
-    elif "Source" in df.columns:
-        df["Source"] = "Agoda"
-
     df["Review_Text"] = df[text_col].astype(str)
     df["Sentiment"] = df[sentiment_col].apply(normalize_sentiment)
 
@@ -692,7 +616,8 @@ def main():
             group_df.sample(n=min_class_count, random_state=42)
         )
 
-    df = pd.concat(balanced_parts).reset_index(drop=True)
+    df = pd.concat(balanced_parts)
+    df = df.sample(frac=1, random_state=42).reset_index(drop=True)
 
     after_balance = len(df)
 
@@ -728,12 +653,7 @@ def main():
 
     df = df[final_columns + extra_columns]
 
-    # =====================================================
-    # Sort final full dataset for checking/reporting
-    # positive -> neutral -> negative
-    # Inside each sentiment, group by same hotel
-    # =====================================================
-    df = sort_by_sentiment_and_hotel(df, hotel_col)
+    df = df.sort_values(by=["Sentiment", "Review_Text"]).reset_index(drop=True)
 
     print("\nFinal dataset shape:", df.shape)
     print("\nFinal sentiment distribution:")
@@ -746,16 +666,12 @@ def main():
 
     # =====================================================
     # Train-test split
-    # Important:
-    # The full preprocessed file is sorted for readability.
-    # But train-test split must still shuffle + stratify for fair training/testing.
     # =====================================================
     train_df, test_df = train_test_split(
         df,
         test_size=0.2,
         random_state=42,
-        stratify=df["Sentiment"],
-        shuffle=True
+        stratify=df["Sentiment"]
     )
 
     train_df = train_df.reset_index(drop=True)
@@ -834,14 +750,6 @@ def main():
             "Value": int(df["Sentiment"].value_counts().get("negative", 0)),
         },
     ]
-
-    if hotel_col is not None and hotel_col in df.columns:
-        summary_rows.append(
-            {
-                "Item": "Hotel Column Used For Sorting",
-                "Value": hotel_col,
-            }
-        )
 
     summary_df = pd.DataFrame(summary_rows)
     summary_df.to_csv(OUTPUT_SUMMARY, index=False, encoding="utf-8-sig")

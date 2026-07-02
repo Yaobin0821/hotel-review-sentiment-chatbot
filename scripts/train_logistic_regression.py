@@ -3,12 +3,8 @@
 from pathlib import Path
 import json
 import joblib
-
 import numpy as np
 import pandas as pd
-
-import matplotlib
-matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from sklearn.pipeline import Pipeline
@@ -25,19 +21,17 @@ from sklearn.metrics import (
 from sklearn.preprocessing import label_binarize
 
 
-# =====================================================
+# =========================
 # Configuration
-# =====================================================
+# =========================
 MODEL_NAME = "logistic_regression"
 
-BASE_DIR = Path(__file__).resolve().parents[1]
+TRAIN_PATH = Path("data/train_dataset.csv")
+TEST_PATH = Path("data/test_dataset.csv")
 
-TRAIN_PATH = BASE_DIR / "data" / "train_dataset.csv"
-TEST_PATH = BASE_DIR / "data" / "test_dataset.csv"
-
-MODEL_DIR = BASE_DIR / "models"
-REPORT_DIR = BASE_DIR / "reports"
-GRAPH_DIR = BASE_DIR / "graphs"
+MODEL_DIR = Path("models")
+REPORT_DIR = Path("reports")
+GRAPH_DIR = Path("graphs")
 
 TEXT_COLUMN = "Cleaned_Text"
 LABEL_COLUMN = "Sentiment"
@@ -47,44 +41,40 @@ LABEL_ORDER = ["negative", "neutral", "positive"]
 RANDOM_STATE = 42
 
 
-# =====================================================
+# =========================
 # Utility Functions
-# =====================================================
+# =========================
 def ensure_directories():
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
     GRAPH_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def read_csv_safe(file_path: Path) -> pd.DataFrame:
-    try:
-        return pd.read_csv(file_path, encoding="utf-8-sig")
-    except UnicodeDecodeError:
-        return pd.read_csv(file_path, encoding="latin1")
-
-
 def load_dataset(file_path: Path) -> pd.DataFrame:
     if not file_path.exists():
         raise FileNotFoundError(f"File not found: {file_path}")
 
-    df = read_csv_safe(file_path)
+    df = pd.read_csv(file_path)
 
     required_columns = [TEXT_COLUMN, LABEL_COLUMN]
-
     for col in required_columns:
         if col not in df.columns:
             raise ValueError(f"Required column '{col}' not found in {file_path}")
 
+    # Basic cleanup for safety
     df[TEXT_COLUMN] = df[TEXT_COLUMN].fillna("").astype(str).str.strip()
     df[LABEL_COLUMN] = df[LABEL_COLUMN].fillna("").astype(str).str.strip().str.lower()
 
+    # Remove empty text rows if any
     df = df[df[TEXT_COLUMN] != ""].copy()
+
+    # Keep only valid labels
     df = df[df[LABEL_COLUMN].isin(LABEL_ORDER)].copy()
 
     if df.empty:
         raise ValueError(f"Dataset is empty after cleaning: {file_path}")
 
-    return df.reset_index(drop=True)
+    return df
 
 
 def save_text_report(text: str, file_path: Path):
@@ -97,24 +87,9 @@ def save_json(data: dict, file_path: Path):
         json.dump(data, f, indent=4, ensure_ascii=False)
 
 
-def check_train_test_leakage(train_df: pd.DataFrame, test_df: pd.DataFrame):
-    train_text_set = set(train_df[TEXT_COLUMN].astype(str))
-    test_text_set = set(test_df[TEXT_COLUMN].astype(str))
-
-    overlap_texts = train_text_set.intersection(test_text_set)
-
-    if overlap_texts:
-        print(f"\nWarning: {len(overlap_texts)} duplicated texts found in both train and test set.")
-        print("This may cause data leakage. Please check your preprocessing split.")
-    else:
-        print("\nNo duplicated texts found between train and test set.")
-
-    return overlap_texts
-
-
-# =====================================================
+# =========================
 # Plot Functions
-# =====================================================
+# =========================
 def plot_confusion_matrix(cm, labels, save_path: Path):
     fig, ax = plt.subplots(figsize=(7, 6))
     im = ax.imshow(cm, interpolation="nearest", cmap="Blues")
@@ -133,16 +108,12 @@ def plot_confusion_matrix(cm, labels, save_path: Path):
     plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
 
     threshold = cm.max() / 2 if cm.max() > 0 else 0
-
     for i in range(cm.shape[0]):
         for j in range(cm.shape[1]):
             ax.text(
-                j,
-                i,
-                format(cm[i, j], "d"),
-                ha="center",
-                va="center",
-                color="white" if cm[i, j] > threshold else "black",
+                j, i, format(cm[i, j], "d"),
+                ha="center", va="center",
+                color="white" if cm[i, j] > threshold else "black"
             )
 
     fig.tight_layout()
@@ -159,7 +130,6 @@ def plot_class_metrics(report_dict, labels, save_path: Path):
     width = 0.25
 
     fig, ax = plt.subplots(figsize=(10, 6))
-
     bars1 = ax.bar(x - width, precisions, width, label="Precision")
     bars2 = ax.bar(x, recalls, width, label="Recall")
     bars3 = ax.bar(x + width, f1_scores, width, label="F1-score")
@@ -225,6 +195,7 @@ def plot_overall_metrics(metrics: dict, save_path: Path):
 
 
 def plot_multiclass_roc(y_true, y_prob, labels, save_path: Path):
+    # Binarize true labels
     y_true_bin = label_binarize(y_true, classes=labels)
 
     fig, ax = plt.subplots(figsize=(8, 6))
@@ -232,16 +203,9 @@ def plot_multiclass_roc(y_true, y_prob, labels, save_path: Path):
     for i, label in enumerate(labels):
         fpr, tpr, _ = roc_curve(y_true_bin[:, i], y_prob[:, i])
         roc_auc = auc(fpr, tpr)
-
-        ax.plot(
-            fpr,
-            tpr,
-            lw=2,
-            label=f"{label} (AUC = {roc_auc:.3f})",
-        )
+        ax.plot(fpr, tpr, lw=2, label=f"{label} (AUC = {roc_auc:.3f})")
 
     ax.plot([0, 1], [0, 1], linestyle="--", linewidth=1)
-
     ax.set_xlim([0.0, 1.0])
     ax.set_ylim([0.0, 1.05])
     ax.set_xlabel("False Positive Rate")
@@ -254,9 +218,9 @@ def plot_multiclass_roc(y_true, y_prob, labels, save_path: Path):
     plt.close()
 
 
-# =====================================================
+# =========================
 # Main Training Function
-# =====================================================
+# =========================
 def main():
     print("=" * 60)
     print("Training Logistic Regression Model")
@@ -264,22 +228,16 @@ def main():
 
     ensure_directories()
 
-    # =====================================================
     # Load data
-    # =====================================================
     train_df = load_dataset(TRAIN_PATH)
     test_df = load_dataset(TEST_PATH)
 
-    print(f"\nTrain dataset shape: {train_df.shape}")
+    print(f"Train dataset shape: {train_df.shape}")
     print(f"Test dataset shape: {test_df.shape}")
-
     print("\nTrain label distribution:")
     print(train_df[LABEL_COLUMN].value_counts())
-
     print("\nTest label distribution:")
     print(test_df[LABEL_COLUMN].value_counts())
-
-    overlap_texts = check_train_test_leakage(train_df, test_df)
 
     X_train = train_df[TEXT_COLUMN]
     y_train = train_df[LABEL_COLUMN]
@@ -287,84 +245,58 @@ def main():
     X_test = test_df[TEXT_COLUMN]
     y_test = test_df[LABEL_COLUMN]
 
-    # =====================================================
     # Build pipeline
-    # =====================================================
-    pipeline = Pipeline(
-        [
-            (
-                "tfidf",
-                TfidfVectorizer(
-                    ngram_range=(1, 2),
-                    min_df=2,
-                    max_df=0.95,
-                    sublinear_tf=True,
-                    max_features=10000,
-                ),
-            ),
-            (
-                "classifier",
-                LogisticRegression(
-                    max_iter=2000,
-                    random_state=RANDOM_STATE,
-                    solver="lbfgs",
-                ),
-            ),
-        ]
-    )
+    pipeline = Pipeline([
+        (
+            "tfidf",
+            TfidfVectorizer(
+                ngram_range=(1, 2),
+                min_df=2,
+                max_df=0.95,
+                sublinear_tf=True,
+                max_features=10000,
+            )
+        ),
+        (
+            "classifier",
+            LogisticRegression(
+                max_iter=2000,
+                random_state=RANDOM_STATE,
+                solver="lbfgs",
+                multi_class="multinomial"
+            )
+        )
+    ])
 
-    print("\nTraining configuration:")
-    print(f"Text column: {TEXT_COLUMN}")
-    print(f"Label column: {LABEL_COLUMN}")
-    print("Algorithm: TF-IDF + Logistic Regression")
-    print("TF-IDF ngram range: (1, 2)")
-    print("TF-IDF max features: 10000")
-    print("Logistic Regression solver: lbfgs")
-    print("Logistic Regression max_iter: 2000")
-
-    # =====================================================
     # Train
-    # =====================================================
     print("\nTraining model...")
     pipeline.fit(X_train, y_train)
 
-    # =====================================================
     # Predict
-    # =====================================================
-    print("\nEvaluating model...")
-
+    print("Evaluating model...")
     y_pred = pipeline.predict(X_test)
     y_prob_raw = pipeline.predict_proba(X_test)
 
+    # Reorder probabilities to match LABEL_ORDER
     model_classes = list(pipeline.named_steps["classifier"].classes_)
-
-    missing_classes = [label for label in LABEL_ORDER if label not in model_classes]
-    if missing_classes:
-        raise ValueError(
-            f"Model did not learn all required classes. Missing classes: {missing_classes}"
-        )
-
     prob_df = pd.DataFrame(y_prob_raw, columns=model_classes)
     prob_df = prob_df[LABEL_ORDER]
     y_prob = prob_df.values
 
-    # =====================================================
     # Metrics
-    # =====================================================
     accuracy = accuracy_score(y_test, y_pred)
-
     macro_precision, macro_recall, macro_f1, _ = precision_recall_fscore_support(
         y_test,
         y_pred,
         average="macro",
-        zero_division=0,
+        zero_division=0
     )
 
     weighted_precision, weighted_recall, weighted_f1, _ = precision_recall_fscore_support(
         y_test,
         y_pred,
         average="weighted",
-        zero_division=0,
+        zero_division=0
     )
 
     report_dict = classification_report(
@@ -372,39 +304,27 @@ def main():
         y_pred,
         labels=LABEL_ORDER,
         output_dict=True,
-        zero_division=0,
+        zero_division=0
     )
 
     report_text = classification_report(
         y_test,
         y_pred,
         labels=LABEL_ORDER,
-        zero_division=0,
+        zero_division=0
     )
 
-    cm = confusion_matrix(
-        y_test,
-        y_pred,
-        labels=LABEL_ORDER,
-    )
+    cm = confusion_matrix(y_test, y_pred, labels=LABEL_ORDER)
 
-    # =====================================================
     # Save model
-    # =====================================================
     model_path = MODEL_DIR / f"{MODEL_NAME}_model.pkl"
-
     joblib.dump(pipeline, model_path)
 
-    # =====================================================
     # Save metrics summary
-    # =====================================================
     metrics_summary = {
         "model_name": MODEL_NAME,
-        "algorithm": "TF-IDF + Logistic Regression",
         "text_column": TEXT_COLUMN,
         "label_column": LABEL_COLUMN,
-        "train_file": str(TRAIN_PATH),
-        "test_file": str(TEST_PATH),
         "train_samples": int(len(train_df)),
         "test_samples": int(len(test_df)),
         "accuracy": float(accuracy),
@@ -414,80 +334,42 @@ def main():
         "weighted_precision": float(weighted_precision),
         "weighted_recall": float(weighted_recall),
         "weighted_f1": float(weighted_f1),
-        "train_test_duplicate_text_count": int(len(overlap_texts)),
     }
 
     metrics_df = pd.DataFrame([metrics_summary])
+    metrics_df.to_csv(REPORT_DIR / f"{MODEL_NAME}_metrics_summary.csv", index=False)
 
-    metrics_df.to_csv(
-        REPORT_DIR / f"{MODEL_NAME}_metrics_summary.csv",
-        index=False,
-        encoding="utf-8-sig",
-    )
-
-    # =====================================================
     # Save classification report
-    # =====================================================
     report_df = pd.DataFrame(report_dict).transpose()
-
-    report_df.to_csv(
-        REPORT_DIR / f"{MODEL_NAME}_classification_report.csv",
-        index=True,
-        encoding="utf-8-sig",
-    )
+    report_df.to_csv(REPORT_DIR / f"{MODEL_NAME}_classification_report.csv", index=True)
 
     save_text_report(
         report_text,
-        REPORT_DIR / f"{MODEL_NAME}_classification_report.txt",
+        REPORT_DIR / f"{MODEL_NAME}_classification_report.txt"
     )
 
-    # =====================================================
     # Save confusion matrix
-    # =====================================================
-    cm_df = pd.DataFrame(
-        cm,
-        index=LABEL_ORDER,
-        columns=LABEL_ORDER,
-    )
+    cm_df = pd.DataFrame(cm, index=LABEL_ORDER, columns=LABEL_ORDER)
+    cm_df.to_csv(REPORT_DIR / f"{MODEL_NAME}_confusion_matrix.csv")
 
-    cm_df.to_csv(
-        REPORT_DIR / f"{MODEL_NAME}_confusion_matrix.csv",
-        encoding="utf-8-sig",
-    )
+    # Save predictions
+    predictions_df = pd.DataFrame({
+        "Text": X_test.values,
+        "Actual_Label": y_test.values,
+        "Predicted_Label": y_pred,
+        "Correct": (y_test.values == y_pred),
+        "Confidence": y_prob.max(axis=1),
+        "Prob_Negative": y_prob[:, 0],
+        "Prob_Neutral": y_prob[:, 1],
+        "Prob_Positive": y_prob[:, 2],
+    })
+    predictions_df.to_csv(REPORT_DIR / f"{MODEL_NAME}_test_predictions.csv", index=False)
 
-    # =====================================================
-    # Save predictions with original metadata
-    # =====================================================
-    predictions_df = test_df.reset_index(drop=True).copy()
-
-    predictions_df["Actual_Label"] = y_test.values
-    predictions_df["Predicted_Label"] = y_pred
-    predictions_df["Correct"] = y_test.values == y_pred
-    predictions_df["Confidence"] = y_prob.max(axis=1)
-    predictions_df["Prob_Negative"] = y_prob[:, 0]
-    predictions_df["Prob_Neutral"] = y_prob[:, 1]
-    predictions_df["Prob_Positive"] = y_prob[:, 2]
-
-    predictions_df.to_csv(
-        REPORT_DIR / f"{MODEL_NAME}_test_predictions.csv",
-        index=False,
-        encoding="utf-8-sig",
-    )
-
-    # =====================================================
-    # Save misclassified samples with metadata
-    # =====================================================
+    # Save misclassified samples
     misclassified_df = predictions_df[predictions_df["Correct"] == False].copy()
+    misclassified_df.to_csv(REPORT_DIR / f"{MODEL_NAME}_misclassified_samples.csv", index=False)
 
-    misclassified_df.to_csv(
-        REPORT_DIR / f"{MODEL_NAME}_misclassified_samples.csv",
-        index=False,
-        encoding="utf-8-sig",
-    )
-
-    # =====================================================
     # Save model config
-    # =====================================================
     save_json(
         {
             "model_name": MODEL_NAME,
@@ -497,79 +379,65 @@ def main():
             "text_column": TEXT_COLUMN,
             "label_column": LABEL_COLUMN,
             "label_order": LABEL_ORDER,
-            "random_state": RANDOM_STATE,
-            "train_test_duplicate_text_count": int(len(overlap_texts)),
             "tfidf_params": {
                 "ngram_range": [1, 2],
                 "min_df": 2,
                 "max_df": 0.95,
                 "sublinear_tf": True,
-                "max_features": 10000,
+                "max_features": 10000
             },
             "logistic_regression_params": {
                 "max_iter": 2000,
                 "random_state": RANDOM_STATE,
                 "solver": "lbfgs",
-            },
+                "multi_class": "multinomial"
+            }
         },
-        REPORT_DIR / f"{MODEL_NAME}_config.json",
+        REPORT_DIR / f"{MODEL_NAME}_config.json"
     )
 
-    # =====================================================
     # Generate graphs
-    # =====================================================
-    print("\nGenerating graphs...")
-
+    print("Generating graphs...")
     plot_confusion_matrix(
         cm,
         LABEL_ORDER,
-        GRAPH_DIR / f"{MODEL_NAME}_confusion_matrix.png",
+        GRAPH_DIR / f"{MODEL_NAME}_confusion_matrix.png"
     )
 
     plot_class_metrics(
         report_dict,
         LABEL_ORDER,
-        GRAPH_DIR / f"{MODEL_NAME}_per_class_metrics.png",
+        GRAPH_DIR / f"{MODEL_NAME}_per_class_metrics.png"
     )
 
     plot_overall_metrics(
         metrics_summary,
-        GRAPH_DIR / f"{MODEL_NAME}_overall_metrics.png",
+        GRAPH_DIR / f"{MODEL_NAME}_overall_metrics.png"
     )
 
     plot_multiclass_roc(
         y_test.values,
         y_prob,
         LABEL_ORDER,
-        GRAPH_DIR / f"{MODEL_NAME}_roc_curve.png",
+        GRAPH_DIR / f"{MODEL_NAME}_roc_curve.png"
     )
 
-    # =====================================================
     # Print summary
-    # =====================================================
     print("\n" + "=" * 60)
-    print("Logistic Regression Training Completed Successfully")
+    print("Training Completed Successfully")
     print("=" * 60)
-
     print(f"Model saved to: {model_path}")
-
-    print("\nEvaluation Results:")
-    print(f"Accuracy:          {accuracy:.4f}")
-    print(f"Macro Precision:   {macro_precision:.4f}")
-    print(f"Macro Recall:      {macro_recall:.4f}")
-    print(f"Macro F1-score:    {macro_f1:.4f}")
-    print(f"Weighted F1-score: {weighted_f1:.4f}")
-
-    print("\nGenerated report files:")
+    print(f"Accuracy:         {accuracy:.4f}")
+    print(f"Macro Precision:  {macro_precision:.4f}")
+    print(f"Macro Recall:     {macro_recall:.4f}")
+    print(f"Macro F1-score:   {macro_f1:.4f}")
+    print("\nGenerated files:")
     print(f"- {REPORT_DIR / f'{MODEL_NAME}_metrics_summary.csv'}")
     print(f"- {REPORT_DIR / f'{MODEL_NAME}_classification_report.csv'}")
     print(f"- {REPORT_DIR / f'{MODEL_NAME}_classification_report.txt'}")
     print(f"- {REPORT_DIR / f'{MODEL_NAME}_confusion_matrix.csv'}")
     print(f"- {REPORT_DIR / f'{MODEL_NAME}_test_predictions.csv'}")
     print(f"- {REPORT_DIR / f'{MODEL_NAME}_misclassified_samples.csv'}")
-    print(f"- {REPORT_DIR / f'{MODEL_NAME}_config.json'}")
-
-    print("\nGenerated graph files:")
     print(f"- {GRAPH_DIR / f'{MODEL_NAME}_confusion_matrix.png'}")
     print(f"- {GRAPH_DIR / f'{MODEL_NAME}_per_class_metrics.png'}")
     print(f"- {GRAPH_DIR / f'{MODEL_NAME}_overall_metrics.png'}")

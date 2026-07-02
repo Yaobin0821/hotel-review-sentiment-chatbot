@@ -631,7 +631,23 @@ def main():
         device,
     )
 
-    y_pred_id = np.argmax(y_prob, axis=1)
+    y_pred_id = np.argmax(y_prob, axis=1)# Neutral threshold adjustment
+    NEUTRAL_ID = 1
+    NEUTRAL_THRESHOLD = 0.45
+
+    y_pred_id = []
+
+    for prob in y_prob:
+            pred = int(np.argmax(prob))
+
+            if pred == NEUTRAL_ID and prob[NEUTRAL_ID] < NEUTRAL_THRESHOLD:
+                prob_without_neutral = prob.copy()
+                prob_without_neutral[NEUTRAL_ID] = -1
+                pred = int(np.argmax(prob_without_neutral))
+
+            y_pred_id.append(pred)
+
+    y_pred_id = np.array(y_pred_id)
 
     y_test_label = [ID_TO_SENTIMENT[int(i)] for i in y_true_id]
     y_pred_label = [ID_TO_SENTIMENT[int(i)] for i in y_pred_id]

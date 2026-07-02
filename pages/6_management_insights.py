@@ -359,39 +359,40 @@ def load_management_css():
         }
 
         .access-card {
-            max-width: 620px;
-            margin: 1rem auto 1.2rem auto;
+            max-width: 560px;
+            margin: 0.75rem auto 0.65rem auto;
             background: rgba(255, 255, 255, 0.96);
             border: 1px solid var(--border);
             border-radius: 28px;
-            padding: 1.2rem;
+            padding: 1.15rem;
             box-shadow: var(--shadow-card);
         }
 
         .access-title {
             color: var(--text-main);
-            font-size: 1.35rem;
+            font-size: 1.45rem;
             font-weight: 950;
-            letter-spacing: -0.04em;
-            margin-bottom: 0.25rem;
+            letter-spacing: -0.05em;
+            margin-bottom: 0.35rem;
         }
 
         .access-desc {
             color: #64748B;
             font-size: 0.9rem;
             line-height: 1.45;
-            margin-bottom: 0.9rem;
         }
 
-        .access-note {
+        .access-small-note {
+            max-width: 560px;
+            margin: 0.65rem auto 0 auto;
             background: #FFF8EF;
             border: 1px solid #EAD7C6;
-            border-radius: 18px;
-            padding: 0.8rem;
+            border-radius: 16px;
+            padding: 0.7rem 0.85rem;
             color: #7C6F64;
-            font-size: 0.82rem;
-            line-height: 1.45;
-            margin-top: 0.8rem;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            text-align: center;
         }
 
         .management-mode-bar {
@@ -671,30 +672,43 @@ def require_management_access():
     if st.session_state.get("management_access_granted", False):
         return
 
-    render_html("""
-    <div class="access-card">
-        <div class="access-title">Staff Access Required</div>
-        <div class="access-desc">
-            This page is designed for hotel management users only. Enter the management access code to view improvement priorities and action plans.
-        </div>
-        <div class="access-note">
-            Prototype note: This system does not include a full login system. A simple access code is used to separate management-facing features from traveller-facing pages.
-        </div>
-    </div>
-    """)
+    left_space, access_col, right_space = st.columns([0.25, 0.5, 0.25])
 
-    entered_code = st.text_input(
-        "Management access code",
-        type="password",
-        placeholder="Enter staff access code"
-    )
+    with access_col:
+        render_html("""
+        <div class="access-card">
+            <div class="mgmt-badge">Staff only</div>
+            <div class="access-title">Hotel Management Access</div>
+            <div class="access-desc">
+                This page is for hotel management users. Enter the access code to view improvement priorities and action plans.
+            </div>
+        </div>
+        """)
 
-    if st.button("Enter Management Portal", use_container_width=True):
-        if entered_code == access_code:
-            st.session_state["management_access_granted"] = True
-            st.rerun()
-        else:
-            st.error("Incorrect access code. Please try again.")
+        with st.form("management_access_form"):
+            entered_code = st.text_input(
+                "Access code",
+                type="password",
+                placeholder="Enter staff access code"
+            )
+
+            submit_clicked = st.form_submit_button(
+                "Enter Management Portal",
+                use_container_width=True
+            )
+
+            if submit_clicked:
+                if entered_code == access_code:
+                    st.session_state["management_access_granted"] = True
+                    st.rerun()
+                else:
+                    st.error("Incorrect access code. Please try again.")
+
+        render_html("""
+        <div class="access-small-note">
+            Prototype access only. This system uses a simple staff code instead of a full login system.
+        </div>
+        """)
 
     render_footer()
     st.stop()
@@ -975,9 +989,10 @@ def render_management_table(management_df, hotel_name):
 load_css()
 load_management_css()
 render_topbar()
-render_header()
 
 require_management_access()
+
+render_header()
 render_management_mode_bar()
 
 areas = get_areas()

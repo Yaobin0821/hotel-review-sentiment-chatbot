@@ -10,8 +10,13 @@ from utils import (
     get_hotels_by_area,
     get_hotel_by_name,
     get_complaint_df,
-    get_hotel_reviews,
 )
+
+try:
+    from utils import get_hotel_reviews
+except ImportError:
+    def get_hotel_reviews(hotel_name, limit=300):
+        return pd.DataFrame()
 
 
 st.set_page_config(
@@ -125,8 +130,10 @@ def priority_rank(priority_level):
 
     if priority == "high":
         return 1
+
     if priority == "medium":
         return 2
+
     if priority == "low":
         return 3
 
@@ -141,6 +148,7 @@ def derive_priority(count, max_count):
 
     if ratio >= 0.7:
         return "High"
+
     if ratio >= 0.35:
         return "Medium"
 
@@ -162,6 +170,7 @@ def priority_class(priority_level):
 
     if priority == "high":
         return "priority-high"
+
     if priority == "medium":
         return "priority-medium"
 
@@ -173,6 +182,7 @@ def risk_class_name(risk_level):
 
     if risk == "low":
         return "risk-low"
+
     if risk == "high":
         return "risk-high"
 
@@ -190,8 +200,11 @@ def get_issue_impact(issue):
     if "clean" in issue_lower or "hygiene" in issue_lower:
         return "May affect room cleanliness, bathroom condition, and guest trust."
 
-    if "room" in issue_lower or "noise" in issue_lower or "comfort" in issue_lower:
+    if "room comfort" in issue_lower or "noise" in issue_lower:
         return "May affect sleep quality, comfort, and overall room satisfaction."
+
+    if "room" in issue_lower and "facility" in issue_lower:
+        return "May affect convenience if room facilities are not functioning properly."
 
     if "breakfast" in issue_lower or "food" in issue_lower:
         return "May affect value perception and dining satisfaction."
@@ -227,11 +240,18 @@ def get_action_steps(issue, suggested_action):
             "Track whether cleanliness complaints continue in recent reviews."
         ]
 
-    if "room" in issue_lower or "noise" in issue_lower or "comfort" in issue_lower:
+    if "room comfort" in issue_lower or "noise" in issue_lower:
         return [
             "Inspect bedding, air-conditioning, lighting, and room condition regularly.",
             "Identify rooms with repeated comfort or noise complaints.",
             "Prioritise maintenance for rooms repeatedly mentioned in reviews."
+        ]
+
+    if "room" in issue_lower and "facility" in issue_lower:
+        return [
+            "Create a recurring room facility maintenance checklist.",
+            "Respond faster to room defect reports.",
+            "Track maintenance-related review trends over time."
         ]
 
     if "breakfast" in issue_lower or "food" in issue_lower:
@@ -413,7 +433,6 @@ def get_review_text(review):
             "Original_Review",
             "Translated_Review",
             "Translated Sentence",
-            "Translated_Review",
             "BERT_Text",
             "Text",
             "text"
@@ -980,8 +999,6 @@ def load_management_css():
         }
 
         .metric-card,
-        .mgmt-card,
-        .table-section,
         .priority-section,
         .evidence-section,
         .action-section {
@@ -1613,50 +1630,6 @@ def render_action_plan(management_df, selected_issue):
     """)
 
 
-def render_management_table(management_df, hotel_name):
-    if management_df.empty:
-        return
-
-    table_df = management_df[[
-        "Complaint Area",
-        "Complaint Count",
-        "Priority Level",
-        "Suggested Improvement Action"
-    ]].copy()
-
-    render_html("""
-    <div class="table-section">
-        <div class="card-title">Detailed improvement table</div>
-        <div class="card-desc">
-            A structured view of complaint areas, priority levels, and suggested actions.
-        </div>
-    </div>
-    """)
-
-    st.dataframe(
-        table_df,
-        use_container_width=True,
-        hide_index=True
-    )
-
-    csv_data = table_df.to_csv(index=False).encode("utf-8")
-
-    safe_filename = (
-        hotel_name
-        .replace(" ", "_")
-        .replace("/", "_")
-        .replace("\\", "_")
-    )
-
-    st.download_button(
-        label="Download improvement report CSV",
-        data=csv_data,
-        file_name=f"{safe_filename}_improvement_report.csv",
-        mime="text/csv",
-        use_container_width=True
-    )
-
-
 load_css()
 load_management_css()
 render_topbar()
@@ -1726,11 +1699,6 @@ render_review_evidence(
 render_action_plan(
     management_df,
     selected_issue
-)
-
-render_management_table(
-    management_df,
-    selected_hotel_name
 )
 
 render_footer()

@@ -113,6 +113,45 @@ def get_selected_hotels(hotel_options):
     return hotel_a, hotel_b
 
 
+def get_better_positive_label(hotel_a, hotel_b):
+    a_positive = safe_pct(safe_get(hotel_a, "positive_pct", 0))
+    b_positive = safe_pct(safe_get(hotel_b, "positive_pct", 0))
+
+    if a_positive > b_positive:
+        return safe_get(hotel_a, "hotel")
+
+    if b_positive > a_positive:
+        return safe_get(hotel_b, "hotel")
+
+    return "Similar"
+
+
+def get_better_negative_label(hotel_a, hotel_b):
+    a_negative = safe_pct(safe_get(hotel_a, "negative_pct", 0))
+    b_negative = safe_pct(safe_get(hotel_b, "negative_pct", 0))
+
+    if a_negative < b_negative:
+        return safe_get(hotel_a, "hotel")
+
+    if b_negative < a_negative:
+        return safe_get(hotel_b, "hotel")
+
+    return "Similar"
+
+
+def get_better_score_label(hotel_a, hotel_b):
+    a_score = safe_pct(safe_get(hotel_a, "suitability_score", 0))
+    b_score = safe_pct(safe_get(hotel_b, "suitability_score", 0))
+
+    if a_score > b_score:
+        return safe_get(hotel_a, "hotel")
+
+    if b_score > a_score:
+        return safe_get(hotel_b, "hotel")
+
+    return "Similar"
+
+
 def load_compare_css():
     st.markdown("""
     <style>
@@ -463,81 +502,120 @@ def load_compare_css():
             line-height: 1.32;
         }
 
-        .comparison-card-section {
+        .traveller-summary-section {
             background: rgba(255, 255, 255, 0.94);
             border: 1px solid var(--border);
             border-radius: 26px;
-            padding: 1.05rem;
+            padding: 1.15rem;
             box-shadow: var(--shadow-card);
             margin-top: 0.85rem;
             margin-bottom: 1rem;
         }
 
-        .comparison-section-title {
+        .traveller-summary-title {
             color: var(--text-main);
-            font-size: 1.15rem;
+            font-size: 1.22rem;
             font-weight: 950;
             letter-spacing: -0.04em;
             margin-bottom: 0.25rem;
         }
 
-        .comparison-section-desc {
+        .traveller-summary-desc {
             color: #64748B;
-            font-size: 0.86rem;
+            font-size: 0.88rem;
             line-height: 1.45;
             margin-bottom: 0.9rem;
         }
 
-        .comparison-card-grid {
+        .summary-row {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 0.75rem;
+            grid-template-columns: 210px 1fr 1fr 145px;
+            gap: 0.65rem;
+            align-items: stretch;
+            padding: 0.75rem 0;
+            border-top: 1px solid #EFE3D8;
         }
 
-        .comparison-mini-card {
-            background: #FFFDF8;
-            border: 1px solid #EAD7C6;
-            border-radius: 18px;
-            padding: 0.85rem;
+        .summary-row:first-of-type {
+            border-top: none;
         }
 
-        .comparison-mini-label {
+        .summary-topic {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .summary-topic-label {
             color: #7C6F64;
             font-size: 0.72rem;
             font-weight: 950;
             text-transform: uppercase;
             letter-spacing: 0.07em;
-            margin-bottom: 0.55rem;
+            margin-bottom: 0.18rem;
         }
 
-        .comparison-two-values {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.55rem;
+        .summary-topic-help {
+            color: #94A3B8;
+            font-size: 0.75rem;
+            font-weight: 700;
+            line-height: 1.3;
         }
 
-        .comparison-value-box {
-            background: white;
-            border: 1px solid #EFE3D8;
-            border-radius: 14px;
-            padding: 0.65rem;
+        .summary-value-box {
+            background: #FFFDF8;
+            border: 1px solid #EAD7C6;
+            border-radius: 16px;
+            padding: 0.72rem;
+            min-height: 64px;
         }
 
-        .comparison-hotel-name {
+        .summary-hotel-name {
             color: #64748B;
             font-size: 0.72rem;
-            font-weight: 800;
-            margin-bottom: 0.25rem;
+            font-weight: 850;
+            margin-bottom: 0.24rem;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
-        .comparison-value {
+        .summary-value {
             color: var(--text-main);
             font-size: 0.9rem;
             font-weight: 900;
             line-height: 1.35;
+        }
+
+        .summary-better {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #EAF7F0;
+            color: #216E46;
+            border: 1px solid #BFE3CF;
+            border-radius: 16px;
+            padding: 0.65rem;
+            font-size: 0.78rem;
+            font-weight: 900;
+            text-align: center;
+            line-height: 1.35;
+        }
+
+        .summary-better.neutral {
+            background: #F8F4EE;
+            color: #7C6F64;
+            border: 1px solid #E5D8CA;
+        }
+
+        @media (max-width: 1000px) {
+            .summary-row {
+                grid-template-columns: 1fr;
+            }
+
+            .summary-better {
+                justify-content: flex-start;
+            }
         }
 
         @media (max-width: 900px) {
@@ -551,9 +629,7 @@ def load_compare_css():
                 padding: 0.4rem 0.7rem;
             }
 
-            .compare-info-list,
-            .comparison-card-grid,
-            .comparison-two-values {
+            .compare-info-list {
                 grid-template-columns: 1fr;
             }
 
@@ -731,93 +807,111 @@ def render_hotel_compare_card(hotel):
     render_html(card_html)
 
 
-def render_comparison_cards(hotel_a, hotel_b):
+def render_summary_row(topic, help_text, hotel_a, hotel_b, value_a, value_b, better_label):
     hotel_a_name = safe_get(hotel_a, "hotel")
     hotel_b_name = safe_get(hotel_b, "hotel")
 
-    comparison_items = [
-        {
-            "label": "Reviews analysed",
-            "a": get_review_count(hotel_a),
-            "b": get_review_count(hotel_b)
-        },
-        {
-            "label": "Positive reviews",
-            "a": f"{safe_get(hotel_a, 'positive_pct', 0)}%",
-            "b": f"{safe_get(hotel_b, 'positive_pct', 0)}%"
-        },
-        {
-            "label": "Neutral reviews",
-            "a": f"{safe_get(hotel_a, 'neutral_pct', 0)}%",
-            "b": f"{safe_get(hotel_b, 'neutral_pct', 0)}%"
-        },
-        {
-            "label": "Negative reviews",
-            "a": f"{safe_get(hotel_a, 'negative_pct', 0)}%",
-            "b": f"{safe_get(hotel_b, 'negative_pct', 0)}%"
-        },
-        {
-            "label": "Risk level",
-            "a": safe_get(hotel_a, "risk_level"),
-            "b": safe_get(hotel_b, "risk_level")
-        },
-        {
-            "label": "Best for",
-            "a": safe_get(hotel_a, "best_traveller_type"),
-            "b": safe_get(hotel_b, "best_traveller_type")
-        },
-        {
-            "label": "What looks good",
-            "a": safe_get(hotel_a, "main_strength"),
-            "b": safe_get(hotel_b, "main_strength")
-        },
-        {
-            "label": "What to check",
-            "a": safe_get(hotel_a, "main_risk"),
-            "b": safe_get(hotel_b, "main_risk")
-        },
-        {
-            "label": "Suitability score",
-            "a": f"{safe_get(hotel_a, 'suitability_score', 0)}/100",
-            "b": f"{safe_get(hotel_b, 'suitability_score', 0)}/100"
-        },
-        {
-            "label": "Price level",
-            "a": safe_get(hotel_a, "price_level"),
-            "b": safe_get(hotel_b, "price_level")
-        }
-    ]
-
-    cards_html = ""
-
-    for item in comparison_items:
-        cards_html += f"""
-        <div class="comparison-mini-card">
-            <div class="comparison-mini-label">{escape(item["label"])}</div>
-            <div class="comparison-two-values">
-                <div class="comparison-value-box">
-                    <div class="comparison-hotel-name">{escape(hotel_a_name)}</div>
-                    <div class="comparison-value">{escape(item["a"])}</div>
-                </div>
-                <div class="comparison-value-box">
-                    <div class="comparison-hotel-name">{escape(hotel_b_name)}</div>
-                    <div class="comparison-value">{escape(item["b"])}</div>
-                </div>
-            </div>
-        </div>
-        """
+    better_class = "neutral" if better_label == "Similar" else ""
+    better_text = "Similar" if better_label == "Similar" else f"Better: {better_label}"
 
     render_html(f"""
-    <div class="comparison-card-section">
-        <div class="comparison-section-title">Detailed comparison</div>
-        <div class="comparison-section-desc">
-            A simple side-by-side summary of the main review signals for both hotels.
+    <div class="summary-row">
+        <div class="summary-topic">
+            <div class="summary-topic-label">{escape(topic)}</div>
+            <div class="summary-topic-help">{escape(help_text)}</div>
         </div>
-        <div class="comparison-card-grid">
-            {cards_html}
+
+        <div class="summary-value-box">
+            <div class="summary-hotel-name">{escape(hotel_a_name)}</div>
+            <div class="summary-value">{escape(value_a)}</div>
+        </div>
+
+        <div class="summary-value-box">
+            <div class="summary-hotel-name">{escape(hotel_b_name)}</div>
+            <div class="summary-value">{escape(value_b)}</div>
+        </div>
+
+        <div class="summary-better {better_class}">
+            {escape(better_text)}
         </div>
     </div>
     """)
+
+
+def render_traveller_summary(hotel_a, hotel_b):
+    better_positive = get_better_positive_label(hotel_a, hotel_b)
+    better_negative = get_better_negative_label(hotel_a, hotel_b)
+    better_score = get_better_score_label(hotel_a, hotel_b)
+
+    render_html("""
+    <div class="traveller-summary-section">
+        <div class="traveller-summary-title">Traveller comparison summary</div>
+        <div class="traveller-summary-desc">
+            A simpler side-by-side view of the most important booking signals.
+        </div>
+    """)
+
+    render_summary_row(
+        topic="Guest review feeling",
+        help_text="Higher positive review percentage is better.",
+        hotel_a=hotel_a,
+        hotel_b=hotel_b,
+        value_a=f"{safe_get(hotel_a, 'positive_pct', 0)}% positive",
+        value_b=f"{safe_get(hotel_b, 'positive_pct', 0)}% positive",
+        better_label=better_positive
+    )
+
+    render_summary_row(
+        topic="Booking concern",
+        help_text="Lower negative review percentage is safer.",
+        hotel_a=hotel_a,
+        hotel_b=hotel_b,
+        value_a=f"{safe_get(hotel_a, 'negative_pct', 0)}% negative · {safe_get(hotel_a, 'risk_level')}",
+        value_b=f"{safe_get(hotel_b, 'negative_pct', 0)}% negative · {safe_get(hotel_b, 'risk_level')}",
+        better_label=better_negative
+    )
+
+    render_summary_row(
+        topic="What looks good",
+        help_text="Main positive area mentioned by guests.",
+        hotel_a=hotel_a,
+        hotel_b=hotel_b,
+        value_a=safe_get(hotel_a, "main_strength"),
+        value_b=safe_get(hotel_b, "main_strength"),
+        better_label="Similar"
+    )
+
+    render_summary_row(
+        topic="What to check",
+        help_text="Main concern to read before booking.",
+        hotel_a=hotel_a,
+        hotel_b=hotel_b,
+        value_a=safe_get(hotel_a, "main_risk"),
+        value_b=safe_get(hotel_b, "main_risk"),
+        better_label="Similar"
+    )
+
+    render_summary_row(
+        topic="Best for",
+        help_text="Traveller type that may suit the hotel.",
+        hotel_a=hotel_a,
+        hotel_b=hotel_b,
+        value_a=safe_get(hotel_a, "best_traveller_type"),
+        value_b=safe_get(hotel_b, "best_traveller_type"),
+        better_label="Similar"
+    )
+
+    render_summary_row(
+        topic="Suitability score",
+        help_text="Higher score suggests better overall suitability.",
+        hotel_a=hotel_a,
+        hotel_b=hotel_b,
+        value_a=f"{safe_get(hotel_a, 'suitability_score', 0)}/100",
+        value_b=f"{safe_get(hotel_b, 'suitability_score', 0)}/100",
+        better_label=better_score
+    )
+
+    render_html("</div>")
 
 
 def get_recommendation_text(hotel_a, hotel_b):
@@ -891,6 +985,6 @@ else:
     with compare_col2:
         render_hotel_compare_card(hotel_b)
 
-    render_comparison_cards(hotel_a, hotel_b)
+    render_traveller_summary(hotel_a, hotel_b)
 
 render_footer()

@@ -3,7 +3,8 @@ import streamlit as st
 from urllib.parse import quote
 from styles import load_css, render_topbar, render_footer
 from utils import (
-    get_hotel_names,
+    get_areas,
+    get_hotels_by_area,
     get_hotel_by_name,
     get_complaint_df,
     get_hotel_reviews,
@@ -57,7 +58,7 @@ def load_hotel_detail_css():
             line-height: 1.55;
         }
 
-        .hotel-picker-card {
+        .picker-card {
             background: rgba(255, 255, 255, 0.88);
             border: 1px solid var(--border);
             border-radius: 22px;
@@ -66,13 +67,56 @@ def load_hotel_detail_css():
             margin-bottom: 0.9rem;
         }
 
-        .hotel-picker-label {
+        .picker-label {
             color: #7C6F64;
             font-size: 0.78rem;
             font-weight: 900;
             text-transform: uppercase;
             letter-spacing: 0.06em;
             margin-bottom: 0.55rem;
+        }
+
+        .area-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.6rem;
+        }
+
+        .area-option {
+            display: block;
+            text-decoration: none !important;
+            background: #FFFDF8;
+            color: var(--text-main) !important;
+            border: 1px solid #EAD7C6;
+            border-radius: 18px;
+            padding: 0.75rem 0.85rem;
+            box-shadow: 0 6px 16px rgba(74, 55, 40, 0.04);
+            transition: all 0.16s ease;
+        }
+
+        .area-option:hover {
+            background: #FFF4E8;
+            border-color: var(--brand);
+            transform: translateY(-1px);
+        }
+
+        .area-option.active {
+            background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+            color: white !important;
+            border-color: transparent;
+            box-shadow: 0 10px 22px rgba(155, 67, 37, 0.20);
+        }
+
+        .area-option-name {
+            font-size: 0.92rem;
+            font-weight: 900;
+            margin-bottom: 0.18rem;
+        }
+
+        .area-option-note {
+            font-size: 0.78rem;
+            opacity: 0.78;
+            font-weight: 650;
         }
 
         .hotel-picker-row {
@@ -99,18 +143,20 @@ def load_hotel_detail_css():
         .hotel-option {
             flex: 0 0 auto;
             display: inline-flex;
-            align-items: center;
+            flex-direction: column;
+            justify-content: center;
             text-decoration: none !important;
             background: #FFFDF8;
             color: var(--text-main) !important;
             border: 1px solid #EAD7C6;
-            border-radius: 999px;
-            padding: 0.58rem 0.85rem;
+            border-radius: 18px;
+            padding: 0.65rem 0.85rem;
             font-size: 0.86rem;
             font-weight: 800;
             box-shadow: 0 6px 16px rgba(74, 55, 40, 0.04);
             transition: all 0.16s ease;
-            max-width: 285px;
+            width: 260px;
+            min-height: 70px;
         }
 
         .hotel-option:hover {
@@ -130,6 +176,13 @@ def load_hotel_detail_css():
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            margin-bottom: 0.2rem;
+        }
+
+        .hotel-option-meta {
+            font-size: 0.76rem;
+            opacity: 0.78;
+            font-weight: 650;
         }
 
         .main-summary-card {
@@ -379,8 +432,18 @@ def load_hotel_detail_css():
         }
 
         @media (max-width: 900px) {
+            .area-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
             .stat-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 520px) {
+            .area-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -403,34 +466,114 @@ def risk_class_name(risk_level):
     return "risk-medium"
 
 
-def get_selected_hotel_from_url(hotel_names, default_hotel):
-    selected_hotel = st.query_params.get("hotel", default_hotel)
+def get_query_value(key, default_value):
+    value = st.query_params.get(key, default_value)
 
-    if isinstance(selected_hotel, list):
-        selected_hotel = selected_hotel[0]
+    if isinstance(value, list):
+        value = value[0]
+
+    return value
+
+
+def get_default_area_from_session(areas):
+    selected_hotel = st.session_state.get("selected_hotel")
+
+    if selected_hotel:
+        hotel = get_hotel_by_name(selected_hotel)
+
+        if hotel and hotel.get("area") in areas:
+            return hotel.get("area")
+
+    return areas[0]
+
+
+def get_selected_area(areas):
+    default_area = get_default_area_from_session(areas)
+    selected_area = get_query_value("area", default_area)
+
+    if selected_area not in areas:
+        selected_area = default_area
+
+    return selected_area
+
+
+def get_selected_hotel(hotels, selected_area):
+    hotel_names = [hotel["hotel"] for hotel in hotels]
+
+    if not hotel_names:
+        return None
+
+    default_hotel = hotel_names[0]
+
+    session_hotel = st.session_state.get("selected_hotel")
+
+    if session_hotel in hotel_names:
+        default_hotel = session_hotel
+
+    selected_hotel = get_query_value("hotel", default_hotel)
 
     if selected_hotel not in hotel_names:
         selected_hotel = default_hotel
 
+    st.session_state.selected_hotel = selected_hotel
+    st.session_state.selected_area = selected_area
+
     return selected_hotel
 
 
-def render_hotel_picker(hotel_names, selected_hotel):
-    hotel_options_html = ""
+def render_area_picker(areas, selected_area):
+    area_notes = {
+        "Bukit Jalil": "Events & stadium area",
+        "KLCC": "City centre stay",
+        "Petaling Jaya": "Shopping & business",
+        "Sunway": "Family & theme park"
+    }
 
-    for hotel in hotel_names:
-        active_class = "active" if hotel == selected_hotel else ""
-        hotel_url = quote(hotel, safe="")
+    area_options_html = ""
 
-        hotel_options_html += (
-            f'<a class="hotel-option {active_class}" href="?hotel={hotel_url}" target="_self">'
-            f'<span class="hotel-option-name">{escape(hotel)}</span>'
+    for area in areas:
+        active_class = "active" if area == selected_area else ""
+        area_url = quote(area, safe="")
+
+        area_options_html += (
+            f'<a class="area-option {active_class}" href="?area={area_url}" target="_self">'
+            f'<div class="area-option-name">{escape(area)}</div>'
+            f'<div class="area-option-note">{escape(area_notes.get(area, "Hotel area"))}</div>'
             f'</a>'
         )
 
     picker_html = (
-        '<div class="hotel-picker-card">'
-        '<div class="hotel-picker-label">Choose hotel</div>'
+        '<div class="picker-card">'
+        '<div class="picker-label">Step 1 · Choose area</div>'
+        '<div class="area-grid">'
+        f'{area_options_html}'
+        '</div>'
+        '</div>'
+    )
+
+    st.markdown(picker_html, unsafe_allow_html=True)
+
+
+def render_hotel_picker(hotels, selected_area, selected_hotel):
+    hotel_options_html = ""
+
+    for hotel in hotels:
+        hotel_name = hotel["hotel"]
+        active_class = "active" if hotel_name == selected_hotel else ""
+        area_url = quote(selected_area, safe="")
+        hotel_url = quote(hotel_name, safe="")
+        meta_text = f'{hotel.get("positive_pct", 0)}% positive · {risk_badge(hotel.get("risk_level", "Medium"))}'
+
+        hotel_options_html += (
+            f'<a class="hotel-option {active_class}" href="?area={area_url}&hotel={hotel_url}" target="_self">'
+            f'<span class="hotel-option-name">{escape(hotel_name)}</span>'
+            f'<span class="hotel-option-meta">{escape(meta_text)}</span>'
+            f'</a>'
+        )
+
+    picker_html = (
+        '<div class="picker-card">'
+        '<div class="picker-label">Step 2 · Choose hotel in this area</div>'
         '<div class="hotel-picker-row">'
         f'{hotel_options_html}'
         '</div>'
@@ -567,38 +710,44 @@ st.markdown(
     '<div class="compact-title-card">'
     '<div class="compact-kicker">Hotel review profile</div>'
     '<div class="compact-title">Hotel Detail</div>'
-    '<div class="compact-desc">View one hotel\'s review summary, booking concern, strengths, improvement areas, and sample reviews.</div>'
+    '<div class="compact-desc">First choose an area, then select a hotel to view its review summary and booking concern.</div>'
     '</div>',
     unsafe_allow_html=True
 )
 
-hotel_names = get_hotel_names()
+areas = get_areas()
 
-if not hotel_names:
+if not areas:
     st.markdown(
-        '<div class="empty-note">No hotel data is available. Please check your dataset file.</div>',
+        '<div class="empty-note">No area data is available. Please check your dataset file.</div>',
         unsafe_allow_html=True
     )
     render_footer()
     st.stop()
 
-default_hotel = st.session_state.get("selected_hotel", hotel_names[0])
+selected_area = get_selected_area(areas)
+render_area_picker(areas, selected_area)
 
-if default_hotel not in hotel_names:
-    default_hotel = hotel_names[0]
+hotels = get_hotels_by_area(selected_area)
 
-hotel_name = get_selected_hotel_from_url(hotel_names, default_hotel)
-st.session_state.selected_hotel = hotel_name
+if not hotels:
+    st.markdown(
+        '<div class="empty-note">No hotels are available for this area.</div>',
+        unsafe_allow_html=True
+    )
+    render_footer()
+    st.stop()
 
-render_hotel_picker(hotel_names, hotel_name)
+selected_hotel = get_selected_hotel(hotels, selected_area)
+render_hotel_picker(hotels, selected_area, selected_hotel)
 
-hotel = get_hotel_by_name(hotel_name)
+hotel = get_hotel_by_name(selected_hotel)
 
 if hotel:
     left_col, right_col = st.columns([1.2, 0.8], gap="large")
 
     with left_col:
-        render_main_summary(hotel, hotel_name)
+        render_main_summary(hotel, selected_hotel)
         render_sentiment_distribution(hotel)
 
     with right_col:
@@ -628,7 +777,7 @@ if hotel:
             unsafe_allow_html=True
         )
 
-        reviews_df = get_hotel_reviews(hotel_name, limit=5)
+        reviews_df = get_hotel_reviews(selected_hotel, limit=5)
         review_text_column = get_review_text_column(reviews_df)
 
         if reviews_df.empty or review_text_column is None:

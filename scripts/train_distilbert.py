@@ -5,10 +5,11 @@ import os
 import json
 import random
 import copy
+
 import numpy as np
 import pandas as pd
-import matplotlib
 
+import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
@@ -34,9 +35,9 @@ from sklearn.metrics import (
 from sklearn.preprocessing import label_binarize
 
 
-# =========================
+# =====================================================
 # Configuration
-# =========================
+# =====================================================
 MODEL_NAME = "distilbert"
 
 BASE_DIR = Path(__file__).resolve().parents[1]
@@ -83,11 +84,12 @@ PATIENCE = 3
 MAX_GRAD_NORM = 1.0
 
 
-# =========================
+# =====================================================
 # Reproducibility
-# =========================
+# =====================================================
 def set_seed(seed: int = 42):
     os.environ["PYTHONHASHSEED"] = str(seed)
+
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -100,9 +102,9 @@ def set_seed(seed: int = 42):
     torch.backends.cudnn.benchmark = False
 
 
-# =========================
+# =====================================================
 # Utility Functions
-# =========================
+# =====================================================
 def ensure_directories():
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
@@ -115,13 +117,21 @@ def get_device():
     return torch.device("cpu")
 
 
+def read_csv_safe(file_path: Path) -> pd.DataFrame:
+    try:
+        return pd.read_csv(file_path, encoding="utf-8-sig")
+    except UnicodeDecodeError:
+        return pd.read_csv(file_path, encoding="latin1")
+
+
 def load_dataset(file_path: Path) -> pd.DataFrame:
     if not file_path.exists():
         raise FileNotFoundError(f"File not found: {file_path}")
 
-    df = pd.read_csv(file_path)
+    df = read_csv_safe(file_path)
 
     required_columns = [TEXT_COLUMN, LABEL_COLUMN]
+
     for col in required_columns:
         if col not in df.columns:
             raise ValueError(f"Required column '{col}' not found in {file_path}")
@@ -137,7 +147,10 @@ def load_dataset(file_path: Path) -> pd.DataFrame:
 
     df["Label_ID_Final"] = df[LABEL_COLUMN].map(SENTIMENT_TO_ID)
 
-    return df
+    if df["Label_ID_Final"].isna().any():
+        raise ValueError(f"Some labels cannot be mapped to IDs in {file_path}")
+
+    return df.reset_index(drop=True)
 
 
 def save_text_report(text: str, file_path: Path):
@@ -150,9 +163,24 @@ def save_json(data: dict, file_path: Path):
         json.dump(data, f, indent=4, ensure_ascii=False)
 
 
-# =========================
+def check_train_test_leakage(train_df: pd.DataFrame, test_df: pd.DataFrame):
+    train_text_set = set(train_df[TEXT_COLUMN].astype(str))
+    test_text_set = set(test_df[TEXT_COLUMN].astype(str))
+
+    overlap_texts = train_text_set.intersection(test_text_set)
+
+    if overlap_texts:
+        print(f"\nWarning: {len(overlap_texts)} duplicated texts found in both train and test set.")
+        print("This may cause data leakage. Please check your preprocessing split.")
+    else:
+        print("\nNo duplicated texts found between train and test set.")
+
+    return overlap_texts
+
+
+# =====================================================
 # Dataset Class
-# =========================
+# =====================================================
 class SentimentDataset(Dataset):
     def __init__(self, texts, labels, tokenizer, max_length):
         self.texts = list(texts)
@@ -184,9 +212,9 @@ class SentimentDataset(Dataset):
         }
 
 
-# =========================
+# =====================================================
 # Plot Functions
-# =========================
+# =====================================================
 def plot_confusion_matrix(cm, labels, save_path: Path):
     fig, ax = plt.subplots(figsize=(7, 6))
     im = ax.imshow(cm, interpolation="nearest", cmap="Blues")
@@ -352,9 +380,9 @@ def plot_training_loss(history_df: pd.DataFrame, save_path: Path):
     plt.close()
 
 
-# =========================
+# =====================================================
 # Training / Evaluation Helpers
-# =========================
+# =====================================================
 def train_one_epoch(model, data_loader, optimizer, scheduler, device):
     model.train()
 
@@ -437,9 +465,9 @@ def evaluate_model(model, data_loader, device):
     return avg_loss, accuracy, np.array(all_labels), np.array(all_probs)
 
 
-# =========================
+# =====================================================
 # Main Training Function
-# =========================
+# =====================================================
 def main():
     print("=" * 60)
     print("Training DistilBERT Model")
@@ -451,11 +479,13 @@ def main():
     device = get_device()
     print(f"Using device: {device}")
 
+    # =====================================================
     # Load data
+    # =====================================================
     train_df = load_dataset(TRAIN_PATH)
     test_df = load_dataset(TEST_PATH)
 
-    print(f"Train dataset shape: {train_df.shape}")
+    print(f"\nTrain dataset shape: {train_df.shape}")
     print(f"Test dataset shape: {test_df.shape}")
 
     print("\nTrain label distribution:")
@@ -464,19 +494,24 @@ def main():
     print("\nTest label distribution:")
     print(test_df[LABEL_COLUMN].value_counts())
 
+    overlap_texts = check_train_test_leakage(train_df, test_df)
+
     X_full_train = train_df[TEXT_COLUMN].values
     y_full_train = train_df["Label_ID_Final"].values
 
     X_test_text = test_df[TEXT_COLUMN].values
     y_test_id = test_df["Label_ID_Final"].values
 
+    # =====================================================
     # Train-validation split from training set only
+    # =====================================================
     X_train_text, X_val_text, y_train_id, y_val_id = train_test_split(
         X_full_train,
         y_full_train,
         test_size=VALIDATION_SIZE,
         random_state=RANDOM_STATE,
         stratify=y_full_train,
+        shuffle=True,
     )
 
     print("\nInternal train-validation split:")
@@ -484,7 +519,9 @@ def main():
     print(f"Validation samples: {len(X_val_text)}")
     print(f"Testing samples: {len(X_test_text)}")
 
+    # =====================================================
     # Load tokenizer and model
+    # =====================================================
     print(f"\nLoading tokenizer and model: {PRETRAINED_MODEL_NAME}")
 
     tokenizer = AutoTokenizer.from_pretrained(PRETRAINED_MODEL_NAME)
@@ -498,7 +535,9 @@ def main():
 
     model.to(device)
 
+    # =====================================================
     # Create datasets
+    # =====================================================
     train_dataset = SentimentDataset(
         X_train_text,
         y_train_id,
@@ -538,7 +577,9 @@ def main():
         shuffle=False,
     )
 
+    # =====================================================
     # Optimizer and scheduler
+    # =====================================================
     optimizer = AdamW(
         model.parameters(),
         lr=LEARNING_RATE,
@@ -555,14 +596,21 @@ def main():
     )
 
     print("\nTraining configuration:")
+    print(f"Pretrained model: {PRETRAINED_MODEL_NAME}")
+    print(f"Text column: {TEXT_COLUMN}")
+    print(f"Label column: {LABEL_COLUMN}")
     print(f"Max length: {MAX_LENGTH}")
     print(f"Batch size: {BATCH_SIZE}")
     print(f"Epochs: {EPOCHS}")
     print(f"Learning rate: {LEARNING_RATE}")
+    print(f"Weight decay: {WEIGHT_DECAY}")
     print(f"Warmup steps: {warmup_steps}")
     print(f"Total training steps: {total_training_steps}")
+    print(f"Early stopping patience: {PATIENCE}")
 
+    # =====================================================
     # Training loop
+    # =====================================================
     history = []
     best_val_loss = float("inf")
     best_model_state = None
@@ -617,12 +665,16 @@ def main():
             print("Early stopping triggered.")
             break
 
+    # =====================================================
     # Load best model
+    # =====================================================
     if best_model_state is not None:
         model.load_state_dict(best_model_state)
         model.to(device)
 
+    # =====================================================
     # Evaluate on test set
+    # =====================================================
     print("\nEvaluating best model on test set...")
 
     test_loss, test_accuracy_internal, y_true_id, y_prob = evaluate_model(
@@ -675,7 +727,9 @@ def main():
 
     history_df = pd.DataFrame(history)
 
+    # =====================================================
     # Save model and tokenizer
+    # =====================================================
     model_save_path = MODEL_DIR / f"{MODEL_NAME}_model"
     label_mapping_path = MODEL_DIR / f"{MODEL_NAME}_label_mapping.json"
 
@@ -691,17 +745,23 @@ def main():
         label_mapping_path,
     )
 
+    # =====================================================
     # Save metrics summary
+    # =====================================================
     metrics_summary = {
         "model_name": MODEL_NAME,
+        "algorithm": "DistilBERT Transformer Model",
         "pretrained_model": PRETRAINED_MODEL_NAME,
         "text_column": TEXT_COLUMN,
         "label_column": LABEL_COLUMN,
+        "train_file": str(TRAIN_PATH),
+        "test_file": str(TEST_PATH),
         "train_samples_total": int(len(train_df)),
         "internal_train_samples": int(len(X_train_text)),
         "validation_samples": int(len(X_val_text)),
         "test_samples": int(len(test_df)),
         "test_loss": float(test_loss),
+        "test_accuracy_internal": float(test_accuracy_internal),
         "accuracy": float(accuracy),
         "macro_precision": float(macro_precision),
         "macro_recall": float(macro_recall),
@@ -711,58 +771,83 @@ def main():
         "weighted_f1": float(weighted_f1),
         "epochs_trained": int(len(history_df)),
         "best_val_loss": float(best_val_loss),
+        "train_test_duplicate_text_count": int(len(overlap_texts)),
         "device": str(device),
     }
 
     metrics_df = pd.DataFrame([metrics_summary])
-    metrics_df.to_csv(REPORT_DIR / f"{MODEL_NAME}_metrics_summary.csv", index=False)
+    metrics_df.to_csv(
+        REPORT_DIR / f"{MODEL_NAME}_metrics_summary.csv",
+        index=False,
+        encoding="utf-8-sig",
+    )
 
+    # =====================================================
     # Save classification report
+    # =====================================================
     report_df = pd.DataFrame(report_dict).transpose()
-    report_df.to_csv(REPORT_DIR / f"{MODEL_NAME}_classification_report.csv", index=True)
+    report_df.to_csv(
+        REPORT_DIR / f"{MODEL_NAME}_classification_report.csv",
+        index=True,
+        encoding="utf-8-sig",
+    )
 
     save_text_report(
         report_text,
         REPORT_DIR / f"{MODEL_NAME}_classification_report.txt",
     )
 
+    # =====================================================
     # Save confusion matrix
+    # =====================================================
     cm_df = pd.DataFrame(cm, index=LABEL_ORDER, columns=LABEL_ORDER)
-    cm_df.to_csv(REPORT_DIR / f"{MODEL_NAME}_confusion_matrix.csv")
-
-    # Save predictions
-    predictions_df = pd.DataFrame(
-        {
-            "Text": X_test_text,
-            "Actual_Label": y_test_label,
-            "Predicted_Label": y_pred_label,
-            "Correct": np.array(y_test_label) == np.array(y_pred_label),
-            "Confidence": y_prob.max(axis=1),
-            "Prob_Negative": y_prob[:, 0],
-            "Prob_Neutral": y_prob[:, 1],
-            "Prob_Positive": y_prob[:, 2],
-        }
+    cm_df.to_csv(
+        REPORT_DIR / f"{MODEL_NAME}_confusion_matrix.csv",
+        encoding="utf-8-sig",
     )
+
+    # =====================================================
+    # Save predictions with original metadata
+    # =====================================================
+    predictions_df = test_df.reset_index(drop=True).copy()
+
+    predictions_df["Actual_Label"] = y_test_label
+    predictions_df["Predicted_Label"] = y_pred_label
+    predictions_df["Correct"] = np.array(y_test_label) == np.array(y_pred_label)
+    predictions_df["Confidence"] = y_prob.max(axis=1)
+    predictions_df["Prob_Negative"] = y_prob[:, 0]
+    predictions_df["Prob_Neutral"] = y_prob[:, 1]
+    predictions_df["Prob_Positive"] = y_prob[:, 2]
 
     predictions_df.to_csv(
         REPORT_DIR / f"{MODEL_NAME}_test_predictions.csv",
         index=False,
+        encoding="utf-8-sig",
     )
 
-    # Save misclassified samples
+    # =====================================================
+    # Save misclassified samples with metadata
+    # =====================================================
     misclassified_df = predictions_df[predictions_df["Correct"] == False].copy()
+
     misclassified_df.to_csv(
         REPORT_DIR / f"{MODEL_NAME}_misclassified_samples.csv",
         index=False,
+        encoding="utf-8-sig",
     )
 
+    # =====================================================
     # Save training history
+    # =====================================================
     history_df.to_csv(
         REPORT_DIR / f"{MODEL_NAME}_training_history.csv",
         index=False,
+        encoding="utf-8-sig",
     )
 
+    # =====================================================
     # Save model config
+    # =====================================================
     save_json(
         {
             "model_name": MODEL_NAME,
@@ -774,6 +859,7 @@ def main():
             "label_column": LABEL_COLUMN,
             "label_order": LABEL_ORDER,
             "sentiment_to_id": SENTIMENT_TO_ID,
+            "id_to_sentiment": ID_TO_SENTIMENT,
             "max_length": MAX_LENGTH,
             "batch_size": BATCH_SIZE,
             "epochs": EPOCHS,
@@ -784,12 +870,15 @@ def main():
             "patience": PATIENCE,
             "max_grad_norm": MAX_GRAD_NORM,
             "random_state": RANDOM_STATE,
+            "train_test_duplicate_text_count": int(len(overlap_texts)),
             "device": str(device),
         },
         REPORT_DIR / f"{MODEL_NAME}_config.json",
     )
 
+    # =====================================================
     # Generate graphs
+    # =====================================================
     print("\nGenerating graphs...")
 
     plot_confusion_matrix(
@@ -825,7 +914,9 @@ def main():
         GRAPH_DIR / f"{MODEL_NAME}_training_loss.png",
     )
 
+    # =====================================================
     # Print summary
+    # =====================================================
     print("\n" + "=" * 60)
     print("DistilBERT Training Completed Successfully")
     print("=" * 60)
@@ -834,11 +925,12 @@ def main():
     print(f"Label mapping saved to: {label_mapping_path}")
 
     print("\nEvaluation Results:")
-    print(f"Test Loss:         {test_loss:.4f}")
-    print(f"Accuracy:          {accuracy:.4f}")
-    print(f"Macro Precision:   {macro_precision:.4f}")
-    print(f"Macro Recall:      {macro_recall:.4f}")
-    print(f"Macro F1-score:    {macro_f1:.4f}")
+    print(f"Test Loss:          {test_loss:.4f}")
+    print(f"Accuracy:           {accuracy:.4f}")
+    print(f"Macro Precision:    {macro_precision:.4f}")
+    print(f"Macro Recall:       {macro_recall:.4f}")
+    print(f"Macro F1-score:     {macro_f1:.4f}")
+    print(f"Weighted F1-score:  {weighted_f1:.4f}")
 
     print("\nGenerated report files:")
     print(f"- {REPORT_DIR / f'{MODEL_NAME}_metrics_summary.csv'}")

@@ -23,10 +23,10 @@ def load_hotel_detail_css():
     st.markdown("""
     <style>
         .compact-title-card {
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.92);
             border: 1px solid var(--border);
-            border-radius: 28px;
-            padding: 1.2rem 1.35rem;
+            border-radius: 30px;
+            padding: 1.25rem 1.4rem;
             box-shadow: var(--shadow-card);
             margin-bottom: 0.9rem;
         }
@@ -37,14 +37,14 @@ def load_hotel_detail_css():
             color: var(--brand-dark);
             border: 1px solid #F2CBAE;
             border-radius: 999px;
-            padding: 0.32rem 0.68rem;
+            padding: 0.34rem 0.72rem;
             font-size: 0.78rem;
             font-weight: 850;
-            margin-bottom: 0.6rem;
+            margin-bottom: 0.65rem;
         }
 
         .compact-title {
-            font-size: clamp(1.8rem, 4vw, 2.7rem);
+            font-size: clamp(1.9rem, 4vw, 2.8rem);
             font-weight: 950;
             color: var(--text-main);
             letter-spacing: -0.065em;
@@ -185,10 +185,10 @@ def load_hotel_detail_css():
             font-weight: 650;
         }
 
-        .main-summary-card {
-            background: rgba(255, 255, 255, 0.93);
+        .overview-card {
+            background: rgba(255, 255, 255, 0.94);
             border: 1px solid var(--border);
-            border-radius: 28px;
+            border-radius: 30px;
             padding: 1.25rem;
             box-shadow: var(--shadow-card);
             margin-bottom: 0.95rem;
@@ -196,7 +196,7 @@ def load_hotel_detail_css():
 
         .hotel-title {
             color: var(--text-main);
-            font-size: 1.65rem;
+            font-size: clamp(1.45rem, 3vw, 1.95rem);
             font-weight: 950;
             letter-spacing: -0.055em;
             line-height: 1.1;
@@ -207,136 +207,46 @@ def load_hotel_detail_css():
             color: #64748B;
             font-size: 0.92rem;
             line-height: 1.5;
-            margin-bottom: 0.8rem;
-        }
-
-        .quick-note {
-            background: #F8F4EE;
-            border: 1px solid #E5D8CA;
-            border-radius: 18px;
-            padding: 0.85rem 0.9rem;
-            color: #334155;
-            font-size: 0.92rem;
-            line-height: 1.55;
-            margin-bottom: 0.9rem;
-        }
-
-        .stat-grid {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 0.55rem;
-        }
-
-        .stat-item {
-            background: #FFFDF8;
-            border: 1px solid #EAD7C6;
-            border-radius: 16px;
-            padding: 0.75rem 0.8rem;
-        }
-
-        .stat-label {
-            color: #7C6F64;
-            font-size: 0.75rem;
-            font-weight: 850;
-            margin-bottom: 0.25rem;
-        }
-
-        .stat-value {
-            color: var(--text-main);
-            font-size: 1.2rem;
-            font-weight: 950;
-            letter-spacing: -0.03em;
-        }
-
-        .side-card {
-            background: rgba(255, 255, 255, 0.93);
-            border: 1px solid var(--border);
-            border-radius: 28px;
-            padding: 1.25rem;
-            box-shadow: var(--shadow-card);
-            margin-bottom: 0.95rem;
-        }
-
-        .side-title {
-            color: var(--text-main);
-            font-size: 1.15rem;
-            font-weight: 950;
-            letter-spacing: -0.04em;
-            margin-bottom: 0.75rem;
-        }
-
-        .risk-chip {
-            display: inline-flex;
-            align-items: center;
-            border-radius: 999px;
-            padding: 0.48rem 0.82rem;
-            font-size: 0.86rem;
-            font-weight: 850;
             margin-bottom: 0.85rem;
         }
 
-        .risk-low {
-            background: #EAF7F0;
-            color: #216E46;
-            border: 1px solid #BFE3CF;
+        .booking-note {
+            background: #F8F4EE;
+            border: 1px solid #E5D8CA;
+            border-radius: 20px;
+            padding: 0.9rem 1rem;
+            color: #334155;
+            font-size: 0.94rem;
+            line-height: 1.55;
+            margin-bottom: 1rem;
         }
 
-        .risk-medium {
-            background: #FFF4D6;
-            color: #8A5A12;
-            border: 1px solid #E6C879;
-        }
-
-        .risk-high {
-            background: #FFF0EE;
-            color: #A33A2F;
-            border: 1px solid #F4C7BF;
-        }
-
-        .insight-grid {
-            display: grid;
-            grid-template-columns: 1fr;
+        .quick-line {
+            display: flex;
+            flex-wrap: wrap;
             gap: 0.55rem;
+            margin-bottom: 1rem;
         }
 
-        .insight-item {
+        .quick-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
             background: #FFFDF8;
             border: 1px solid #EAD7C6;
-            border-radius: 16px;
-            padding: 0.72rem 0.8rem;
+            color: #3F342B;
+            border-radius: 999px;
+            padding: 0.45rem 0.75rem;
+            font-size: 0.84rem;
+            font-weight: 850;
         }
 
-        .insight-label {
-            color: #7C6F64;
-            font-size: 0.75rem;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 0.2rem;
-        }
-
-        .insight-value {
-            color: #172033;
-            font-size: 0.92rem;
-            font-weight: 750;
-            line-height: 1.4;
-        }
-
-        .sentiment-box {
-            background: rgba(255, 255, 255, 0.93);
-            border: 1px solid var(--border);
-            border-radius: 28px;
-            padding: 1.1rem;
-            box-shadow: var(--shadow-card);
-            margin-bottom: 0.95rem;
-        }
-
-        .sentiment-title {
+        .section-small-title {
             color: var(--text-main);
-            font-size: 1.05rem;
+            font-size: 1rem;
             font-weight: 950;
-            letter-spacing: -0.04em;
-            margin-bottom: 0.75rem;
+            letter-spacing: -0.035em;
+            margin-bottom: 0.7rem;
         }
 
         .sentiment-row {
@@ -348,7 +258,7 @@ def load_hotel_detail_css():
             justify-content: space-between;
             color: #334155;
             font-size: 0.86rem;
-            font-weight: 800;
+            font-weight: 850;
             margin-bottom: 0.25rem;
         }
 
@@ -378,11 +288,95 @@ def load_hotel_detail_css():
             border-radius: 999px;
         }
 
+        .advice-card {
+            background: rgba(255, 255, 255, 0.94);
+            border: 1px solid var(--border);
+            border-radius: 30px;
+            padding: 1.25rem;
+            box-shadow: var(--shadow-card);
+            margin-bottom: 0.95rem;
+        }
+
+        .advice-title {
+            color: var(--text-main);
+            font-size: 1.2rem;
+            font-weight: 950;
+            letter-spacing: -0.04em;
+            margin-bottom: 0.8rem;
+        }
+
+        .risk-chip {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 0.48rem 0.82rem;
+            font-size: 0.86rem;
+            font-weight: 850;
+            margin-bottom: 0.95rem;
+        }
+
+        .risk-low {
+            background: #EAF7F0;
+            color: #216E46;
+            border: 1px solid #BFE3CF;
+        }
+
+        .risk-medium {
+            background: #FFF4D6;
+            color: #8A5A12;
+            border: 1px solid #E6C879;
+        }
+
+        .risk-high {
+            background: #FFF0EE;
+            color: #A33A2F;
+            border: 1px solid #F4C7BF;
+        }
+
+        .advice-text {
+            color: #475569;
+            font-size: 0.92rem;
+            line-height: 1.55;
+            margin-bottom: 1rem;
+        }
+
+        .advice-list {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.7rem;
+        }
+
+        .advice-item {
+            padding-bottom: 0.7rem;
+            border-bottom: 1px solid #EFE3D8;
+        }
+
+        .advice-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .advice-label {
+            color: #7C6F64;
+            font-size: 0.73rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 0.18rem;
+        }
+
+        .advice-value {
+            color: var(--text-main);
+            font-size: 0.98rem;
+            font-weight: 850;
+            line-height: 1.4;
+        }
+
         .custom-tab-row {
             display: flex;
             gap: 0.45rem;
             border-bottom: 1px solid #D8CDBE;
-            margin-top: 0.8rem;
+            margin-top: 0.35rem;
             margin-bottom: 1rem;
         }
 
@@ -503,10 +497,6 @@ def load_hotel_detail_css():
             .area-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
-
-            .stat-grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
         }
 
         @media (max-width: 520px) {
@@ -592,9 +582,7 @@ def get_selected_hotel(hotels, selected_area):
 def get_selected_section():
     selected_section = get_query_value("section", "improvements")
 
-    allowed_sections = ["improvements", "reviews"]
-
-    if selected_section not in allowed_sections:
+    if selected_section not in ["improvements", "reviews"]:
         selected_section = "improvements"
 
     return selected_section
@@ -603,12 +591,40 @@ def get_selected_section():
 def get_selected_review_type():
     selected_review_type = get_query_value("review_type", "All")
 
-    allowed_types = ["All", "Positive", "Neutral", "Negative"]
-
-    if selected_review_type not in allowed_types:
+    if selected_review_type not in ["All", "Positive", "Neutral", "Negative"]:
         selected_review_type = "All"
 
     return selected_review_type
+
+
+def get_booking_advice_text(hotel):
+    risk_level = hotel.get("risk_level", "Medium")
+    positive_pct = hotel.get("positive_pct", 0)
+    negative_pct = hotel.get("negative_pct", 0)
+    main_risk = hotel.get("main_risk", "the repeated concerns")
+
+    if risk_level == "Low" and positive_pct >= 70:
+        return (
+            "Looks good to consider. Most reviews are positive, but it is still useful "
+            f"to check comments about {main_risk.lower()} before booking."
+        )
+
+    if risk_level == "High":
+        return (
+            "Compare carefully before booking. This hotel has stronger concern signals, "
+            f"especially around {main_risk.lower()}."
+        )
+
+    if negative_pct >= 15:
+        return (
+            "Worth considering, but read some negative reviews first. The hotel has good points, "
+            f"but travellers should check {main_risk.lower()}."
+        )
+
+    return (
+        "Generally suitable for consideration. Reviews are fairly balanced, so travellers should "
+        "compare more reviews before making a final booking decision."
+    )
 
 
 def render_area_picker(areas, selected_area):
@@ -632,16 +648,15 @@ def render_area_picker(areas, selected_area):
             f'</a>'
         )
 
-    picker_html = (
+    st.markdown(
         '<div class="picker-card">'
         '<div class="picker-label">Step 1 · Choose area</div>'
         '<div class="area-grid">'
         f'{area_options_html}'
         '</div>'
-        '</div>'
+        '</div>',
+        unsafe_allow_html=True
     )
-
-    st.markdown(picker_html, unsafe_allow_html=True)
 
 
 def render_hotel_picker(hotels, selected_area, selected_hotel):
@@ -661,16 +676,91 @@ def render_hotel_picker(hotels, selected_area, selected_hotel):
             f'</a>'
         )
 
-    picker_html = (
+    st.markdown(
         '<div class="picker-card">'
         '<div class="picker-label">Step 2 · Choose hotel in this area</div>'
         '<div class="hotel-picker-row">'
         f'{hotel_options_html}'
         '</div>'
+        '</div>',
+        unsafe_allow_html=True
+    )
+
+
+def build_sentiment_bar(label, value, css_class):
+    return (
+        '<div class="sentiment-row">'
+        '<div class="sentiment-line">'
+        f'<span>{escape(label)}</span>'
+        f'<span>{escape(value)}%</span>'
+        '</div>'
+        '<div class="bar-track">'
+        f'<div class="{css_class}" style="width: {escape(value)}%;"></div>'
+        '</div>'
         '</div>'
     )
 
-    st.markdown(picker_html, unsafe_allow_html=True)
+
+def render_hotel_overview(hotel, hotel_name):
+    advice_text = get_booking_advice_text(hotel)
+
+    overview_html = (
+        '<div class="overview-card">'
+        f'<div class="hotel-title">{escape(hotel.get("hotel", hotel_name))}</div>'
+        f'<div class="hotel-meta">{escape(hotel.get("area", ""))} · {escape(hotel.get("hotel_address", "Address not stated"))}</div>'
+        f'<div class="booking-note"><b>Booking advice:</b> {escape(advice_text)}</div>'
+
+        '<div class="quick-line">'
+        f'<span class="quick-chip">📝 {escape(hotel.get("review_count", 0))} reviews</span>'
+        f'<span class="quick-chip">🟢 {escape(hotel.get("positive_pct", 0))}% positive</span>'
+        f'<span class="quick-chip">🔴 {escape(hotel.get("negative_pct", 0))}% negative</span>'
+        f'<span class="quick-chip">{escape(risk_badge(hotel.get("risk_level", "Medium")))}</span>'
+        '</div>'
+
+        '<div class="section-small-title">Review summary</div>'
+        + build_sentiment_bar("Positive", hotel.get("positive_pct", 0), "bar-positive")
+        + build_sentiment_bar("Neutral", hotel.get("neutral_pct", 0), "bar-neutral")
+        + build_sentiment_bar("Negative", hotel.get("negative_pct", 0), "bar-negative")
+        + '</div>'
+    )
+
+    st.markdown(overview_html, unsafe_allow_html=True)
+
+
+def render_booking_advice(hotel):
+    risk_level = hotel.get("risk_level", "Medium")
+
+    advice_html = (
+        '<div class="advice-card">'
+        '<div class="advice-title">At a glance</div>'
+        f'<span class="risk-chip {risk_class_name(risk_level)}">{escape(risk_badge(risk_level))}</span>'
+        '<div class="advice-list">'
+
+        '<div class="advice-item">'
+        '<div class="advice-label">Best for this hotel</div>'
+        f'<div class="advice-value">{escape(hotel.get("best_traveller_type", "General travellers"))}</div>'
+        '</div>'
+
+        '<div class="advice-item">'
+        '<div class="advice-label">What looks good</div>'
+        f'<div class="advice-value">{escape(hotel.get("main_strength", "Not clearly stated"))}</div>'
+        '</div>'
+
+        '<div class="advice-item">'
+        '<div class="advice-label">What to check</div>'
+        f'<div class="advice-value">{escape(hotel.get("main_risk", "No major repeated concern"))}</div>'
+        '</div>'
+
+        '<div class="advice-item">'
+        '<div class="advice-label">Suitability score</div>'
+        f'<div class="advice-value">{escape(hotel.get("suitability_score", 0))}/100</div>'
+        '</div>'
+
+        '</div>'
+        '</div>'
+    )
+
+    st.markdown(advice_html, unsafe_allow_html=True)
 
 
 def render_detail_section_tabs(selected_area, selected_hotel, selected_section, selected_review_type):
@@ -686,7 +776,7 @@ def render_detail_section_tabs(selected_area, selected_hotel, selected_section, 
         '<div class="custom-tab-row">'
         f'<a class="custom-tab {improvements_active}" '
         f'href="?area={area_url}&hotel={hotel_url}&section=improvements#detail-section" target="_self">'
-        'Common improvement areas'
+        'Common concerns'
         '</a>'
         f'<a class="custom-tab {reviews_active}" '
         f'href="?area={area_url}&hotel={hotel_url}&section=reviews&review_type={review_type_url}#detail-section" target="_self">'
@@ -718,94 +808,6 @@ def render_review_filter(selected_area, selected_hotel, selected_review_type):
     filter_html += '</div>'
 
     st.markdown(filter_html, unsafe_allow_html=True)
-
-
-def build_sentiment_bar(label, value, css_class):
-    return (
-        '<div class="sentiment-row">'
-        '<div class="sentiment-line">'
-        f'<span>{escape(label)}</span>'
-        f'<span>{escape(value)}%</span>'
-        '</div>'
-        '<div class="bar-track">'
-        f'<div class="{css_class}" style="width: {escape(value)}%;"></div>'
-        '</div>'
-        '</div>'
-    )
-
-
-def render_sentiment_distribution(hotel):
-    sentiment_html = (
-        '<div class="sentiment-box">'
-        '<div class="sentiment-title">Guest review feeling</div>'
-        + build_sentiment_bar("Positive", hotel.get("positive_pct", 0), "bar-positive")
-        + build_sentiment_bar("Neutral", hotel.get("neutral_pct", 0), "bar-neutral")
-        + build_sentiment_bar("Negative", hotel.get("negative_pct", 0), "bar-negative")
-        + '</div>'
-    )
-
-    st.markdown(sentiment_html, unsafe_allow_html=True)
-
-
-def render_main_summary(hotel, hotel_name):
-    summary_html = (
-        '<div class="main-summary-card">'
-        f'<div class="hotel-title">{escape(hotel.get("hotel", hotel_name))}</div>'
-        f'<div class="hotel-meta">{escape(hotel.get("area", ""))} · {escape(hotel.get("hotel_address", "Address not stated"))}</div>'
-        f'<div class="quick-note">{escape(hotel.get("description", ""))}</div>'
-        '<div class="stat-grid">'
-        '<div class="stat-item">'
-        '<div class="stat-label">Reviews</div>'
-        f'<div class="stat-value">{escape(hotel.get("review_count", 0))}</div>'
-        '</div>'
-        '<div class="stat-item">'
-        '<div class="stat-label">Positive</div>'
-        f'<div class="stat-value">{escape(hotel.get("positive_pct", 0))}%</div>'
-        '</div>'
-        '<div class="stat-item">'
-        '<div class="stat-label">Neutral</div>'
-        f'<div class="stat-value">{escape(hotel.get("neutral_pct", 0))}%</div>'
-        '</div>'
-        '<div class="stat-item">'
-        '<div class="stat-label">Negative</div>'
-        f'<div class="stat-value">{escape(hotel.get("negative_pct", 0))}%</div>'
-        '</div>'
-        '</div>'
-        '</div>'
-    )
-
-    st.markdown(summary_html, unsafe_allow_html=True)
-
-
-def render_booking_snapshot(hotel):
-    risk_level = hotel.get("risk_level", "Medium")
-
-    snapshot_html = (
-        '<div class="side-card">'
-        '<div class="side-title">Booking snapshot</div>'
-        f'<span class="risk-chip {risk_class_name(risk_level)}">{escape(risk_badge(risk_level))}</span>'
-        '<div class="insight-grid">'
-        '<div class="insight-item">'
-        '<div class="insight-label">Main strength</div>'
-        f'<div class="insight-value">{escape(hotel.get("main_strength", "Not clearly stated"))}</div>'
-        '</div>'
-        '<div class="insight-item">'
-        '<div class="insight-label">Main thing to check</div>'
-        f'<div class="insight-value">{escape(hotel.get("main_risk", "No major repeated concern"))}</div>'
-        '</div>'
-        '<div class="insight-item">'
-        '<div class="insight-label">Best for</div>'
-        f'<div class="insight-value">{escape(hotel.get("best_traveller_type", "General travellers"))}</div>'
-        '</div>'
-        '<div class="insight-item">'
-        '<div class="insight-label">Suitability score</div>'
-        f'<div class="insight-value">{escape(hotel.get("suitability_score", 0))}/100</div>'
-        '</div>'
-        '</div>'
-        '</div>'
-    )
-
-    st.markdown(snapshot_html, unsafe_allow_html=True)
 
 
 def render_review_card(sentiment, review):
@@ -881,14 +883,13 @@ render_hotel_picker(hotels, selected_area, selected_hotel)
 hotel = get_hotel_by_name(selected_hotel)
 
 if hotel:
-    left_col, right_col = st.columns([1.2, 0.8], gap="large")
+    left_col, right_col = st.columns([1.45, 0.75], gap="large")
 
     with left_col:
-        render_main_summary(hotel, selected_hotel)
-        render_sentiment_distribution(hotel)
+        render_hotel_overview(hotel, selected_hotel)
 
     with right_col:
-        render_booking_snapshot(hotel)
+        render_booking_advice(hotel)
 
     selected_section = get_selected_section()
     selected_review_type = get_selected_review_type()
@@ -902,7 +903,7 @@ if hotel:
 
     if selected_section == "improvements":
         st.markdown(
-            '<div class="detail-tabs-note">These are the most repeated improvement areas found from the hotel reviews.</div>',
+            '<div class="detail-tabs-note">These are the most repeated concerns found from this hotel\'s reviews.</div>',
             unsafe_allow_html=True
         )
 
@@ -910,7 +911,7 @@ if hotel:
 
         if complaint_df.empty:
             st.markdown(
-                '<div class="empty-note">No repeated complaint area was found for this hotel.</div>',
+                '<div class="empty-note">No repeated concern was found for this hotel.</div>',
                 unsafe_allow_html=True
             )
         else:
@@ -934,15 +935,15 @@ if hotel:
         else:
             if selected_review_type == "All":
                 positive_reviews_df = reviews_df[
-                    reviews_df["sentiment"].str.lower() == "positive"
+                    reviews_df["sentiment"].astype(str).str.lower() == "positive"
                 ].head(5)
 
                 neutral_reviews_df = reviews_df[
-                    reviews_df["sentiment"].str.lower() == "neutral"
+                    reviews_df["sentiment"].astype(str).str.lower() == "neutral"
                 ].head(5)
 
                 negative_reviews_df = reviews_df[
-                    reviews_df["sentiment"].str.lower() == "negative"
+                    reviews_df["sentiment"].astype(str).str.lower() == "negative"
                 ].head(5)
 
                 total_shown = (
@@ -985,7 +986,7 @@ if hotel:
 
             else:
                 filtered_reviews_df = reviews_df[
-                    reviews_df["sentiment"].str.lower() == selected_review_type.lower()
+                    reviews_df["sentiment"].astype(str).str.lower() == selected_review_type.lower()
                 ]
 
                 if filtered_reviews_df.empty:

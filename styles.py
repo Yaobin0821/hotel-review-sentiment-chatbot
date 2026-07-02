@@ -364,7 +364,6 @@ def render_topbar():
     st.markdown(
         """
         <style>
-            /* Remove the extra Streamlit gap around the topbar */
             div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) {
                 background: rgba(255, 252, 247, 0.96);
                 backdrop-filter: blur(14px);
@@ -376,16 +375,27 @@ def render_topbar():
                 align-items: center;
             }
 
+            div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="column"] {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="stVerticalBlock"] {
+                gap: 0 !important;
+            }
+
             .topbar-brand-display {
                 display: flex;
                 align-items: center;
-                gap: 0.55rem;
+                gap: 0.65rem;
                 color: var(--text-main, #172033);
                 font-weight: 950;
                 font-size: 1.05rem;
                 letter-spacing: -0.04em;
                 white-space: nowrap;
                 min-height: 38px;
+                width: 100%;
             }
 
             .topbar-logo-display {
@@ -401,11 +411,12 @@ def render_topbar():
                 box-shadow: 0 8px 18px rgba(155, 67, 37, 0.18);
             }
 
-            div[data-testid="stPageLink"] {
+            div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="stPageLink"] {
                 width: fit-content !important;
+                margin: 0 !important;
             }
 
-            div[data-testid="stPageLink"] a {
+            div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="stPageLink"] a {
                 text-decoration: none !important;
                 color: #5F5148 !important;
                 font-size: 0.82rem !important;
@@ -421,12 +432,12 @@ def render_topbar():
                 background: transparent !important;
             }
 
-            div[data-testid="stPageLink"] a:hover {
+            div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="stPageLink"] a:hover {
                 background: #FFF4E8 !important;
                 color: var(--brand-dark, #9B4325) !important;
             }
 
-            div[data-testid="stPageLink"] p {
+            div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="stPageLink"] p {
                 font-size: 0.82rem !important;
                 font-weight: 850 !important;
                 margin: 0 !important;
@@ -434,33 +445,22 @@ def render_topbar():
                 white-space: nowrap !important;
             }
 
-            div[data-testid="stPageLink"] svg {
+            div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="stPageLink"] svg {
                 display: none !important;
             }
 
-            .staff-link-wrap {
-                background: #EAF7F0;
-                border: 1px solid #BFE3CF;
-                border-radius: 999px;
-                min-height: 38px;
-                padding: 0 0.75rem;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                width: fit-content;
-            }
-
-            .staff-link-wrap div[data-testid="stPageLink"] a {
+            div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="column"]:last-child div[data-testid="stPageLink"] a {
                 color: #216E46 !important;
-                background: transparent !important;
-                padding: 0 !important;
-                min-height: auto !important;
+                background: #EAF7F0 !important;
+                border: 1px solid #BFE3CF !important;
                 font-weight: 900 !important;
+                padding: 0.5rem 0.78rem !important;
             }
 
-            .staff-link-wrap div[data-testid="stPageLink"] a:hover {
-                background: transparent !important;
+            div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="column"]:last-child div[data-testid="stPageLink"] a:hover {
+                background: #DFF3E8 !important;
                 color: #1D5F3E !important;
+                transform: translateY(-1px);
             }
 
             @media (max-width: 900px) {
@@ -518,9 +518,7 @@ def render_topbar():
         st.page_link("pages/5_improvement_insights.py", label="Area Insights")
 
     with staff_col:
-        st.markdown('<div class="staff-link-wrap">', unsafe_allow_html=True)
         st.page_link("pages/6_management_insights.py", label="Staff Portal 🔒")
-        st.markdown('</div>', unsafe_allow_html=True)
 
 
 def render_page_header(title, subtitle):

@@ -64,6 +64,18 @@ def get_query_value(key, default_value):
     return value
 
 
+def has_management_access():
+    access_value = st.query_params.get("mgmt_access", "")
+
+    if isinstance(access_value, list):
+        access_value = access_value[0]
+
+    if access_value == "1":
+        st.session_state["management_access_granted"] = True
+
+    return st.session_state.get("management_access_granted", False)
+
+
 def get_selected_area(areas):
     selected_area = get_query_value("area", areas[0])
 
@@ -677,7 +689,6 @@ def load_management_css():
             margin-bottom: 0.25rem;
         }
 
-        /* Password input */
         div[data-testid="stTextInput"] > label {
             font-weight: 800 !important;
             color: #4B5563 !important;
@@ -695,7 +706,6 @@ def load_management_css():
             font-size: 0.98rem !important;
         }
 
-        /* Submit button */
         div[data-testid="stFormSubmitButton"] button {
             width: 100%;
             border-radius: 16px !important;
@@ -740,7 +750,7 @@ def render_header():
 def require_management_access():
     access_code = st.secrets.get("MANAGEMENT_ACCESS_CODE", "staff123")
 
-    if st.session_state.get("management_access_granted", False):
+    if has_management_access():
         return
 
     left_col, right_col = st.columns([1, 1], gap="large")
@@ -787,6 +797,7 @@ def require_management_access():
             if submit_clicked:
                 if entered_code == access_code:
                     st.session_state["management_access_granted"] = True
+                    st.query_params["mgmt_access"] = "1"
                     st.rerun()
                 else:
                     st.error("Incorrect access code. Please try again.")
@@ -808,6 +819,7 @@ def render_management_mode_bar():
     with col2:
         if st.button("Exit Management Mode", use_container_width=True):
             st.session_state["management_access_granted"] = False
+            st.query_params.clear()
             st.rerun()
 
 
@@ -820,7 +832,7 @@ def render_area_choices(areas, selected_area):
 
         chips_html += (
             f'<a class="choice-chip {active_class}" '
-            f'href="?area={area_url}" target="_self">{escape(area)}</a>'
+            f'href="?mgmt_access=1&area={area_url}" target="_self">{escape(area)}</a>'
         )
 
     render_html(f"""
@@ -843,7 +855,7 @@ def render_hotel_choices(hotels, selected_area, selected_hotel):
 
         chips_html += (
             f'<a class="hotel-chip {active_class}" '
-            f'href="?area={area_url}&hotel={hotel_url}" '
+            f'href="?mgmt_access=1&area={area_url}&hotel={hotel_url}" '
             f'target="_self">{escape(hotel_name)}</a>'
         )
 

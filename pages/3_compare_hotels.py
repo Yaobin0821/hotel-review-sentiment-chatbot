@@ -512,56 +512,64 @@ def load_compare_css():
             margin-bottom: 1rem;
         }
 
+        .traveller-summary-header {
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid #EFE3D8;
+            margin-bottom: 0.35rem;
+        }
+
         .traveller-summary-title {
             color: var(--text-main);
             font-size: 1.18rem;
             font-weight: 950;
             letter-spacing: -0.04em;
-            margin-bottom: 0.15rem;
+            margin-bottom: 0.12rem;
         }
 
         .traveller-summary-desc {
             color: #64748B;
             font-size: 0.84rem;
-            line-height: 1.4;
-            margin-bottom: 0.8rem;
+            line-height: 1.35;
+        }
+
+        .summary-table {
+            width: 100%;
         }
 
         .summary-row {
             display: grid;
-            grid-template-columns: 180px 1fr 1fr 120px;
+            grid-template-columns: 155px 1fr 1fr 190px;
             gap: 0.5rem;
             align-items: center;
-            padding: 0.55rem 0;
-            border-top: 1px solid #EFE3D8;
+            padding: 0.48rem 0;
+            border-bottom: 1px solid #F1E7DC;
         }
 
-        .summary-row:first-of-type {
-            border-top: none;
+        .summary-row:last-child {
+            border-bottom: none;
         }
 
         .summary-topic {
             color: #7C6F64;
-            font-size: 0.74rem;
+            font-size: 0.72rem;
             font-weight: 950;
             text-transform: uppercase;
             letter-spacing: 0.06em;
-            line-height: 1.25;
+            line-height: 1.2;
         }
 
         .summary-value-box {
             background: #FFFDF8;
             border: 1px solid #EAD7C6;
-            border-radius: 14px;
-            padding: 0.58rem 0.65rem;
-            min-height: auto;
+            border-radius: 13px;
+            padding: 0.52rem 0.6rem;
         }
 
         .summary-hotel-name {
             color: #64748B;
-            font-size: 0.68rem;
+            font-size: 0.66rem;
             font-weight: 850;
-            margin-bottom: 0.18rem;
+            margin-bottom: 0.14rem;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -569,9 +577,9 @@ def load_compare_css():
 
         .summary-value {
             color: var(--text-main);
-            font-size: 0.84rem;
+            font-size: 0.82rem;
             font-weight: 900;
-            line-height: 1.3;
+            line-height: 1.25;
         }
 
         .summary-better {
@@ -581,13 +589,13 @@ def load_compare_css():
             background: #EAF7F0;
             color: #216E46;
             border: 1px solid #BFE3CF;
-            border-radius: 14px;
-            padding: 0.55rem;
-            font-size: 0.72rem;
+            border-radius: 13px;
+            padding: 0.52rem 0.6rem;
+            font-size: 0.7rem;
             font-weight: 900;
             text-align: center;
             line-height: 1.25;
-            min-height: 48px;
+            min-height: 46px;
         }
 
         .summary-better.neutral {
@@ -599,7 +607,7 @@ def load_compare_css():
         @media (max-width: 1000px) {
             .summary-row {
                 grid-template-columns: 1fr;
-                gap: 0.45rem;
+                gap: 0.4rem;
             }
 
             .summary-better {
@@ -797,7 +805,7 @@ def render_hotel_compare_card(hotel):
     render_html(card_html)
 
 
-def render_summary_row(topic, hotel_a, hotel_b, value_a, value_b, better_label):
+def build_summary_row(topic, hotel_a, hotel_b, value_a, value_b, better_label):
     hotel_a_name = safe_get(hotel_a, "hotel")
     hotel_b_name = safe_get(hotel_b, "hotel")
 
@@ -805,18 +813,12 @@ def render_summary_row(topic, hotel_a, hotel_b, value_a, value_b, better_label):
 
     if better_label == "Similar":
         better_text = "Similar"
-    elif better_label == hotel_a_name:
-        better_text = "Better: Hotel A"
-    elif better_label == hotel_b_name:
-        better_text = "Better: Hotel B"
     else:
-        better_text = "Better"
+        better_text = f"Better: {better_label}"
 
-    render_html(f"""
+    return f"""
     <div class="summary-row">
-        <div class="summary-topic">
-            {escape(topic)}
-        </div>
+        <div class="summary-topic">{escape(topic)}</div>
 
         <div class="summary-value-box">
             <div class="summary-hotel-name">{escape(hotel_a_name)}</div>
@@ -832,7 +834,7 @@ def render_summary_row(topic, hotel_a, hotel_b, value_a, value_b, better_label):
             {escape(better_text)}
         </div>
     </div>
-    """)
+    """
 
 
 def render_traveller_summary(hotel_a, hotel_b):
@@ -840,15 +842,9 @@ def render_traveller_summary(hotel_a, hotel_b):
     better_negative = get_better_negative_label(hotel_a, hotel_b)
     better_score = get_better_score_label(hotel_a, hotel_b)
 
-    render_html("""
-    <div class="traveller-summary-section">
-        <div class="traveller-summary-title">Traveller comparison summary</div>
-        <div class="traveller-summary-desc">
-            A compact side-by-side view of the most important booking signals.
-        </div>
-    """)
+    rows_html = ""
 
-    render_summary_row(
+    rows_html += build_summary_row(
         topic="Guest feeling",
         hotel_a=hotel_a,
         hotel_b=hotel_b,
@@ -857,7 +853,7 @@ def render_traveller_summary(hotel_a, hotel_b):
         better_label=better_positive
     )
 
-    render_summary_row(
+    rows_html += build_summary_row(
         topic="Booking concern",
         hotel_a=hotel_a,
         hotel_b=hotel_b,
@@ -866,7 +862,7 @@ def render_traveller_summary(hotel_a, hotel_b):
         better_label=better_negative
     )
 
-    render_summary_row(
+    rows_html += build_summary_row(
         topic="Looks good",
         hotel_a=hotel_a,
         hotel_b=hotel_b,
@@ -875,7 +871,7 @@ def render_traveller_summary(hotel_a, hotel_b):
         better_label="Similar"
     )
 
-    render_summary_row(
+    rows_html += build_summary_row(
         topic="Check first",
         hotel_a=hotel_a,
         hotel_b=hotel_b,
@@ -884,7 +880,7 @@ def render_traveller_summary(hotel_a, hotel_b):
         better_label="Similar"
     )
 
-    render_summary_row(
+    rows_html += build_summary_row(
         topic="Best for",
         hotel_a=hotel_a,
         hotel_b=hotel_b,
@@ -893,7 +889,7 @@ def render_traveller_summary(hotel_a, hotel_b):
         better_label="Similar"
     )
 
-    render_summary_row(
+    rows_html += build_summary_row(
         topic="Score",
         hotel_a=hotel_a,
         hotel_b=hotel_b,
@@ -902,7 +898,20 @@ def render_traveller_summary(hotel_a, hotel_b):
         better_label=better_score
     )
 
-    render_html("</div>")
+    render_html(f"""
+    <div class="traveller-summary-section">
+        <div class="traveller-summary-header">
+            <div class="traveller-summary-title">Traveller comparison summary</div>
+            <div class="traveller-summary-desc">
+                A compact side-by-side view of the most important booking signals.
+            </div>
+        </div>
+
+        <div class="summary-table">
+            {rows_html}
+        </div>
+    </div>
+    """)
 
 
 def get_recommendation_text(hotel_a, hotel_b):

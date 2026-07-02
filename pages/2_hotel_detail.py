@@ -192,8 +192,6 @@ def load_hotel_detail_css():
             padding: 1.25rem;
             box-shadow: var(--shadow-card);
             margin-bottom: 0.95rem;
-            min-height: 530px;
-            box-sizing: border-box;
         }
 
         .hotel-title {
@@ -297,10 +295,6 @@ def load_hotel_detail_css():
             padding: 1.25rem;
             box-shadow: var(--shadow-card);
             margin-bottom: 0.95rem;
-            min-height: 530px;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
         }
 
         .advice-title {
@@ -319,7 +313,6 @@ def load_hotel_detail_css():
             font-size: 0.86rem;
             font-weight: 850;
             margin-bottom: 0.95rem;
-            width: fit-content;
         }
 
         .risk-low {
@@ -340,10 +333,17 @@ def load_hotel_detail_css():
             border: 1px solid #F4C7BF;
         }
 
+        .advice-text {
+            color: #475569;
+            font-size: 0.92rem;
+            line-height: 1.55;
+            margin-bottom: 1rem;
+        }
+
         .advice-list {
             display: grid;
             grid-template-columns: 1fr;
-            gap: 0.9rem;
+            gap: 0.7rem;
         }
 
         .advice-item {
@@ -496,11 +496,6 @@ def load_hotel_detail_css():
         @media (max-width: 900px) {
             .area-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-
-            .overview-card,
-            .advice-card {
-                min-height: auto;
             }
         }
 

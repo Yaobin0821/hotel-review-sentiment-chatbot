@@ -359,35 +359,216 @@ def load_css():
 
 
 def render_topbar():
-    topbar_html = (
-        '<div class="app-shell">'
-        '<div class="brand-card">'
-        '<div class="brand-row">'
-        '<div class="brand-left">'
-        '<div class="brand-logo">🏨</div>'
-        '<div>'
-        '<div class="brand-title">StayWise KL</div>'
-        '<div class="brand-subtitle">Hotel review guidance for smarter bookings</div>'
-        '</div>'
-        '</div>'
-        '<div class="brand-pill">Traveller-friendly review assistant</div>'
-        '</div>'
-        '</div>'
+    import streamlit as st
 
-        '<div class="nav-card">'
-        '<div class="nav-row">'
-        '<a class="nav-link" href="/" target="_self">🏡 Home</a>'
-        '<a class="nav-link" href="/find_hotels" target="_self">🏠 Find Hotels</a>'
-        '<a class="nav-link" href="/hotel_detail" target="_self">🏨 Hotel Detail</a>'
-        '<a class="nav-link" href="/compare_hotels" target="_self">⚖️ Compare</a>'
-        '<a class="nav-link" href="/review_checker" target="_self">🔍 Review Checker</a>'
-        '<a class="nav-link" href="/improvement_insights" target="_self">📊 Insights</a>'
-        '</div>'
-        '</div>'
-        '</div>'
+    st.markdown(
+        """
+        <style>
+            div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) {
+                background: rgba(255, 252, 247, 0.96);
+                backdrop-filter: blur(14px);
+                border: 1px solid var(--border, #E7DDD0);
+                border-radius: 26px;
+                box-shadow: var(--shadow-card, 0 10px 28px rgba(74, 55, 40, 0.07));
+                padding: 0.68rem 1rem;
+                margin: 0 auto 1rem auto;
+                align-items: center !important;
+            }
+
+            div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="column"] {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                min-height: 46px !important;
+            }
+
+            div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="column"]:first-child {
+                justify-content: flex-start !important;
+            }
+
+            div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="stVerticalBlock"] {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                gap: 0 !important;
+                min-height: 46px !important;
+            }
+
+            div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="stMarkdownContainer"] {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            .topbar-brand-display {
+                display: flex;
+                align-items: center;
+                justify-content: flex-start;
+                gap: 0.65rem;
+                color: var(--text-main, #172033);
+                font-weight: 950;
+                font-size: 1.05rem;
+                letter-spacing: -0.04em;
+                white-space: nowrap;
+                height: 42px;
+                line-height: 1;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            .topbar-logo-display {
+                width: 38px;
+                height: 38px;
+                border-radius: 14px;
+                background: linear-gradient(135deg, var(--brand, #C7653A), var(--brand-dark, #9B4325));
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-size: 1.05rem;
+                box-shadow: 0 8px 18px rgba(155, 67, 37, 0.18);
+                flex-shrink: 0;
+            }
+
+            .topbar-brand-display span {
+                display: flex;
+                align-items: center;
+                height: 38px;
+                line-height: 1;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="stPageLink"] {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                width: fit-content !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                min-height: 42px !important;
+            }
+
+            div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="stPageLink"] a {
+                text-decoration: none !important;
+                color: #5F5148 !important;
+                font-size: 0.82rem !important;
+                font-weight: 850 !important;
+                padding: 0.5rem 0.7rem !important;
+                border-radius: 999px !important;
+                transition: background 0.16s ease, color 0.16s ease !important;
+                white-space: nowrap !important;
+                min-height: 42px !important;
+                height: 42px !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                background: transparent !important;
+                line-height: 1 !important;
+                margin: 0 !important;
+                transform: translateY(4px) !important;
+            }
+
+            div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="stPageLink"] a:hover {
+                background: #FFF4E8 !important;
+                color: var(--brand-dark, #9B4325) !important;
+                transform: translateY(4px) !important;
+            }
+
+            div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="stPageLink"] p {
+                font-size: 0.82rem !important;
+                font-weight: 850 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                color: inherit !important;
+                white-space: nowrap !important;
+                line-height: 1 !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+            }
+
+            div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="stPageLink"] svg {
+                display: none !important;
+            }
+
+            div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="column"]:last-child div[data-testid="stPageLink"] a {
+                color: #216E46 !important;
+                background: #EAF7F0 !important;
+                border: 1px solid #BFE3CF !important;
+                font-weight: 900 !important;
+                padding: 0.5rem 0.78rem !important;
+                transform: translateY(4px) !important;
+            }
+
+            div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="column"]:last-child div[data-testid="stPageLink"] a:hover {
+                background: #DFF3E8 !important;
+                color: #1D5F3E !important;
+                transform: translateY(4px) !important;
+            }
+
+            @media (max-width: 900px) {
+                div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) {
+                    border-radius: 22px;
+                    padding: 0.75rem;
+                }
+
+                div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="column"] {
+                    min-height: 42px !important;
+                }
+            }
+        </style>
+        """,
+        unsafe_allow_html=True
     )
 
-    st.markdown(topbar_html, unsafe_allow_html=True)
+    (
+        brand_col,
+        home_col,
+        find_col,
+        detail_col,
+        compare_col,
+        review_col,
+        insights_col,
+        staff_col
+    ) = st.columns(
+        [1.75, 0.65, 0.95, 1.05, 0.75, 1.25, 1.05, 1.25],
+        gap="small"
+    )
+
+    with brand_col:
+        st.markdown(
+            """
+            <div class="topbar-brand-display">
+                <div class="topbar-logo-display">🏨</div>
+                <span>StayWise KL</span>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    with home_col:
+        st.page_link("app.py", label="Home")
+
+    with find_col:
+        st.page_link("pages/1_find_hotels.py", label="Find Hotels")
+
+    with detail_col:
+        st.page_link("pages/2_hotel_detail.py", label="Hotel Detail")
+
+    with compare_col:
+        st.page_link("pages/3_compare_hotels.py", label="Compare")
+
+    with review_col:
+        st.page_link("pages/4_review_checker.py", label="Review Checker")
+
+    with insights_col:
+        st.page_link("pages/5_improvement_insights.py", label="Area Insights")
+
+    with staff_col:
+        st.page_link("pages/6_management_insights.py", label="Staff Portal 🔒")
 
 
 def render_page_header(title, subtitle):

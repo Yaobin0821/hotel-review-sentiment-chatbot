@@ -41,8 +41,8 @@ MODEL_NAME = "distilbert"
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 
-TRAIN_PATH = BASE_DIR / "data" / "train_dataset.csv"
-TEST_PATH = BASE_DIR / "data" / "test_dataset.csv"
+TRAIN_PATH = BASE_DIR / "data" / "combined_final_balanced_analysis_sorted_confidence_label.csv"
+TEST_PATH = BASE_DIR / "data" / "combined_final_balanced_analysis_sorted_confidence_label.csv"
 
 MODEL_DIR = BASE_DIR / "models"
 REPORT_DIR = BASE_DIR / "reports"

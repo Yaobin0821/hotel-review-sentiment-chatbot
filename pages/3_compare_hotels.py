@@ -1,7 +1,6 @@
 import html
 from urllib.parse import quote
 
-import pandas as pd
 import streamlit as st
 
 from styles import load_css, render_topbar, render_footer
@@ -175,12 +174,6 @@ def load_compare_css():
             font-size: 1.1rem;
             font-weight: 950;
             letter-spacing: -0.04em;
-        }
-
-        .selection-note {
-            color: #7C6F64;
-            font-size: 0.82rem;
-            font-weight: 700;
         }
 
         .selector-label {
@@ -470,6 +463,83 @@ def load_compare_css():
             line-height: 1.32;
         }
 
+        .comparison-card-section {
+            background: rgba(255, 255, 255, 0.94);
+            border: 1px solid var(--border);
+            border-radius: 26px;
+            padding: 1.05rem;
+            box-shadow: var(--shadow-card);
+            margin-top: 0.85rem;
+            margin-bottom: 1rem;
+        }
+
+        .comparison-section-title {
+            color: var(--text-main);
+            font-size: 1.15rem;
+            font-weight: 950;
+            letter-spacing: -0.04em;
+            margin-bottom: 0.25rem;
+        }
+
+        .comparison-section-desc {
+            color: #64748B;
+            font-size: 0.86rem;
+            line-height: 1.45;
+            margin-bottom: 0.9rem;
+        }
+
+        .comparison-card-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.75rem;
+        }
+
+        .comparison-mini-card {
+            background: #FFFDF8;
+            border: 1px solid #EAD7C6;
+            border-radius: 18px;
+            padding: 0.85rem;
+        }
+
+        .comparison-mini-label {
+            color: #7C6F64;
+            font-size: 0.72rem;
+            font-weight: 950;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            margin-bottom: 0.55rem;
+        }
+
+        .comparison-two-values {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.55rem;
+        }
+
+        .comparison-value-box {
+            background: white;
+            border: 1px solid #EFE3D8;
+            border-radius: 14px;
+            padding: 0.65rem;
+        }
+
+        .comparison-hotel-name {
+            color: #64748B;
+            font-size: 0.72rem;
+            font-weight: 800;
+            margin-bottom: 0.25rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .comparison-value {
+            color: var(--text-main);
+            font-size: 0.9rem;
+            font-weight: 900;
+            line-height: 1.35;
+        }
+
         @media (max-width: 900px) {
             .hotel-choice-grid {
                 grid-template-columns: 1fr;
@@ -481,7 +551,9 @@ def load_compare_css():
                 padding: 0.4rem 0.7rem;
             }
 
-            .compare-info-list {
+            .compare-info-list,
+            .comparison-card-grid,
+            .comparison-two-values {
                 grid-template-columns: 1fr;
             }
 
@@ -659,48 +731,93 @@ def render_hotel_compare_card(hotel):
     render_html(card_html)
 
 
-def build_comparison_table(hotel_a, hotel_b):
-    return pd.DataFrame({
-        "Criteria": [
-            "Area",
-            "Reviews",
-            "Positive %",
-            "Neutral %",
-            "Negative %",
-            "What looks good",
-            "What to check",
-            "Risk Level",
-            "Best Traveller Type",
-            "Suitability Score",
-            "Price Level"
-        ],
-        safe_get(hotel_a, "hotel"): [
-            safe_get(hotel_a, "area"),
-            get_review_count(hotel_a),
-            f"{safe_get(hotel_a, 'positive_pct', 0)}%",
-            f"{safe_get(hotel_a, 'neutral_pct', 0)}%",
-            f"{safe_get(hotel_a, 'negative_pct', 0)}%",
-            safe_get(hotel_a, "main_strength"),
-            safe_get(hotel_a, "main_risk"),
-            safe_get(hotel_a, "risk_level"),
-            safe_get(hotel_a, "best_traveller_type"),
-            safe_get(hotel_a, "suitability_score", 0),
-            safe_get(hotel_a, "price_level")
-        ],
-        safe_get(hotel_b, "hotel"): [
-            safe_get(hotel_b, "area"),
-            get_review_count(hotel_b),
-            f"{safe_get(hotel_b, 'positive_pct', 0)}%",
-            f"{safe_get(hotel_b, 'neutral_pct', 0)}%",
-            f"{safe_get(hotel_b, 'negative_pct', 0)}%",
-            safe_get(hotel_b, "main_strength"),
-            safe_get(hotel_b, "main_risk"),
-            safe_get(hotel_b, "risk_level"),
-            safe_get(hotel_b, "best_traveller_type"),
-            safe_get(hotel_b, "suitability_score", 0),
-            safe_get(hotel_b, "price_level")
-        ]
-    })
+def render_comparison_cards(hotel_a, hotel_b):
+    hotel_a_name = safe_get(hotel_a, "hotel")
+    hotel_b_name = safe_get(hotel_b, "hotel")
+
+    comparison_items = [
+        {
+            "label": "Reviews analysed",
+            "a": get_review_count(hotel_a),
+            "b": get_review_count(hotel_b)
+        },
+        {
+            "label": "Positive reviews",
+            "a": f"{safe_get(hotel_a, 'positive_pct', 0)}%",
+            "b": f"{safe_get(hotel_b, 'positive_pct', 0)}%"
+        },
+        {
+            "label": "Neutral reviews",
+            "a": f"{safe_get(hotel_a, 'neutral_pct', 0)}%",
+            "b": f"{safe_get(hotel_b, 'neutral_pct', 0)}%"
+        },
+        {
+            "label": "Negative reviews",
+            "a": f"{safe_get(hotel_a, 'negative_pct', 0)}%",
+            "b": f"{safe_get(hotel_b, 'negative_pct', 0)}%"
+        },
+        {
+            "label": "Risk level",
+            "a": safe_get(hotel_a, "risk_level"),
+            "b": safe_get(hotel_b, "risk_level")
+        },
+        {
+            "label": "Best for",
+            "a": safe_get(hotel_a, "best_traveller_type"),
+            "b": safe_get(hotel_b, "best_traveller_type")
+        },
+        {
+            "label": "What looks good",
+            "a": safe_get(hotel_a, "main_strength"),
+            "b": safe_get(hotel_b, "main_strength")
+        },
+        {
+            "label": "What to check",
+            "a": safe_get(hotel_a, "main_risk"),
+            "b": safe_get(hotel_b, "main_risk")
+        },
+        {
+            "label": "Suitability score",
+            "a": f"{safe_get(hotel_a, 'suitability_score', 0)}/100",
+            "b": f"{safe_get(hotel_b, 'suitability_score', 0)}/100"
+        },
+        {
+            "label": "Price level",
+            "a": safe_get(hotel_a, "price_level"),
+            "b": safe_get(hotel_b, "price_level")
+        }
+    ]
+
+    cards_html = ""
+
+    for item in comparison_items:
+        cards_html += f"""
+        <div class="comparison-mini-card">
+            <div class="comparison-mini-label">{escape(item["label"])}</div>
+            <div class="comparison-two-values">
+                <div class="comparison-value-box">
+                    <div class="comparison-hotel-name">{escape(hotel_a_name)}</div>
+                    <div class="comparison-value">{escape(item["a"])}</div>
+                </div>
+                <div class="comparison-value-box">
+                    <div class="comparison-hotel-name">{escape(hotel_b_name)}</div>
+                    <div class="comparison-value">{escape(item["b"])}</div>
+                </div>
+            </div>
+        </div>
+        """
+
+    render_html(f"""
+    <div class="comparison-card-section">
+        <div class="comparison-section-title">Detailed comparison</div>
+        <div class="comparison-section-desc">
+            A simple side-by-side summary of the main review signals for both hotels.
+        </div>
+        <div class="comparison-card-grid">
+            {cards_html}
+        </div>
+    </div>
+    """)
 
 
 def get_recommendation_text(hotel_a, hotel_b):
@@ -774,8 +891,6 @@ else:
     with compare_col2:
         render_hotel_compare_card(hotel_b)
 
-    with st.expander("View full comparison table"):
-        comparison_df = build_comparison_table(hotel_a, hotel_b)
-        st.dataframe(comparison_df, use_container_width=True, hide_index=True)
+    render_comparison_cards(hotel_a, hotel_b)
 
 render_footer()

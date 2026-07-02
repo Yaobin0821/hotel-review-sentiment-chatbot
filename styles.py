@@ -361,106 +361,106 @@ def load_css():
 def render_topbar():
     import streamlit as st
 
-    st.markdown("""
+    html_code = """
     <style>
-        .custom-topbar {
-            position: sticky;
-            top: 0;
-            z-index: 999;
-            background: rgba(255, 252, 247, 0.96);
-            backdrop-filter: blur(14px);
-            border-bottom: 1px solid rgba(234, 215, 198, 0.9);
-            margin: -1rem -1rem 1rem -1rem;
-            padding: 0.65rem 1.1rem;
-        }
+    .custom-topbar {
+        position: sticky;
+        top: 0;
+        z-index: 999;
+        background: rgba(255, 252, 247, 0.96);
+        backdrop-filter: blur(14px);
+        border-bottom: 1px solid rgba(234, 215, 198, 0.9);
+        margin: -1rem -1rem 1rem -1rem;
+        padding: 0.65rem 1.1rem;
+    }
 
+    .topbar-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        max-width: 1280px;
+        margin: 0 auto;
+    }
+
+    .topbar-brand {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        text-decoration: none !important;
+        color: var(--text-main, #2F241D) !important;
+        font-weight: 950;
+        font-size: 1.05rem;
+        letter-spacing: -0.04em;
+        white-space: nowrap;
+    }
+
+    .topbar-logo {
+        width: 34px;
+        height: 34px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--brand, #C46A3A), var(--brand-dark, #9B4325));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1rem;
+        box-shadow: 0 8px 18px rgba(155, 67, 37, 0.18);
+    }
+
+    .topbar-nav {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.3rem;
+        flex-wrap: wrap;
+    }
+
+    .topbar-link {
+        text-decoration: none !important;
+        color: #5F5148 !important;
+        font-size: 0.82rem;
+        font-weight: 850;
+        padding: 0.48rem 0.68rem;
+        border-radius: 999px;
+        transition: all 0.16s ease;
+        white-space: nowrap;
+    }
+
+    .topbar-link:hover {
+        background: #FFF4E8;
+        color: var(--brand-dark, #9B4325) !important;
+    }
+
+    .topbar-staff-link {
+        text-decoration: none !important;
+        color: #216E46 !important;
+        background: #EAF7F0;
+        border: 1px solid #BFE3CF;
+        font-size: 0.82rem;
+        font-weight: 900;
+        padding: 0.48rem 0.72rem;
+        border-radius: 999px;
+        transition: all 0.16s ease;
+        white-space: nowrap;
+    }
+
+    .topbar-staff-link:hover {
+        background: #DFF3E8;
+        color: #1D5F3E !important;
+        transform: translateY(-1px);
+    }
+
+    @media (max-width: 900px) {
         .topbar-inner {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 1rem;
-            max-width: 1280px;
-            margin: 0 auto;
-        }
-
-        .topbar-brand {
-            display: flex;
-            align-items: center;
-            gap: 0.55rem;
-            text-decoration: none !important;
-            color: var(--text-main, #2F241D) !important;
-            font-weight: 950;
-            font-size: 1.05rem;
-            letter-spacing: -0.04em;
-            white-space: nowrap;
-        }
-
-        .topbar-logo {
-            width: 34px;
-            height: 34px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, var(--brand, #C46A3A), var(--brand-dark, #9B4325));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1rem;
-            box-shadow: 0 8px 18px rgba(155, 67, 37, 0.18);
+            align-items: flex-start;
+            flex-direction: column;
         }
 
         .topbar-nav {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            gap: 0.3rem;
-            flex-wrap: wrap;
+            justify-content: flex-start;
         }
-
-        .topbar-link {
-            text-decoration: none !important;
-            color: #5F5148 !important;
-            font-size: 0.82rem;
-            font-weight: 850;
-            padding: 0.48rem 0.68rem;
-            border-radius: 999px;
-            transition: all 0.16s ease;
-            white-space: nowrap;
-        }
-
-        .topbar-link:hover {
-            background: #FFF4E8;
-            color: var(--brand-dark, #9B4325) !important;
-        }
-
-        .topbar-staff-link {
-            text-decoration: none !important;
-            color: #216E46 !important;
-            background: #EAF7F0;
-            border: 1px solid #BFE3CF;
-            font-size: 0.82rem;
-            font-weight: 900;
-            padding: 0.48rem 0.72rem;
-            border-radius: 999px;
-            transition: all 0.16s ease;
-            white-space: nowrap;
-        }
-
-        .topbar-staff-link:hover {
-            background: #DFF3E8;
-            color: #1D5F3E !important;
-            transform: translateY(-1px);
-        }
-
-        @media (max-width: 900px) {
-            .topbar-inner {
-                align-items: flex-start;
-                flex-direction: column;
-            }
-
-            .topbar-nav {
-                justify-content: flex-start;
-            }
-        }
+    }
     </style>
 
     <div class="custom-topbar">
@@ -477,11 +477,19 @@ def render_topbar():
                 <a class="topbar-link" href="/Compare_Hotels" target="_self">Compare</a>
                 <a class="topbar-link" href="/Review_Checker" target="_self">Review Checker</a>
                 <a class="topbar-link" href="/Improvement_Insights" target="_self">Area Insights</a>
-                <a class="topbar-staff-link" href="/Management_Insights" target="_self">Staff Portal 🔒</a>
+                <a class="topbar-staff-link" href="/Management_Insights" target="_self">Staff Portal &#128274;</a>
             </div>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    """
+
+    cleaned_html = "\n".join(
+        line.strip()
+        for line in html_code.splitlines()
+        if line.strip()
+    )
+
+    st.markdown(cleaned_html, unsafe_allow_html=True)
 
 
 def render_page_header(title, subtitle):

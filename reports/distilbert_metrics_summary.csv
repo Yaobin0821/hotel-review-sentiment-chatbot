@@ -1,2 +1,2 @@
 model_name,pretrained_model,text_column,label_column,train_samples_total,internal_train_samples,validation_samples,test_samples,test_loss,accuracy,macro_precision,macro_recall,macro_f1,weighted_precision,weighted_recall,weighted_f1,epochs_trained,best_val_loss,device
-distilbert,distilbert-base-uncased,BERT_Text,Sentiment,309,247,62,78,0.6400070358545352,0.7435897435897436,0.7382716049382716,0.7435897435897436,0.7372158819368776,0.7382716049382716,0.7435897435897436,0.7372158819368775,7,0.7495342666102994,cpu
+distilbert,distilbert-base-uncased,BERT_Text,Sentiment,711,568,143,711,0.43622025390549884,0.8410689170182841,0.8399025217207036,0.841068917018284,0.8388095470099746,0.8399025217207036,0.8410689170182841,0.8388095470099746,6,0.5944017713720148,cuda

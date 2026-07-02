@@ -1,0 +1,4 @@
+seed,best_epoch,best_val_loss,best_val_macro_f1,val_accuracy,val_macro_f1,test_accuracy_uncalibrated,test_macro_f1_uncalibrated,model_path
+42,5,0.7861911231471647,0.6653310104529616,0.6774193548387096,0.6653310104529616,0.7564102564102564,0.7483530961791831,C:\Users\User\Desktop\New folder\hotel-review-sentiment-chatbot\models\distilbert_seed_42_model
+7,7,0.7686095372323067,0.7524547803617571,0.7580645161290323,0.7524547803617571,0.6923076923076923,0.6835685459798935,C:\Users\User\Desktop\New folder\hotel-review-sentiment-chatbot\models\distilbert_seed_7_model
+13,3,0.7864724224613558,0.6855302507476421,0.6935483870967742,0.6855302507476421,0.7435897435897436,0.7243163340724316,C:\Users\User\Desktop\New folder\hotel-review-sentiment-chatbot\models\distilbert_seed_13_model

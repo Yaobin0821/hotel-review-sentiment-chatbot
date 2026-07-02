@@ -1,8 +1,8 @@
 {
     "model_name": "bilstm",
     "algorithm": "Embedding + Bidirectional LSTM",
-    "train_file": "C:\\Users\\user\\Desktop\\hotel-review-sentiment-chatbot\\data\\train_dataset.csv",
-    "test_file": "C:\\Users\\user\\Desktop\\hotel-review-sentiment-chatbot\\data\\test_dataset.csv",
+    "train_file": "C:\\Users\\User\\Desktop\\New folder\\hotel-review-sentiment-chatbot\\data\\train_dataset.csv",
+    "test_file": "C:\\Users\\User\\Desktop\\New folder\\hotel-review-sentiment-chatbot\\data\\test_dataset.csv",
     "text_column": "Cleaned_Text",
     "label_column": "Sentiment",
     "label_order": [

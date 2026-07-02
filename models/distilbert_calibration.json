@@ -1,0 +1,7 @@
+{
+    "neutral_bias": -0.1,
+    "low_conf_threshold": 0.0,
+    "selection_mode": "single_best_seed",
+    "selected_seed": 7,
+    "note": "Calibration parameters were selected using validation set only."
+}

@@ -398,6 +398,8 @@ def render_topbar():
                 display: flex !important;
                 align-items: center !important;
                 justify-content: center !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
 
             .topbar-brand-display {
@@ -435,6 +437,8 @@ def render_topbar():
                 align-items: center;
                 height: 38px;
                 line-height: 1;
+                margin: 0 !important;
+                padding: 0 !important;
             }
 
             div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="stPageLink"] {
@@ -454,7 +458,7 @@ def render_topbar():
                 font-weight: 850 !important;
                 padding: 0.5rem 0.7rem !important;
                 border-radius: 999px !important;
-                transition: all 0.16s ease !important;
+                transition: background 0.16s ease, color 0.16s ease !important;
                 white-space: nowrap !important;
                 min-height: 42px !important;
                 height: 42px !important;
@@ -464,11 +468,13 @@ def render_topbar():
                 background: transparent !important;
                 line-height: 1 !important;
                 margin: 0 !important;
+                transform: translateY(4px) !important;
             }
 
             div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="stPageLink"] a:hover {
                 background: #FFF4E8 !important;
                 color: var(--brand-dark, #9B4325) !important;
+                transform: translateY(4px) !important;
             }
 
             div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="stPageLink"] p {
@@ -494,18 +500,23 @@ def render_topbar():
                 border: 1px solid #BFE3CF !important;
                 font-weight: 900 !important;
                 padding: 0.5rem 0.78rem !important;
+                transform: translateY(4px) !important;
             }
 
             div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="column"]:last-child div[data-testid="stPageLink"] a:hover {
                 background: #DFF3E8 !important;
                 color: #1D5F3E !important;
-                transform: translateY(-1px);
+                transform: translateY(4px) !important;
             }
 
             @media (max-width: 900px) {
                 div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) {
                     border-radius: 22px;
                     padding: 0.75rem;
+                }
+
+                div[data-testid="stHorizontalBlock"]:has(.topbar-brand-display) div[data-testid="column"] {
+                    min-height: 42px !important;
                 }
             }
         </style>

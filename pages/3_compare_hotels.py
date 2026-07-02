@@ -589,7 +589,6 @@ def render_selection_panel(areas, hotel_options, selected_area, hotel_a_name, ho
     <div class="selection-card">
         <div class="selection-top">
             <div class="selection-title">Pick hotels to compare</div>
-            <div class="selection-note">Click only. No typing needed.</div>
         </div>
 
         {area_html}

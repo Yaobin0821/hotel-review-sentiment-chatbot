@@ -1,5 +1,3 @@
-# scripts/train_distilbert.py
-
 from pathlib import Path
 import os
 import json
@@ -33,10 +31,6 @@ from sklearn.metrics import (
 )
 from sklearn.preprocessing import label_binarize
 
-
-# =========================
-# Configuration
-# =========================
 MODEL_NAME = "distilbert"
 
 BASE_DIR = Path(__file__).resolve().parents[1]
@@ -71,7 +65,6 @@ PRETRAINED_MODEL_NAME = "distilbert-base-uncased"
 
 RANDOM_STATE = 42
 
-# DistilBERT hyperparameters
 MAX_LENGTH = 256
 BATCH_SIZE = 16
 EPOCHS = 10
@@ -82,10 +75,6 @@ WARMUP_RATIO = 0.1
 PATIENCE = 3
 MAX_GRAD_NORM = 1.0
 
-
-# =========================
-# Reproducibility
-# =========================
 def set_seed(seed: int = 42):
     os.environ["PYTHONHASHSEED"] = str(seed)
     random.seed(seed)
@@ -99,10 +88,6 @@ def set_seed(seed: int = 42):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
-
-# =========================
-# Utility Functions
-# =========================
 def ensure_directories():
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
@@ -150,9 +135,6 @@ def save_json(data: dict, file_path: Path):
         json.dump(data, f, indent=4, ensure_ascii=False)
 
 
-# =========================
-# Dataset Class
-# =========================
 class SentimentDataset(Dataset):
     def __init__(self, texts, labels, tokenizer, max_length):
         self.texts = list(texts)
@@ -184,9 +166,6 @@ class SentimentDataset(Dataset):
         }
 
 
-# =========================
-# Plot Functions
-# =========================
 def plot_confusion_matrix(cm, labels, save_path: Path):
     fig, ax = plt.subplots(figsize=(7, 6))
     im = ax.imshow(cm, interpolation="nearest", cmap="Blues")
@@ -352,9 +331,6 @@ def plot_training_loss(history_df: pd.DataFrame, save_path: Path):
     plt.close()
 
 
-# =========================
-# Training / Evaluation Helpers
-# =========================
 def train_one_epoch(model, data_loader, optimizer, scheduler, device):
     model.train()
 
@@ -437,9 +413,6 @@ def evaluate_model(model, data_loader, device):
     return avg_loss, accuracy, np.array(all_labels), np.array(all_probs)
 
 
-# =========================
-# Main Training Function
-# =========================
 def main():
     print("=" * 60)
     print("Training DistilBERT Model")
@@ -451,7 +424,6 @@ def main():
     device = get_device()
     print(f"Using device: {device}")
 
-    # Load data
     train_df = load_dataset(TRAIN_PATH)
     test_df = load_dataset(TEST_PATH)
 
@@ -470,7 +442,6 @@ def main():
     X_test_text = test_df[TEXT_COLUMN].values
     y_test_id = test_df["Label_ID_Final"].values
 
-    # Train-validation split from training set only
     X_train_text, X_val_text, y_train_id, y_val_id = train_test_split(
         X_full_train,
         y_full_train,
@@ -484,7 +455,6 @@ def main():
     print(f"Validation samples: {len(X_val_text)}")
     print(f"Testing samples: {len(X_test_text)}")
 
-    # Load tokenizer and model
     print(f"\nLoading tokenizer and model: {PRETRAINED_MODEL_NAME}")
 
     tokenizer = AutoTokenizer.from_pretrained(PRETRAINED_MODEL_NAME)
@@ -498,7 +468,6 @@ def main():
 
     model.to(device)
 
-    # Create datasets
     train_dataset = SentimentDataset(
         X_train_text,
         y_train_id,
@@ -538,7 +507,6 @@ def main():
         shuffle=False,
     )
 
-    # Optimizer and scheduler
     optimizer = AdamW(
         model.parameters(),
         lr=LEARNING_RATE,
@@ -562,7 +530,6 @@ def main():
     print(f"Warmup steps: {warmup_steps}")
     print(f"Total training steps: {total_training_steps}")
 
-    # Training loop
     history = []
     best_val_loss = float("inf")
     best_model_state = None
@@ -617,12 +584,10 @@ def main():
             print("Early stopping triggered.")
             break
 
-    # Load best model
     if best_model_state is not None:
         model.load_state_dict(best_model_state)
         model.to(device)
 
-    # Evaluate on test set
     print("\nEvaluating best model on test set...")
 
     test_loss, test_accuracy_internal, y_true_id, y_prob = evaluate_model(
@@ -631,7 +596,7 @@ def main():
         device,
     )
 
-    y_pred_id = np.argmax(y_prob, axis=1)# Neutral threshold adjustment
+    y_pred_id = np.argmax(y_prob, axis=1)
     NEUTRAL_ID = 1
     NEUTRAL_THRESHOLD = 0.45
 
@@ -691,7 +656,6 @@ def main():
 
     history_df = pd.DataFrame(history)
 
-    # Save model and tokenizer
     model_save_path = MODEL_DIR / f"{MODEL_NAME}_model"
     label_mapping_path = MODEL_DIR / f"{MODEL_NAME}_label_mapping.json"
 
@@ -707,7 +671,6 @@ def main():
         label_mapping_path,
     )
 
-    # Save metrics summary
     metrics_summary = {
         "model_name": MODEL_NAME,
         "pretrained_model": PRETRAINED_MODEL_NAME,
@@ -733,7 +696,6 @@ def main():
     metrics_df = pd.DataFrame([metrics_summary])
     metrics_df.to_csv(REPORT_DIR / f"{MODEL_NAME}_metrics_summary.csv", index=False)
 
-    # Save classification report
     report_df = pd.DataFrame(report_dict).transpose()
     report_df.to_csv(REPORT_DIR / f"{MODEL_NAME}_classification_report.csv", index=True)
 
@@ -742,11 +704,9 @@ def main():
         REPORT_DIR / f"{MODEL_NAME}_classification_report.txt",
     )
 
-    # Save confusion matrix
     cm_df = pd.DataFrame(cm, index=LABEL_ORDER, columns=LABEL_ORDER)
     cm_df.to_csv(REPORT_DIR / f"{MODEL_NAME}_confusion_matrix.csv")
 
-    # Save predictions
     predictions_df = pd.DataFrame(
         {
             "Text": X_test_text,
@@ -765,20 +725,17 @@ def main():
         index=False,
     )
 
-    # Save misclassified samples
     misclassified_df = predictions_df[predictions_df["Correct"] == False].copy()
     misclassified_df.to_csv(
         REPORT_DIR / f"{MODEL_NAME}_misclassified_samples.csv",
         index=False,
     )
 
-    # Save training history
     history_df.to_csv(
         REPORT_DIR / f"{MODEL_NAME}_training_history.csv",
         index=False,
     )
 
-    # Save model config
     save_json(
         {
             "model_name": MODEL_NAME,
@@ -805,7 +762,6 @@ def main():
         REPORT_DIR / f"{MODEL_NAME}_config.json",
     )
 
-    # Generate graphs
     print("\nGenerating graphs...")
 
     plot_confusion_matrix(
@@ -841,7 +797,6 @@ def main():
         GRAPH_DIR / f"{MODEL_NAME}_training_loss.png",
     )
 
-    # Print summary
     print("\n" + "=" * 60)
     print("DistilBERT Training Completed Successfully")
     print("=" * 60)

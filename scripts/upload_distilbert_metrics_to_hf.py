@@ -1,5 +1,3 @@
-# scripts/upload_distilbert_metrics_to_hf.py
-
 from pathlib import Path
 from huggingface_hub import HfApi
 

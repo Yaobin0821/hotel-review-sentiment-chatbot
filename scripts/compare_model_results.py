@@ -1,4 +1,3 @@
-# scripts/compare_model_results.py
 
 from pathlib import Path
 import json
@@ -10,9 +9,6 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 
-# =========================
-# Configuration
-# =========================
 BASE_DIR = Path(__file__).resolve().parents[1]
 
 REPORT_DIR = BASE_DIR / "reports"
@@ -43,9 +39,6 @@ OVERALL_METRICS = [
 ]
 
 
-# =========================
-# Utility Functions
-# =========================
 def ensure_directories():
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
     GRAPH_DIR.mkdir(parents=True, exist_ok=True)
@@ -87,9 +80,6 @@ def get_existing_models():
     return existing_models
 
 
-# =========================
-# Data Loading Functions
-# =========================
 def load_metrics_summary(model_name: str):
     metrics_path = REPORT_DIR / f"{model_name}_metrics_summary.csv"
     df = safe_read_csv(metrics_path)
@@ -137,7 +127,6 @@ def load_confusion_matrix(model_name: str):
     if df is None or df.empty:
         return None
 
-    # Ensure row and column order
     try:
         df = df.loc[LABEL_ORDER, LABEL_ORDER]
     except Exception:
@@ -160,9 +149,6 @@ def load_confusion_matrix(model_name: str):
     return pd.DataFrame(records)
 
 
-# =========================
-# Plot Functions
-# =========================
 def plot_overall_metrics_comparison(metrics_df: pd.DataFrame, save_path: Path):
     plot_metrics = ["accuracy", "macro_precision", "macro_recall", "macro_f1"]
 
@@ -464,9 +450,6 @@ def plot_macro_f1_ranking(metrics_df: pd.DataFrame, save_path: Path):
     plt.close()
 
 
-# =========================
-# Summary / Explanation
-# =========================
 def generate_comparison_summary(metrics_df: pd.DataFrame, best_model_row: pd.Series):
     best_model_display = best_model_row["model_display_name"]
     best_macro_f1 = best_model_row["macro_f1"]
@@ -507,9 +490,6 @@ def generate_comparison_summary(metrics_df: pd.DataFrame, best_model_row: pd.Ser
     return "\n".join(summary)
 
 
-# =========================
-# Main Function
-# =========================
 def main():
     print("=" * 60)
     print("Comparing Model Results")
@@ -528,7 +508,6 @@ def main():
     for model in existing_models:
         print(f"- {MODEL_DISPLAY_NAMES.get(model, model)}")
 
-    # Load metrics summaries
     metrics_records = []
 
     for model_name in existing_models:
@@ -542,7 +521,6 @@ def main():
 
     metrics_df = pd.DataFrame(metrics_records)
 
-    # Keep only useful columns if they exist
     preferred_columns = [
         "model_name",
         "model_display_name",
@@ -570,22 +548,18 @@ def main():
 
     metrics_df = metrics_df[existing_columns + remaining_columns].copy()
 
-    # Convert numeric metrics safely
     for metric in OVERALL_METRICS:
         if metric in metrics_df.columns:
             metrics_df[metric] = pd.to_numeric(metrics_df[metric], errors="coerce")
 
-    # Sort by Macro F1 first, then Accuracy
     metrics_df = metrics_df.sort_values(
         by=["macro_f1", "accuracy"],
         ascending=False,
     ).reset_index(drop=True)
 
-    # Save overall model evaluation result
     model_evaluation_path = REPORT_DIR / "model_evaluation_results.csv"
     metrics_df.to_csv(model_evaluation_path, index=False)
 
-    # Load classification reports
     class_report_frames = []
 
     for model_name in existing_models:
@@ -602,7 +576,6 @@ def main():
     all_class_reports_path = REPORT_DIR / "all_model_classification_reports.csv"
     all_class_reports_df.to_csv(all_class_reports_path, index=False)
 
-    # Load confusion matrices
     confusion_frames = []
 
     for model_name in existing_models:
@@ -619,7 +592,6 @@ def main():
     all_confusion_path = REPORT_DIR / "all_model_confusion_matrices.csv"
     all_confusion_df.to_csv(all_confusion_path, index=False)
 
-    # Best model summary
     best_model_row = metrics_df.iloc[0]
 
     best_model_summary = {
@@ -643,12 +615,10 @@ def main():
     best_model_summary_csv_path = REPORT_DIR / "best_model_summary.csv"
     pd.DataFrame([best_model_summary]).to_csv(best_model_summary_csv_path, index=False)
 
-    # Text summary for report writing
     comparison_text = generate_comparison_summary(metrics_df, best_model_row)
     comparison_text_path = REPORT_DIR / "model_comparison_summary.txt"
     save_text(comparison_text, comparison_text_path)
 
-    # Generate comparison graphs
     print("\nGenerating comparison graphs...")
 
     plot_overall_metrics_comparison(
@@ -684,7 +654,6 @@ def main():
     else:
         print("[WARNING] No classification reports found. Skipping per-class comparison graphs.")
 
-    # Print final summary
     print("\n" + "=" * 60)
     print("Model Comparison Completed Successfully")
     print("=" * 60)

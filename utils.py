@@ -7,17 +7,9 @@ import streamlit as st
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
 
-# =========================================================
-# Dataset Path
-# =========================================================
-
 BASE_DIR = Path(__file__).resolve().parent
 DATASET_PATH = BASE_DIR / "data" / "Hotel_Review_Summary_Processed.csv"
 
-
-# =========================================================
-# Hugging Face DistilBERT Sentiment Model
-# =========================================================
 
 HF_MODEL_ID = "qm0720/staywise-kl-distilbert-sentiment"
 
@@ -93,11 +85,6 @@ def predict_sentiment_distilbert(review_text):
             "Positive": round(float(probabilities[2]) * 100, 2)
         }
     }
-
-
-# =========================================================
-# Dataset Loading and Cleaning
-# =========================================================
 
 def safe_text(value, default=""):
     if pd.isna(value):
@@ -176,10 +163,6 @@ def load_hotel_review_summary_dataset():
 
     return df
 
-
-# =========================================================
-# Hotel Summary Functions for Main System Pages
-# =========================================================
 
 def get_areas():
     df = load_hotel_review_summary_dataset()
@@ -683,10 +666,6 @@ def sentiment_label_style(label):
 
     return label
 
-
-# =========================================================
-# Review Checker Rule-Based Supporting Analysis
-# =========================================================
 
 positive_words = [
     "good", "great", "excellent", "clean", "comfortable", "friendly",

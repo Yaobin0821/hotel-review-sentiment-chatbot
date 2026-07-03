@@ -1,2 +1,0 @@
-model_name,text_column,label_column,train_samples_total,internal_train_samples,validation_samples,test_samples,accuracy,macro_precision,macro_recall,macro_f1,weighted_precision,weighted_recall,weighted_f1,epochs_trained
-bilstm,Cleaned_Text,Sentiment,501,400,101,126,0.6587301587301587,0.6954983086130627,0.6587301587301587,0.6619056958862785,0.6954983086130627,0.6587301587301587,0.6619056958862783,13

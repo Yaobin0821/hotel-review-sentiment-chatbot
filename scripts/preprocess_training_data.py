@@ -5,9 +5,6 @@ from pathlib import Path
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-# =====================================================
-# Optional Translation Packages
-# =====================================================
 try:
     from langdetect import detect
     from deep_translator import GoogleTranslator
@@ -16,9 +13,6 @@ except ImportError:
     TRANSLATION_AVAILABLE = False
 
 
-# =====================================================
-# File Paths
-# =====================================================
 BASE_DIR = Path(__file__).resolve().parents[1]
 
 DATA_DIR = BASE_DIR / "data"
@@ -34,9 +28,6 @@ OUTPUT_SUMMARY = DATA_DIR / "preprocessing_summary.csv"
 OUTPUT_TRANSLATION_CACHE = DATA_DIR / "translation_cache.csv"
 
 
-# =====================================================
-# Label Mapping
-# =====================================================
 SENTIMENT_MAPPING = {
     "positive": "positive",
     "pos": "positive",
@@ -58,9 +49,6 @@ LABEL_ID_MAPPING = {
 }
 
 
-# =====================================================
-# Emoji and Emoticon Mapping
-# =====================================================
 EMOJI_MAPPING = {
     "😊": " positive emoji ",
     "😄": " positive emoji ",
@@ -103,9 +91,6 @@ EMOTICON_MAPPING = {
 }
 
 
-# =====================================================
-# Hotel Review Typo Normalisation
-# =====================================================
 TYPO_MAPPING = {
     "cleaness": "cleanliness",
     "cleanness": "cleanliness",
@@ -140,9 +125,6 @@ TYPO_MAPPING = {
 }
 
 
-# =====================================================
-# Malay / Malaysian Slang Normalisation
-# =====================================================
 MALAY_SLANG_MAPPING = {
     r"\bsy\b": "saya",
     r"\bsaye\b": "saya",
@@ -205,9 +187,6 @@ COMMON_ENGLISH_HOTEL_WORDS = {
 }
 
 
-# =====================================================
-# Dataset Loading
-# =====================================================
 def load_input_dataset() -> pd.DataFrame:
     if INPUT_CSV.exists():
         print(f"Reading CSV file: {INPUT_CSV}")
@@ -227,9 +206,6 @@ def load_input_dataset() -> pd.DataFrame:
     )
 
 
-# =====================================================
-# Translation Functions
-# =====================================================
 def load_translation_cache() -> dict:
     if OUTPUT_TRANSLATION_CACHE.exists():
         cache_df = pd.read_csv(OUTPUT_TRANSLATION_CACHE, encoding="utf-8-sig")
@@ -358,9 +334,6 @@ def translate_to_english_safe(text: str, translation_cache: dict):
         return original_text, detected_language, False
 
 
-# =====================================================
-# Text Processing Functions
-# =====================================================
 def replace_emoji_and_emoticon(text: str) -> str:
     text = str(text)
 
@@ -495,9 +468,6 @@ def detect_sentiment_column(df: pd.DataFrame) -> str:
     )
 
 
-# =====================================================
-# Main Preprocessing Function
-# =====================================================
 def main():
     print("========================================")
     print(" Hotel Review Dataset Preprocessing")
@@ -525,9 +495,6 @@ def main():
 
     original_rows = len(df)
 
-    # =====================================================
-    # Translation to English
-    # =====================================================
     print("\nDetecting language and translating non-English reviews...")
 
     translation_cache = load_translation_cache()
@@ -547,9 +514,6 @@ def main():
 
     print("Number of translated reviews:", int(df["Translation_Applied"].sum()))
 
-    # =====================================================
-    # Remove empty values
-    # =====================================================
     before_empty_filter = len(df)
 
     df = df.dropna(subset=["Review_Text", "Translated_Text", "Sentiment"])
@@ -561,9 +525,6 @@ def main():
 
     print("\nRows removed due to empty review/sentiment:", before_empty_filter - after_empty_filter)
 
-    # =====================================================
-    # Keep only valid sentiment labels
-    # =====================================================
     valid_sentiments = ["positive", "neutral", "negative"]
 
     before_valid_filter = len(df)
@@ -572,15 +533,9 @@ def main():
 
     print("Rows removed due to invalid sentiment labels:", before_valid_filter - after_valid_filter)
 
-    # =====================================================
-    # Create cleaned text columns
-    # =====================================================
     df["Cleaned_Text"] = df["Translated_Text"].apply(clean_text_for_traditional_model)
     df["BERT_Text"] = df["Translated_Text"].apply(clean_text_for_bert)
 
-    # =====================================================
-    # Remove short text
-    # =====================================================
     before_short_filter = len(df)
 
     df["Word_Count"] = df["Cleaned_Text"].apply(lambda x: len(str(x).split()))
@@ -590,9 +545,6 @@ def main():
 
     print("Rows removed because cleaned text is too short:", before_short_filter - after_short_filter)
 
-    # =====================================================
-    # Remove duplicate text
-    # =====================================================
     before_duplicates = len(df)
 
     df = df.drop_duplicates(subset=["Cleaned_Text"])
@@ -601,9 +553,6 @@ def main():
 
     print("Duplicate rows removed:", before_duplicates - after_duplicates)
 
-    # =====================================================
-    # Balance Dataset After Preprocessing
-    # =====================================================
     before_balance = len(df)
 
     class_counts = df["Sentiment"].value_counts()
@@ -626,14 +575,8 @@ def main():
     print("Balanced sentiment distribution:")
     print(df["Sentiment"].value_counts())
 
-    # =====================================================
-    # Add Label ID
-    # =====================================================
     df["Label_ID"] = df["Sentiment"].map(LABEL_ID_MAPPING)
 
-    # =====================================================
-    # Reorder columns
-    # =====================================================
     final_columns = [
         "Review_Text",
         "Detected_Language",
@@ -659,14 +602,8 @@ def main():
     print("\nFinal sentiment distribution:")
     print(df["Sentiment"].value_counts())
 
-    # =====================================================
-    # Save full preprocessed dataset
-    # =====================================================
     df.to_csv(OUTPUT_PREPROCESSED, index=False, encoding="utf-8-sig")
 
-    # =====================================================
-    # Train-test split
-    # =====================================================
     train_df, test_df = train_test_split(
         df,
         test_size=0.2,
@@ -689,9 +626,6 @@ def main():
     print("\nTest sentiment distribution:")
     print(test_df["Sentiment"].value_counts())
 
-    # =====================================================
-    # Save preprocessing summary
-    # =====================================================
     summary_rows = [
         {
             "Item": "Original Rows",

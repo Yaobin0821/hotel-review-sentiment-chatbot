@@ -1,2 +1,0 @@
-model_name,text_column,label_column,train_samples,test_samples,accuracy,macro_precision,macro_recall,macro_f1,weighted_precision,weighted_recall,weighted_f1
-logistic_regression,Cleaned_Text,Sentiment,501,126,0.6904761904761905,0.6858845448630744,0.6904761904761906,0.6789284051924768,0.6858845448630744,0.6904761904761905,0.6789284051924769

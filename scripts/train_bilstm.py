@@ -1,4 +1,3 @@
-# scripts/train_bilstm.py
 
 from pathlib import Path
 import os
@@ -41,9 +40,6 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.utils import to_categorical
 
 
-# =========================
-# Configuration
-# =========================
 MODEL_NAME = "bilstm"
 
 BASE_DIR = Path(__file__).resolve().parents[1]
@@ -76,7 +72,6 @@ NUM_CLASSES = 3
 
 RANDOM_STATE = 42
 
-# BiLSTM hyperparameters
 MAX_WORDS = 10000
 MAX_SEQUENCE_LENGTH = 80
 EMBEDDING_DIM = 100
@@ -90,20 +85,12 @@ EPOCHS = 35
 VALIDATION_SIZE = 0.2
 LEARNING_RATE = 0.001
 
-
-# =========================
-# Reproducibility
-# =========================
 def set_seed(seed: int = 42):
     os.environ["PYTHONHASHSEED"] = str(seed)
     random.seed(seed)
     np.random.seed(seed)
     tf.random.set_seed(seed)
 
-
-# =========================
-# Utility Functions
-# =========================
 def ensure_directories():
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
@@ -145,9 +132,6 @@ def save_json(data: dict, file_path: Path):
         json.dump(data, f, indent=4, ensure_ascii=False)
 
 
-# =========================
-# Plot Functions
-# =========================
 def plot_confusion_matrix(cm, labels, save_path: Path):
     fig, ax = plt.subplots(figsize=(7, 6))
     im = ax.imshow(cm, interpolation="nearest", cmap="Blues")
@@ -313,9 +297,6 @@ def plot_training_loss(history, save_path: Path):
     plt.close()
 
 
-# =========================
-# Model Builder
-# =========================
 def build_bilstm_model(vocab_size: int):
     model = Sequential(
         [
@@ -351,9 +332,6 @@ def build_bilstm_model(vocab_size: int):
     return model
 
 
-# =========================
-# Main Training Function
-# =========================
 def main():
     print("=" * 60)
     print("Training BiLSTM Model")
@@ -362,7 +340,6 @@ def main():
     set_seed(RANDOM_STATE)
     ensure_directories()
 
-    # Load data
     train_df = load_dataset(TRAIN_PATH)
     test_df = load_dataset(TEST_PATH)
 
@@ -381,7 +358,6 @@ def main():
     X_test_text = test_df[TEXT_COLUMN].values
     y_test_id = test_df["Label_ID_Final"].values
 
-    # Train-validation split from training set only
     X_train_text, X_val_text, y_train_id, y_val_id = train_test_split(
         X_full_train,
         y_full_train,
@@ -395,7 +371,6 @@ def main():
     print(f"Validation samples: {len(X_val_text)}")
     print(f"Testing samples: {len(X_test_text)}")
 
-    # Tokenization
     print("\nFitting tokenizer...")
     tokenizer = Tokenizer(num_words=MAX_WORDS, oov_token="<OOV>")
     tokenizer.fit_on_texts(X_train_text)
@@ -433,7 +408,6 @@ def main():
     print(f"Vocabulary size used: {vocab_size}")
     print(f"Maximum sequence length: {MAX_SEQUENCE_LENGTH}")
 
-    # Build model
     model = build_bilstm_model(vocab_size)
 
     print("\nModel summary:")
@@ -455,7 +429,6 @@ def main():
         ),
     ]
 
-    # Train model
     print("\nTraining model...")
     history = model.fit(
         X_train_pad,
@@ -467,7 +440,6 @@ def main():
         verbose=1,
     )
 
-    # Predict
     print("\nEvaluating model...")
     y_prob = model.predict(X_test_pad)
     y_pred_id = np.argmax(y_prob, axis=1)
@@ -475,7 +447,6 @@ def main():
     y_test_label = [ID_TO_SENTIMENT[int(i)] for i in y_test_id]
     y_pred_label = [ID_TO_SENTIMENT[int(i)] for i in y_pred_id]
 
-    # Metrics
     accuracy = accuracy_score(y_test_label, y_pred_label)
 
     macro_precision, macro_recall, macro_f1, _ = precision_recall_fscore_support(
@@ -513,7 +484,6 @@ def main():
         labels=LABEL_ORDER,
     )
 
-    # Save model
     model_path = MODEL_DIR / f"{MODEL_NAME}_model.keras"
     tokenizer_path = MODEL_DIR / f"{MODEL_NAME}_tokenizer.pkl"
     label_mapping_path = MODEL_DIR / f"{MODEL_NAME}_label_mapping.json"
@@ -530,7 +500,6 @@ def main():
         label_mapping_path,
     )
 
-    # Save metrics summary
     metrics_summary = {
         "model_name": MODEL_NAME,
         "text_column": TEXT_COLUMN,
@@ -552,7 +521,6 @@ def main():
     metrics_df = pd.DataFrame([metrics_summary])
     metrics_df.to_csv(REPORT_DIR / f"{MODEL_NAME}_metrics_summary.csv", index=False)
 
-    # Save classification report
     report_df = pd.DataFrame(report_dict).transpose()
     report_df.to_csv(REPORT_DIR / f"{MODEL_NAME}_classification_report.csv", index=True)
 
@@ -561,11 +529,9 @@ def main():
         REPORT_DIR / f"{MODEL_NAME}_classification_report.txt",
     )
 
-    # Save confusion matrix
     cm_df = pd.DataFrame(cm, index=LABEL_ORDER, columns=LABEL_ORDER)
     cm_df.to_csv(REPORT_DIR / f"{MODEL_NAME}_confusion_matrix.csv")
 
-    # Save predictions
     predictions_df = pd.DataFrame(
         {
             "Text": X_test_text,
@@ -584,18 +550,15 @@ def main():
         index=False,
     )
 
-    # Save misclassified samples
     misclassified_df = predictions_df[predictions_df["Correct"] == False].copy()
     misclassified_df.to_csv(
         REPORT_DIR / f"{MODEL_NAME}_misclassified_samples.csv",
         index=False,
     )
 
-    # Save training history
     history_df = pd.DataFrame(history.history)
     history_df.to_csv(REPORT_DIR / f"{MODEL_NAME}_training_history.csv", index=False)
 
-    # Save model config
     save_json(
         {
             "model_name": MODEL_NAME,
@@ -633,7 +596,6 @@ def main():
         REPORT_DIR / f"{MODEL_NAME}_config.json",
     )
 
-    # Generate graphs
     print("\nGenerating graphs...")
 
     plot_confusion_matrix(
@@ -669,7 +631,6 @@ def main():
         GRAPH_DIR / f"{MODEL_NAME}_training_loss.png",
     )
 
-    # Print summary
     print("\n" + "=" * 60)
     print("BiLSTM Training Completed Successfully")
     print("=" * 60)

@@ -1,5 +1,3 @@
-# scripts/train_logistic_regression.py
-
 from pathlib import Path
 import json
 import joblib
@@ -20,10 +18,6 @@ from sklearn.metrics import (
 )
 from sklearn.preprocessing import label_binarize
 
-
-# =========================
-# Configuration
-# =========================
 MODEL_NAME = "logistic_regression"
 
 TRAIN_PATH = Path("data/train_dataset.csv")
@@ -40,10 +34,6 @@ LABEL_ORDER = ["negative", "neutral", "positive"]
 
 RANDOM_STATE = 42
 
-
-# =========================
-# Utility Functions
-# =========================
 def ensure_directories():
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
@@ -61,14 +51,11 @@ def load_dataset(file_path: Path) -> pd.DataFrame:
         if col not in df.columns:
             raise ValueError(f"Required column '{col}' not found in {file_path}")
 
-    # Basic cleanup for safety
     df[TEXT_COLUMN] = df[TEXT_COLUMN].fillna("").astype(str).str.strip()
     df[LABEL_COLUMN] = df[LABEL_COLUMN].fillna("").astype(str).str.strip().str.lower()
 
-    # Remove empty text rows if any
     df = df[df[TEXT_COLUMN] != ""].copy()
 
-    # Keep only valid labels
     df = df[df[LABEL_COLUMN].isin(LABEL_ORDER)].copy()
 
     if df.empty:
@@ -86,10 +73,6 @@ def save_json(data: dict, file_path: Path):
     with open(file_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
 
-
-# =========================
-# Plot Functions
-# =========================
 def plot_confusion_matrix(cm, labels, save_path: Path):
     fig, ax = plt.subplots(figsize=(7, 6))
     im = ax.imshow(cm, interpolation="nearest", cmap="Blues")
@@ -195,7 +178,6 @@ def plot_overall_metrics(metrics: dict, save_path: Path):
 
 
 def plot_multiclass_roc(y_true, y_prob, labels, save_path: Path):
-    # Binarize true labels
     y_true_bin = label_binarize(y_true, classes=labels)
 
     fig, ax = plt.subplots(figsize=(8, 6))
@@ -217,10 +199,6 @@ def plot_multiclass_roc(y_true, y_prob, labels, save_path: Path):
     plt.savefig(save_path, dpi=300, bbox_inches="tight")
     plt.close()
 
-
-# =========================
-# Main Training Function
-# =========================
 def main():
     print("=" * 60)
     print("Training Logistic Regression Model")
@@ -228,7 +206,6 @@ def main():
 
     ensure_directories()
 
-    # Load data
     train_df = load_dataset(TRAIN_PATH)
     test_df = load_dataset(TEST_PATH)
 
@@ -245,7 +222,6 @@ def main():
     X_test = test_df[TEXT_COLUMN]
     y_test = test_df[LABEL_COLUMN]
 
-    # Build pipeline
     pipeline = Pipeline([
         (
             "tfidf",
@@ -267,22 +243,18 @@ def main():
         )
     ])
 
-    # Train
     print("\nTraining model...")
     pipeline.fit(X_train, y_train)
 
-    # Predict
     print("Evaluating model...")
     y_pred = pipeline.predict(X_test)
     y_prob_raw = pipeline.predict_proba(X_test)
 
-    # Reorder probabilities to match LABEL_ORDER
     model_classes = list(pipeline.named_steps["classifier"].classes_)
     prob_df = pd.DataFrame(y_prob_raw, columns=model_classes)
     prob_df = prob_df[LABEL_ORDER]
     y_prob = prob_df.values
 
-    # Metrics
     accuracy = accuracy_score(y_test, y_pred)
     macro_precision, macro_recall, macro_f1, _ = precision_recall_fscore_support(
         y_test,
@@ -315,11 +287,9 @@ def main():
 
     cm = confusion_matrix(y_test, y_pred, labels=LABEL_ORDER)
 
-    # Save model
     model_path = MODEL_DIR / f"{MODEL_NAME}_model.pkl"
     joblib.dump(pipeline, model_path)
 
-    # Save metrics summary
     metrics_summary = {
         "model_name": MODEL_NAME,
         "text_column": TEXT_COLUMN,
@@ -338,7 +308,6 @@ def main():
     metrics_df = pd.DataFrame([metrics_summary])
     metrics_df.to_csv(REPORT_DIR / f"{MODEL_NAME}_metrics_summary.csv", index=False)
 
-    # Save classification report
     report_df = pd.DataFrame(report_dict).transpose()
     report_df.to_csv(REPORT_DIR / f"{MODEL_NAME}_classification_report.csv", index=True)
 
@@ -347,11 +316,9 @@ def main():
         REPORT_DIR / f"{MODEL_NAME}_classification_report.txt"
     )
 
-    # Save confusion matrix
     cm_df = pd.DataFrame(cm, index=LABEL_ORDER, columns=LABEL_ORDER)
     cm_df.to_csv(REPORT_DIR / f"{MODEL_NAME}_confusion_matrix.csv")
 
-    # Save predictions
     predictions_df = pd.DataFrame({
         "Text": X_test.values,
         "Actual_Label": y_test.values,
@@ -364,11 +331,9 @@ def main():
     })
     predictions_df.to_csv(REPORT_DIR / f"{MODEL_NAME}_test_predictions.csv", index=False)
 
-    # Save misclassified samples
     misclassified_df = predictions_df[predictions_df["Correct"] == False].copy()
     misclassified_df.to_csv(REPORT_DIR / f"{MODEL_NAME}_misclassified_samples.csv", index=False)
 
-    # Save model config
     save_json(
         {
             "model_name": MODEL_NAME,
@@ -395,7 +360,6 @@ def main():
         REPORT_DIR / f"{MODEL_NAME}_config.json"
     )
 
-    # Generate graphs
     print("Generating graphs...")
     plot_confusion_matrix(
         cm,
@@ -421,7 +385,6 @@ def main():
         GRAPH_DIR / f"{MODEL_NAME}_roc_curve.png"
     )
 
-    # Print summary
     print("\n" + "=" * 60)
     print("Training Completed Successfully")
     print("=" * 60)

@@ -4,7 +4,6 @@ from huggingface_hub import HfApi, create_repo, upload_folder
 BASE_DIR = Path(__file__).resolve().parents[1]
 LOCAL_MODEL_DIR = BASE_DIR / "models" / "distilbert_model"
 
-# 你可以改这个 repo name
 MODEL_REPO_NAME = "staywise-kl-distilbert-sentiment"
 
 

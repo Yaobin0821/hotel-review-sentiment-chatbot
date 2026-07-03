@@ -1,2 +1,0 @@
-model_name,pretrained_model,text_column,label_column,train_samples_total,internal_train_samples,validation_samples,test_samples,test_loss,accuracy,macro_precision,macro_recall,macro_f1,weighted_precision,weighted_recall,weighted_f1,epochs_trained,best_val_loss,device
-roberta,cardiffnlp/twitter-roberta-base-sentiment-latest,BERT_Text,Sentiment,309,247,62,78,0.6307668150999607,0.6923076923076923,0.6843822843822843,0.6923076923076922,0.6858974358974358,0.6843822843822843,0.6923076923076923,0.6858974358974359,6,0.725597410432754,cuda

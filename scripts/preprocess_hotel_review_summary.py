@@ -6,9 +6,6 @@ from pathlib import Path
 import pandas as pd
 
 
-# =========================================================
-# Configuration
-# =========================================================
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 
@@ -24,9 +21,6 @@ ENABLE_TRANSLATION = True
 TRANSLATION_SLEEP_SECONDS = 0.35
 
 
-# =========================================================
-# Optional Libraries
-# =========================================================
 
 try:
     from langdetect import detect
@@ -42,9 +36,6 @@ except ImportError:
     DEEP_TRANSLATOR_AVAILABLE = False
 
 
-# =========================================================
-# Emoji and Emoticon Rules
-# =========================================================
 
 POSITIVE_EMOJIS = [
     "😊", "😍", "👍", "😁", "😄", "❤️", "✨", "🥰", "👏", "✅",
@@ -86,9 +77,6 @@ EMOJI_PATTERN = re.compile(
 )
 
 
-# =========================================================
-# Basic Helpers
-# =========================================================
 
 def safe_text(value, default=""):
     if pd.isna(value):
@@ -123,9 +111,6 @@ def save_translation_cache(cache):
         json.dump(cache, file, ensure_ascii=False, indent=2)
 
 
-# =========================================================
-# Language Detection
-# =========================================================
 
 def detect_review_language(text):
     text = safe_text(text)
@@ -143,9 +128,6 @@ def detect_review_language(text):
         return "unknown"
 
 
-# =========================================================
-# Translation
-# =========================================================
 
 def translate_to_english(text, detected_language, cache):
     text = safe_text(text)
@@ -186,9 +168,6 @@ def translate_to_english(text, detected_language, cache):
         return text
 
 
-# =========================================================
-# Emoji / Emoticon Extraction
-# =========================================================
 
 def extract_unicode_emojis(text):
     text = safe_text(text)
@@ -255,9 +234,6 @@ def remove_emojis_and_emoticons(text):
     return normalize_spaces(text)
 
 
-# =========================================================
-# Text Cleaning
-# =========================================================
 
 def clean_text_for_keyword_analysis(text):
     text = safe_text(text)
@@ -292,9 +268,6 @@ def prepare_bert_text(text):
     return text
 
 
-# =========================================================
-# Label Standardization
-# =========================================================
 
 def standardize_sentiment_label(value):
     value = safe_text(value).lower()
@@ -338,9 +311,6 @@ def standardize_general_label(value):
     return normalize_spaces(safe_text(value))
 
 
-# =========================================================
-# Validation
-# =========================================================
 
 def validate_required_columns(df):
     required_columns = [
@@ -363,9 +333,6 @@ def validate_required_columns(df):
         raise ValueError(f"Missing required columns: {missing_columns}")
 
 
-# =========================================================
-# Reports
-# =========================================================
 
 def create_language_report(df):
     language_report = (
@@ -449,9 +416,6 @@ def create_hotel_summary_report(df):
     )
 
 
-# =========================================================
-# Main Preprocessing
-# =========================================================
 
 def preprocess_dataset():
     print("=" * 70)
@@ -472,12 +436,10 @@ def preprocess_dataset():
 
     df = df.copy()
 
-    # Keep original raw fields
     df["Original_Review"] = df["Review"].apply(safe_text)
     df["Original_Sentiment"] = df["sentiment"].apply(safe_text)
     df["Original_Area"] = df["area"].apply(safe_text)
 
-    # Clean basic text columns
     text_columns = [
         "Review",
         "Hotel_name",
@@ -494,7 +456,6 @@ def preprocess_dataset():
     for column in text_columns:
         df[column] = df[column].apply(safe_text)
 
-    # Remove empty reviews / empty hotel names
     before_empty_filter = len(df)
 
     df = df[
@@ -506,7 +467,6 @@ def preprocess_dataset():
 
     print(f"Removed empty review / hotel name rows: {removed_empty_rows}")
 
-    # Detect duplicate reviews
     df["Is_Duplicate_Review"] = df.duplicated(
         subset=["Hotel_name", "Review"],
         keep="first"
@@ -516,7 +476,6 @@ def preprocess_dataset():
 
     print(f"Duplicate review rows detected: {duplicate_count}")
 
-    # Standardize labels
     df["sentiment"] = df["sentiment"].apply(standardize_sentiment_label)
     df["area"] = df["area"].apply(standardize_area_label)
     df["Source"] = df["Source"].apply(standardize_source_label)
@@ -527,7 +486,6 @@ def preprocess_dataset():
     df["Hotel_name"] = df["Hotel_name"].apply(standardize_general_label)
     df["Hotel_Address"] = df["Hotel_Address"].apply(standardize_general_label)
 
-    # Detect language
     print("Detecting language...")
 
     df["Detected_Language"] = df["Original_Review"].apply(detect_review_language)
@@ -537,7 +495,6 @@ def preprocess_dataset():
     print("\nLanguage distribution:")
     print(language_distribution)
 
-    # Emoji extraction
     print("\nExtracting emoji and emoticon signals...")
 
     emoji_results = df["Original_Review"].apply(detect_emoji_signals)
@@ -553,7 +510,6 @@ def preprocess_dataset():
     print("\nEmoji signal distribution:")
     print(df["Emoji_Sentiment"].value_counts())
 
-    # Translation
     print("\nTranslating non-English reviews when needed...")
 
     translation_cache = load_translation_cache()
@@ -580,14 +536,12 @@ def preprocess_dataset():
 
     save_translation_cache(translation_cache)
 
-    # Text preparation
     print("\nPreparing Cleaned_Text and BERT_Text...")
 
     df["Review_Without_Emoji"] = df["Translated_Review"].apply(remove_emojis_and_emoticons)
     df["Cleaned_Text"] = df["Translated_Review"].apply(clean_text_for_keyword_analysis)
     df["BERT_Text"] = df["Translated_Review"].apply(prepare_bert_text)
 
-    # Quality flags
     df["Needs_Translation"] = ~df["Detected_Language"].isin(["en", "en_assumed", "unknown"])
     df["Was_Translated"] = df["Original_Review"].str.strip() != df["Translated_Review"].str.strip()
     df["Has_Emoji"] = df["Emoji_Count"] > 0
@@ -595,7 +549,6 @@ def preprocess_dataset():
     df["Review_Length_Characters"] = df["Original_Review"].apply(len)
     df["Review_Length_Words"] = df["Cleaned_Text"].apply(lambda text: len(str(text).split()))
 
-    # Reorder columns
     preferred_columns = [
         "ID",
         "Hotel_name",
@@ -639,7 +592,6 @@ def preprocess_dataset():
 
     df = df[preferred_columns + remaining_columns]
 
-    # Save processed dataset
     print(f"\nSaving processed dataset to: {OUTPUT_FILE}")
 
     df.to_csv(
@@ -648,7 +600,6 @@ def preprocess_dataset():
         encoding="utf-8-sig"
     )
 
-    # Save reports
     print("Saving preprocessing reports...")
 
     create_language_report(df)
